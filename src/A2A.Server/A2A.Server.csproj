@@ -3,6 +3,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../A2A.Protocol/A2A.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -74,12 +74,15 @@ public sealed class TestHost
     public TaskEventBroker Broker { get; }
     public TaskManager Manager { get; }
 
-    public TestHost(AgentCard? card = null, AgentCard? extendedCard = null, int brokerCapacity = TaskEventBroker.DefaultCapacity)
+    public TestHost(AgentCard? card = null, AgentCard? extendedCard = null, int brokerCapacity = TaskEventBroker.DefaultCapacity,
+        IEnumerable<ITaskEventObserver>? observers = null, A2A.Server.Push.IPushConfigStore? pushConfigs = null,
+        A2A.Server.Push.PushOptions? pushOptions = null)
     {
         var services = new ServiceCollection().AddSingleton(Scripts).BuildServiceProvider();
         var registration = new AgentRegistration(AgentName, typeof(ScriptedAgent), card ?? DefaultCard, extendedCard, null);
         Broker = new TaskEventBroker(brokerCapacity);
-        Manager = new TaskManager(new AgentCatalog([registration]), Store, Broker, services, time: new FixedTimeProvider(Now));
+        Manager = new TaskManager(new AgentCatalog([registration]), Store, Broker, services, observers, time: new FixedTimeProvider(Now),
+            pushConfigs: pushConfigs, pushOptions: pushOptions);
     }
 
     public static AgentCard DefaultCard => new()

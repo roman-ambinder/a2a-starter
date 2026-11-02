@@ -654,22 +654,6 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task Push_operations_are_unsupported_for_now()
-    {
-        var host = new TestHost();
-        var call = TestHost.Call();
-
-        await ThrowsA2A(A2AErrorCode.UnsupportedOperation,
-            () => host.Manager.CreateTaskPushNotificationConfigAsync(call, new TaskPushNotificationConfig { TaskId = "t", Url = "http://x" }, CancellationToken.None));
-        await ThrowsA2A(A2AErrorCode.UnsupportedOperation,
-            () => host.Manager.GetTaskPushNotificationConfigAsync(call, new GetTaskPushNotificationConfigRequest { TaskId = "t", Id = "p" }, CancellationToken.None));
-        await ThrowsA2A(A2AErrorCode.UnsupportedOperation,
-            () => host.Manager.ListTaskPushNotificationConfigsAsync(call, new ListTaskPushNotificationConfigsRequest { TaskId = "t" }, CancellationToken.None));
-        await ThrowsA2A(A2AErrorCode.UnsupportedOperation,
-            () => host.Manager.DeleteTaskPushNotificationConfigAsync(call, new DeleteTaskPushNotificationConfigRequest { TaskId = "t", Id = "p" }, CancellationToken.None));
-    }
-
-    [Fact]
     public async Task Observers_see_every_task_event_in_order()
     {
         var observer = new RecordingObserver();

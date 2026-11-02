@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using A2A.Protocol;
 using A2A.Server.Agents;
+using A2A.Server.Push;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,6 +21,7 @@ public sealed class TaskManager : IA2ARequestHandler
     private readonly IServiceProvider _services;
     private readonly ILogger _logger;
     private readonly TaskWriter _writer;
+    private readonly PushConfigService _push;
     private readonly ConcurrentDictionary<(string Agent, string TaskId), TaskExecution> _running = new();
 
     // Tasks with a CancelTask in progress. Set and checked under the task lock; continuations are rejected
@@ -27,9 +29,12 @@ public sealed class TaskManager : IA2ARequestHandler
     private readonly ConcurrentDictionary<(string Agent, string TaskId), byte> _cancelling = new();
 
     /// <param name="observers">Called for every task event (seam for push delivery). See <see cref="ITaskEventObserver"/>.</param>
+    /// <param name="pushConfigs">Where push configs live. Default: a new in-memory store (share it with the sender).</param>
+    /// <param name="pushOptions">Webhook URL rules. Default <see cref="PushOptions"/>.</param>
     /// <param name="time">Clock for status timestamps. Default <see cref="TimeProvider.System"/>.</param>
     public TaskManager(AgentCatalog catalog, ITaskStore store, TaskEventBroker broker, IServiceProvider services,
-        IEnumerable<ITaskEventObserver>? observers = null, ILogger<TaskManager>? logger = null, TimeProvider? time = null)
+        IEnumerable<ITaskEventObserver>? observers = null, ILogger<TaskManager>? logger = null, TimeProvider? time = null,
+        IPushConfigStore? pushConfigs = null, PushOptions? pushOptions = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _services = services ?? throw new ArgumentNullException(nameof(services));
@@ -40,6 +45,7 @@ public sealed class TaskManager : IA2ARequestHandler
             observers?.ToList() ?? [],
             time ?? TimeProvider.System,
             _logger);
+        _push = new PushConfigService(pushConfigs ?? new InMemoryPushConfigStore(), pushOptions ?? new PushOptions());
     }
 
     public async Task<SendMessageResponse> SendMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
@@ -165,18 +171,34 @@ public sealed class TaskManager : IA2ARequestHandler
         }
     }
 
-    // Push notifications arrive in Task 7. Until then every push operation is unsupported.
-    public Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(A2ACallContext call, TaskPushNotificationConfig request, CancellationToken ct)
-        => throw PushNotImplemented();
+    public async Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(A2ACallContext call, TaskPushNotificationConfig request, CancellationToken ct)
+    {
+        RequirePush(GetAgent(call));
+        await LoadOwnedAsync(call, request.TaskId ?? "", ct).ConfigureAwait(false);
+        return await _push.SaveAsync(call.AgentName, request.TaskId!, request, ct).ConfigureAwait(false);
+    }
 
-    public Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(A2ACallContext call, GetTaskPushNotificationConfigRequest request, CancellationToken ct)
-        => throw PushNotImplemented();
+    public async Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(A2ACallContext call, GetTaskPushNotificationConfigRequest request, CancellationToken ct)
+    {
+        RequirePush(GetAgent(call));
+        await LoadOwnedAsync(call, request.TaskId, ct).ConfigureAwait(false);
+        return await _push.GetAsync(call.AgentName, request.TaskId, request.Id, ct).ConfigureAwait(false)
+               ?? throw new A2AException(A2AErrorCode.TaskNotFound, $"Push notification config '{request.Id}' was not found for task '{request.TaskId}'.");
+    }
 
-    public Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(A2ACallContext call, ListTaskPushNotificationConfigsRequest request, CancellationToken ct)
-        => throw PushNotImplemented();
+    public async Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(A2ACallContext call, ListTaskPushNotificationConfigsRequest request, CancellationToken ct)
+    {
+        RequirePush(GetAgent(call));
+        await LoadOwnedAsync(call, request.TaskId, ct).ConfigureAwait(false);
+        return await _push.ListAsync(call.AgentName, request.TaskId, request.PageSize, request.PageToken, ct).ConfigureAwait(false);
+    }
 
-    public Task DeleteTaskPushNotificationConfigAsync(A2ACallContext call, DeleteTaskPushNotificationConfigRequest request, CancellationToken ct)
-        => throw PushNotImplemented();
+    public async Task DeleteTaskPushNotificationConfigAsync(A2ACallContext call, DeleteTaskPushNotificationConfigRequest request, CancellationToken ct)
+    {
+        RequirePush(GetAgent(call));
+        await LoadOwnedAsync(call, request.TaskId, ct).ConfigureAwait(false);
+        await _push.DeleteAsync(call.AgentName, request.TaskId, request.Id, ct).ConfigureAwait(false); // idempotent
+    }
 
     public Task<AgentCard> GetExtendedAgentCardAsync(A2ACallContext call, GetExtendedAgentCardRequest request, CancellationToken ct)
     {
@@ -193,8 +215,12 @@ public sealed class TaskManager : IA2ARequestHandler
         var registration = GetAgent(call);
         RequestValidator.ValidateMessage(request, registration.PublicCard);
         var extensions = RequestValidator.ResolveExtensions(registration.PublicCard, call.RequestedExtensions);
-        if (request.Configuration?.TaskPushNotificationConfig is not null)
-            throw new A2AException(A2AErrorCode.PushNotificationNotSupported, "Push notifications are not supported yet.");
+        var pushConfig = request.Configuration?.TaskPushNotificationConfig;
+        if (pushConfig is not null)
+        {
+            RequirePush(registration);
+            await _push.ValidateAsync(pushConfig, ct).ConfigureAwait(false);
+        }
 
         var message = request.Message;
         var agent = call.AgentName;
@@ -208,6 +234,8 @@ public sealed class TaskManager : IA2ARequestHandler
             var taskId = Guid.NewGuid().ToString();
             var contextId = string.IsNullOrEmpty(message.ContextId) ? Guid.NewGuid().ToString() : message.ContextId;
             var userMessage = message with { TaskId = taskId, ContextId = contextId };
+            // Saved before the agent starts, so the first event is already delivered to it.
+            if (pushConfig is not null) await _push.SaveAsync(agent, taskId, pushConfig, ct).ConfigureAwait(false);
             execution = new TaskExecution(agent, taskId);
             _running[(agent, taskId)] = execution;
             if (subscribe) subscription = _writer.Broker.Open(agent, taskId, ct);
@@ -240,6 +268,7 @@ public sealed class TaskManager : IA2ARequestHandler
                     },
                 };
                 execution = new TaskExecution(agent, taskId);
+                if (pushConfig is not null) await _push.SaveAsync(agent, taskId, pushConfig, ct).ConfigureAwait(false);
                 if (subscribe) subscription = _writer.Broker.Open(agent, taskId, ct);
                 try
                 {
@@ -379,6 +408,9 @@ public sealed class TaskManager : IA2ARequestHandler
             throw new A2AException(A2AErrorCode.UnsupportedOperation, "This agent does not support streaming.");
     }
 
-    private static A2AException PushNotImplemented()
-        => new(A2AErrorCode.UnsupportedOperation, "Push notification configs are not supported yet.");
+    private static void RequirePush(AgentRegistration registration)
+    {
+        if (registration.PublicCard.Capabilities.PushNotifications != true)
+            throw new A2AException(A2AErrorCode.PushNotificationNotSupported, "This agent does not support push notifications.");
+    }
 }
