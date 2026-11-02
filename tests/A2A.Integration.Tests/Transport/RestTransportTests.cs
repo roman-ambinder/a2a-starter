@@ -67,6 +67,61 @@ public sealed class RestTransportTests(MinimalServer server)
         }
     }
 
+    [Theory]
+    [MemberData(nameof(Operations))]
+    public async Task Every_operation_is_reachable_at_tenant_prefixed_path_and_passes_the_tenant(string method, string template, string bodyKind)
+    {
+        using var client = Client("dave");
+        var (task, config) = await SetUpAsync(client);
+        var tenant = "acme-" + Guid.NewGuid().ToString("N")[..8];
+        var path = $"{tenant}/" + template.Replace("{task}", task).Replace("{config}", config);
+        var body = bodyKind switch
+        {
+            "send" => SendBody("reach").ToJsonString(),
+            "push" => new JsonObject { ["url"] = "http://127.0.0.1:9/other" }.ToJsonString(),
+            _ => null,
+        };
+
+        using var response = await client.SendAsync(Req(new HttpMethod(method), Echo, path, body), Ct);
+        var text = await response.Content.ReadAsStringAsync(Ct);
+
+        Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.True((int)response.StatusCode < 500, $"{response.StatusCode}: {text}");
+        Assert.Contains(server.HandlerCalls, c => c.Tenant == tenant);
+    }
+
+    [Fact]
+    public async Task Tenant_prefixed_send_and_get_roundtrip()
+    {
+        using var client = Client("erin");
+        var body = SendBody("tenant hello");
+        body["tenant"] = "acme"; // same as the path: accepted
+        using var sent = await client.SendAsync(Req(HttpMethod.Post, Echo, "acme/message:send", body.ToJsonString()), Ct);
+        var text = await sent.Content.ReadAsStringAsync(Ct);
+        Assert.True(sent.StatusCode == HttpStatusCode.OK, text);
+        var id = JsonNode.Parse(text)!["task"]!["id"]!.GetValue<string>();
+
+        var got = await GetAsync(client, $"acme/tasks/{id}");
+        Assert.Equal(id, got["id"]!.GetValue<string>());
+        var listed = await GetAsync(client, "acme/tasks");
+        Assert.Contains(listed["tasks"]!.AsArray(), t => t!["id"]!.GetValue<string>() == id);
+    }
+
+    [Fact]
+    public async Task Tenant_in_body_that_differs_from_path_is_invalid_params()
+    {
+        using var client = Client("erin");
+        var body = SendBody("x");
+        body["tenant"] = "other";
+        using var response = await client.SendAsync(Req(HttpMethod.Post, Echo, "acme/message:send", body.ToJsonString()), Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!["error"]!;
+        Assert.Equal("INVALID_ARGUMENT", error["status"]!.GetValue<string>());
+        Assert.Contains("tenant", error["message"]!.GetValue<string>());
+    }
+
     [Fact]
     public async Task Send_and_get_task_roundtrip()
     {

@@ -115,6 +115,68 @@ public sealed class TransportParityTests(MinimalServer server)
         Assert.Equal("Extended echo card", card.Description);
     }
 
+    private static readonly string[] AllOperations =
+    [
+        "SendMessage", "SendStreamingMessage", "GetTask", "ListTasks", "CancelTask", "SubscribeToTask",
+        "CreateTaskPushNotificationConfig", "GetTaskPushNotificationConfig", "ListTaskPushNotificationConfigs",
+        "DeleteTaskPushNotificationConfig", "GetExtendedAgentCard",
+    ];
+
+    /// <summary>Runs all 11 operations; <paramref name="tenant"/> is set on every request (null: left empty).</summary>
+    private static async Task RunAllOperationsAsync(IA2AClient client, string? tenant)
+    {
+        SendMessageRequest Msg(string text, bool immediate = false) => Send(text, immediate) with { Tenant = tenant };
+        var task = (await client.SendMessageAsync(Msg("hello"), Ct)).Task!;
+        await foreach (var _ in client.SendStreamingMessageAsync(Msg("stream"), Ct)) { }
+        await client.GetTaskAsync(new GetTaskRequest { Id = task.Id, Tenant = tenant }, Ct);
+        await client.ListTasksAsync(new ListTasksRequest { ContextId = task.ContextId, Tenant = tenant }, Ct);
+        var slow = (await client.SendMessageAsync(Msg("slow:5000", immediate: true), Ct)).Task!;
+        await client.CancelTaskAsync(new CancelTaskRequest { Id = slow.Id, Tenant = tenant }, Ct);
+        var slow2 = (await client.SendMessageAsync(Msg("slow:300", immediate: true), Ct)).Task!;
+        await foreach (var _ in client.SubscribeToTaskAsync(new SubscribeToTaskRequest { Id = slow2.Id, Tenant = tenant }, Ct)) { }
+        var created = await client.CreateTaskPushNotificationConfigAsync(
+            new TaskPushNotificationConfig { TaskId = task.Id, Url = "http://127.0.0.1:1/hook", Tenant = tenant }, Ct);
+        await client.GetTaskPushNotificationConfigAsync(new GetTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id!, Tenant = tenant }, Ct);
+        await client.ListTaskPushNotificationConfigsAsync(new ListTaskPushNotificationConfigsRequest { TaskId = task.Id, Tenant = tenant }, Ct);
+        await client.DeleteTaskPushNotificationConfigAsync(new DeleteTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id!, Tenant = tenant }, Ct);
+        await client.GetExtendedAgentCardAsync(new GetExtendedAgentCardRequest { Tenant = tenant }, Ct);
+    }
+
+    private void AssertEveryOperationSaw(string tenant)
+    {
+        var seen = server.HandlerCalls.Where(c => c.Tenant == tenant).Select(c => c.Operation).ToHashSet();
+        Assert.All(AllOperations, op => Assert.Contains(op, seen));
+    }
+
+    [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Request_tenant_reaches_the_handler_on_every_transport(string binding)
+    {
+        await using var client = await CreateAsync(binding, credentials: new TestUserCredentials("tina"));
+        var tenant = "tenant-" + Guid.NewGuid().ToString("N")[..8];
+
+        await RunAllOperationsAsync(client, tenant);
+
+        AssertEveryOperationSaw(tenant);
+    }
+
+    [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Interface_tenant_is_the_default_tenant_on_every_transport(string binding)
+    {
+        using var http = new HttpClient();
+        var card = await new A2ACardResolver(http).GetAgentCardAsync(new Uri($"{MinimalServer.BaseUrl}/agents/{MinimalServer.EchoAgentName}"), Ct);
+        var tenant = "default-" + Guid.NewGuid().ToString("N")[..8];
+        card = card with { SupportedInterfaces = [.. card.SupportedInterfaces.Select(i => i with { Tenant = tenant })] };
+        await using var client = A2AClientFactory.Create(card, new A2AClientOptions
+        {
+            PreferredBinding = binding,
+            Credentials = new TestUserCredentials("tina"),
+        });
+
+        await RunAllOperationsAsync(client, tenant: null);
+
+        AssertEveryOperationSaw(tenant);
+    }
+
     [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
     public async Task Errors_have_same_code_on_every_transport(string binding)
     {

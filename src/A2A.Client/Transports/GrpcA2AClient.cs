@@ -18,11 +18,14 @@ public sealed class GrpcA2AClient : IA2AClient
     private readonly A2AClientOptions _options;
     private readonly GrpcChannel _channel;
     private readonly Proto.A2AService.A2AServiceClient _client;
+    private readonly string? _defaultTenant;
 
     /// <param name="address">The gRPC address from the card's supportedInterfaces (<c>http://</c> uses h2c).</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
-    public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options)
+    /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
+    public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
     {
+        _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         ArgumentNullException.ThrowIfNull(address);
         _card = card ?? throw new ArgumentNullException(nameof(card));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -36,7 +39,7 @@ public sealed class GrpcA2AClient : IA2AClient
 
     public async Task<SendMessageResponse> SendMessageAsync(SendMessageRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.SendMessageAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.SendMessageAsync(r, o), ct).ConfigureAwait(false);
         return Map(() =>
         {
             switch (reply.PayloadCase)
@@ -54,17 +57,17 @@ public sealed class GrpcA2AClient : IA2AClient
     }
 
     public IAsyncEnumerable<StreamResponse> SendStreamingMessageAsync(SendMessageRequest request, CancellationToken ct = default)
-        => StreamAsync(ProtoMapper.ToProto(request), (r, o) => _client.SendStreamingMessage(r, o), ct);
+        => StreamAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.SendStreamingMessage(r, o), ct);
 
     public async Task<AgentTask> GetTaskAsync(GetTaskRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.GetTaskAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.GetTaskAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(RequireStatus(reply)), "GetTask result");
     }
 
     public async Task<ListTasksResponse> ListTasksAsync(ListTasksRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.ListTasksAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.ListTasksAsync(r, o), ct).ConfigureAwait(false);
         return Map(() =>
         {
             foreach (var task in reply.Tasks) RequireStatus(task);
@@ -74,37 +77,37 @@ public sealed class GrpcA2AClient : IA2AClient
 
     public async Task<AgentTask> CancelTaskAsync(CancelTaskRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.CancelTaskAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.CancelTaskAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(RequireStatus(reply)), "CancelTask result");
     }
 
     public IAsyncEnumerable<StreamResponse> SubscribeToTaskAsync(SubscribeToTaskRequest request, CancellationToken ct = default)
-        => StreamAsync(ProtoMapper.ToProto(request), (r, o) => _client.SubscribeToTask(r, o), ct);
+        => StreamAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.SubscribeToTask(r, o), ct);
 
     public async Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(TaskPushNotificationConfig request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.CreateTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.CreateTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(reply), "CreateTaskPushNotificationConfig result");
     }
 
     public async Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(GetTaskPushNotificationConfigRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.GetTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.GetTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(reply), "GetTaskPushNotificationConfig result");
     }
 
     public async Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(ListTaskPushNotificationConfigsRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.ListTaskPushNotificationConfigsAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.ListTaskPushNotificationConfigsAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(reply), "ListTaskPushNotificationConfigs result");
     }
 
     public async Task DeleteTaskPushNotificationConfigAsync(DeleteTaskPushNotificationConfigRequest request, CancellationToken ct = default)
-        => _ = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.DeleteTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
+        => _ = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.DeleteTaskPushNotificationConfigAsync(r, o), ct).ConfigureAwait(false);
 
     public async Task<AgentCard> GetExtendedAgentCardAsync(GetExtendedAgentCardRequest request, CancellationToken ct = default)
     {
-        var reply = await UnaryAsync(ProtoMapper.ToProto(request), (r, o) => _client.GetExtendedAgentCardAsync(r, o), ct).ConfigureAwait(false);
+        var reply = await UnaryAsync(ProtoMapper.ToProto(ClientSupport.WithTenant(request, _defaultTenant)), (r, o) => _client.GetExtendedAgentCardAsync(r, o), ct).ConfigureAwait(false);
         return Map(() => ProtoMapper.FromProto(reply), "GetExtendedAgentCard result");
     }
 

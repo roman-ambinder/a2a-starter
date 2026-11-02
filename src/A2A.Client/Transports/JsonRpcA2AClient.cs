@@ -15,12 +15,15 @@ public sealed class JsonRpcA2AClient : IA2AClient
     private readonly A2AClientOptions _options;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
+    private readonly string? _defaultTenant;
     private long _nextId;
 
     /// <param name="endpoint">The JSON-RPC URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
-    public JsonRpcA2AClient(Uri endpoint, AgentCard card, A2AClientOptions options)
+    /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
+    public JsonRpcA2AClient(Uri endpoint, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
     {
+        _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
         _card = card ?? throw new ArgumentNullException(nameof(card));
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -113,6 +116,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
 
     private async Task<HttpResponseMessage> SendAsync<TRequest>(string method, TRequest request, string accept, CancellationToken ct)
     {
+        request = ClientSupport.WithTenant(request, _defaultTenant);
         using var message = new HttpRequestMessage(HttpMethod.Post, _endpoint)
         {
             Content = new ByteArrayContent(BuildBody(method, request)),

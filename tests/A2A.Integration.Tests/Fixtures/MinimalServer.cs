@@ -1,9 +1,12 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using A2A.Protocol;
+using A2A.Server;
 using A2A.Server.Agents;
 using A2A.Server.Hosting;
+using A2A.Server.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -47,6 +50,9 @@ public sealed class MinimalServer : IAsyncLifetime
 
     private WebApplication? _app;
 
+    /// <summary>Every call the transports made into the request handler: operation name and <see cref="A2ACallContext.Tenant"/>.</summary>
+    public ConcurrentQueue<(string Operation, string? Tenant)> HandlerCalls { get; } = new();
+
     public WebApplication App => _app ?? throw new InvalidOperationException("Server not started.");
 
     public async ValueTask InitializeAsync()
@@ -64,6 +70,8 @@ public sealed class MinimalServer : IAsyncLifetime
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(InvokerPolicy, p => p.RequireAuthenticatedUser().RequireRole(InvokerRole));
 
+        // Registered before AddA2AServer (which uses TryAdd), so the transports call the recorder, which calls TaskManager.
+        builder.Services.AddSingleton<IA2ARequestHandler>(sp => new RecordingHandler(sp.GetRequiredService<TaskManager>(), HandlerCalls));
         builder.Services
             .AddA2AServer(o =>
             {
@@ -121,6 +129,39 @@ public sealed class MinimalServer : IAsyncLifetime
 public sealed class MinimalServerCollection : ICollectionFixture<MinimalServer>
 {
     public const string Name = "MinimalServer";
+}
+
+/// <summary>Records operation name and tenant of each call, then delegates to the real handler.</summary>
+public sealed class RecordingHandler(IA2ARequestHandler inner, ConcurrentQueue<(string Operation, string? Tenant)> calls) : IA2ARequestHandler
+{
+    private T Record<T>(string operation, A2ACallContext call, T result)
+    {
+        calls.Enqueue((operation, call.Tenant));
+        return result;
+    }
+
+    public Task<SendMessageResponse> SendMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
+        => Record("SendMessage", call, inner.SendMessageAsync(call, request, ct));
+    public IAsyncEnumerable<StreamResponse> SendStreamingMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
+        => Record("SendStreamingMessage", call, inner.SendStreamingMessageAsync(call, request, ct));
+    public Task<AgentTask> GetTaskAsync(A2ACallContext call, GetTaskRequest request, CancellationToken ct)
+        => Record("GetTask", call, inner.GetTaskAsync(call, request, ct));
+    public Task<ListTasksResponse> ListTasksAsync(A2ACallContext call, ListTasksRequest request, CancellationToken ct)
+        => Record("ListTasks", call, inner.ListTasksAsync(call, request, ct));
+    public Task<AgentTask> CancelTaskAsync(A2ACallContext call, CancelTaskRequest request, CancellationToken ct)
+        => Record("CancelTask", call, inner.CancelTaskAsync(call, request, ct));
+    public IAsyncEnumerable<StreamResponse> SubscribeToTaskAsync(A2ACallContext call, SubscribeToTaskRequest request, CancellationToken ct)
+        => Record("SubscribeToTask", call, inner.SubscribeToTaskAsync(call, request, ct));
+    public Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(A2ACallContext call, TaskPushNotificationConfig request, CancellationToken ct)
+        => Record("CreateTaskPushNotificationConfig", call, inner.CreateTaskPushNotificationConfigAsync(call, request, ct));
+    public Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(A2ACallContext call, GetTaskPushNotificationConfigRequest request, CancellationToken ct)
+        => Record("GetTaskPushNotificationConfig", call, inner.GetTaskPushNotificationConfigAsync(call, request, ct));
+    public Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(A2ACallContext call, ListTaskPushNotificationConfigsRequest request, CancellationToken ct)
+        => Record("ListTaskPushNotificationConfigs", call, inner.ListTaskPushNotificationConfigsAsync(call, request, ct));
+    public Task DeleteTaskPushNotificationConfigAsync(A2ACallContext call, DeleteTaskPushNotificationConfigRequest request, CancellationToken ct)
+        => Record("DeleteTaskPushNotificationConfig", call, inner.DeleteTaskPushNotificationConfigAsync(call, request, ct));
+    public Task<AgentCard> GetExtendedAgentCardAsync(A2ACallContext call, GetExtendedAgentCardRequest request, CancellationToken ct)
+        => Record("GetExtendedAgentCard", call, inner.GetExtendedAgentCardAsync(call, request, ct));
 }
 
 /// <summary>WORKING → artifact "echo: {text}" → COMPLETED. Text <c>slow:{ms}</c> waits that long after WORKING.</summary>

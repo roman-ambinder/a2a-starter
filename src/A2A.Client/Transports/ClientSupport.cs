@@ -41,6 +41,30 @@ internal static class ClientSupport
         return handler;
     }
 
+    /// <summary>
+    /// <paramref name="request"/> with <c>Tenant</c> set to <paramref name="defaultTenant"/> when the request has none. Requests
+    /// with their own tenant, and types without a tenant, are returned unchanged.
+    /// </summary>
+    public static T WithTenant<T>(T request, string? defaultTenant)
+    {
+        if (string.IsNullOrEmpty(defaultTenant)) return request;
+        object? result = request switch
+        {
+            SendMessageRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            GetTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            ListTasksRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            CancelTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            SubscribeToTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            TaskPushNotificationConfig r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            GetTaskPushNotificationConfigRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            ListTaskPushNotificationConfigsRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            DeleteTaskPushNotificationConfigRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            GetExtendedAgentCardRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            _ => request,
+        };
+        return (T)result!;
+    }
+
     /// <summary>True for an SSE payload with content; blank payloads are heartbeats.</summary>
     public static bool IsPayload(string data) => !string.IsNullOrWhiteSpace(data);
 

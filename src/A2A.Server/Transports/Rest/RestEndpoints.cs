@@ -19,6 +19,8 @@ namespace A2A.Server.Transports.Rest;
 /// path and verb (404/405) → version (400) → extended card needs an authenticated caller (401) → body size (413) →
 /// body and query (400) → required fields (400) → handler. Errors are google.rpc.Status bodies.
 /// A streaming error before the first event is a plain error response; after it, one final <c>data: {"error":..}</c> frame.
+/// Every path also exists with a <c>/{tenant}</c> prefix (the proto's <c>additional_bindings</c>); the path tenant is set on the
+/// request, and a different non-empty <c>tenant</c> in the body is InvalidParams.
 /// </summary>
 internal static class RestEndpoints
 {
@@ -29,7 +31,7 @@ internal static class RestEndpoints
 
     private enum Op { Send, Stream, GetTask, ListTasks, Cancel, Subscribe, CreatePush, GetPush, ListPush, DeletePush, ExtendedCard }
 
-    private sealed record Route(Op Op, string TaskId = "", string ConfigId = "");
+    private sealed record Route(Op Op, string TaskId = "", string ConfigId = "", string? Tenant = null);
 
     private static readonly Dictionary<string, Kind> GetTaskQuery = new() { ["historyLength"] = Kind.Int };
 
@@ -159,10 +161,28 @@ internal static class RestEndpoints
     // ---------- path ----------
 
     /// <summary>Matches the path and verb. Null with <paramref name="allowed"/> set → path known, verb wrong (405). Null with no list → unknown path.</summary>
+    /// A path without a known first segment is tried again as <c>/{tenant}/...</c>.
     private static Route? Resolve(string method, string path, out string[]? allowed)
     {
-        allowed = null;
         var s = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var verbs = Match(s);
+        string? tenant = null;
+        if (verbs is null && s.Length >= 2)
+        {
+            verbs = Match(s[1..]);
+            tenant = s[0];
+        }
+
+        allowed = null;
+        if (verbs is null) return null;
+        if (verbs.TryGetValue(method, out var route)) return route with { Tenant = tenant };
+        allowed = verbs.Keys.ToArray();
+        return null;
+    }
+
+    /// <summary>Verb → route for a path without tenant prefix, or null when the path is unknown.</summary>
+    private static Dictionary<string, Route>? Match(string[] s)
+    {
         var verbs = new Dictionary<string, Route>(StringComparer.OrdinalIgnoreCase);
 
         switch (s)
@@ -190,10 +210,7 @@ internal static class RestEndpoints
                 break;
             default: return null;
         }
-
-        if (verbs.TryGetValue(method, out var route)) return route;
-        allowed = verbs.Keys.ToArray();
-        return null;
+        return verbs;
     }
 
     // ---------- request ----------
@@ -219,39 +236,57 @@ internal static class RestEndpoints
 
     private static object BuildRequest(Route route, JsonObject? body, IQueryCollection query)
     {
+        var tenant = route.Tenant;
         switch (route.Op)
         {
             case Op.Send:
             case Op.Stream:
+                PathWins(body!, "tenant", tenant, "tenant in the body differs from the path");
                 return Deserialize<SendMessageRequest>(body!);
             case Op.Cancel:
                 body ??= [];
+                PathWins(body, "tenant", tenant, "tenant in the body differs from the path");
                 body["id"] = route.TaskId; // the path wins
                 return Deserialize<CancelTaskRequest>(body);
             case Op.CreatePush:
-                if (body!.TryGetPropertyValue("taskId", out var bodyTask) && bodyTask is not null
-                    && !(bodyTask is JsonValue v && v.TryGetValue<string>(out var s) && (s.Length == 0 || s == route.TaskId)))
-                    throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: taskId in the body differs from the path.");
-                body["taskId"] = route.TaskId;
-                return Deserialize<TaskPushNotificationConfig>(body);
+                PathWins(body!, "taskId", route.TaskId, "taskId in the body differs from the path");
+                PathWins(body!, "tenant", tenant, "tenant in the body differs from the path");
+                return Deserialize<TaskPushNotificationConfig>(body!);
             case Op.GetTask:
-                return RestQuery.Bind<GetTaskRequest>(query, GetTaskQuery, ("id", route.TaskId));
+                return RestQuery.Bind<GetTaskRequest>(query, GetTaskQuery, Fields(tenant, ("id", route.TaskId)));
             case Op.ListTasks:
-                return RestQuery.Bind<ListTasksRequest>(query, ListTasksQuery);
+                return RestQuery.Bind<ListTasksRequest>(query, ListTasksQuery, Fields(tenant));
             case Op.Subscribe:
-                return RestQuery.Bind<SubscribeToTaskRequest>(query, NoQuery, ("id", route.TaskId));
+                return RestQuery.Bind<SubscribeToTaskRequest>(query, NoQuery, Fields(tenant, ("id", route.TaskId)));
             case Op.GetPush:
-                return RestQuery.Bind<GetTaskPushNotificationConfigRequest>(query, NoQuery, ("taskId", route.TaskId), ("id", route.ConfigId));
+                return RestQuery.Bind<GetTaskPushNotificationConfigRequest>(query, NoQuery, Fields(tenant, ("taskId", route.TaskId), ("id", route.ConfigId)));
             case Op.DeletePush:
-                return RestQuery.Bind<DeleteTaskPushNotificationConfigRequest>(query, NoQuery, ("taskId", route.TaskId), ("id", route.ConfigId));
+                return RestQuery.Bind<DeleteTaskPushNotificationConfigRequest>(query, NoQuery, Fields(tenant, ("taskId", route.TaskId), ("id", route.ConfigId)));
             case Op.ListPush:
-                return RestQuery.Bind<ListTaskPushNotificationConfigsRequest>(query, ListPushQuery, ("taskId", route.TaskId));
+                return RestQuery.Bind<ListTaskPushNotificationConfigsRequest>(query, ListPushQuery, Fields(tenant, ("taskId", route.TaskId)));
             case Op.ExtendedCard:
-                return new GetExtendedAgentCardRequest();
+                return new GetExtendedAgentCardRequest { Tenant = tenant };
             default:
                 throw new InvalidOperationException($"Unhandled operation {route.Op}.");
         }
     }
+
+    /// <summary>
+    /// Sets <paramref name="name"/> in the body to the path value. A body value that is present, non-empty and different →
+    /// InvalidParams. A null path value (no tenant prefix) leaves the body as it is.
+    /// </summary>
+    private static void PathWins(JsonObject body, string name, string? pathValue, string error)
+    {
+        if (pathValue is null) return;
+        if (body.TryGetPropertyValue(name, out var existing) && existing is not null
+            && !(existing is JsonValue v && v.TryGetValue<string>(out var s) && (s.Length == 0 || s == pathValue)))
+            throw new A2AException(A2AErrorCode.InvalidParams, $"Invalid params: {error}.");
+        body[name] = pathValue;
+    }
+
+    /// <summary>Path fields for <see cref="RestQuery.Bind"/>, plus <c>tenant</c> when the path has one.</summary>
+    private static (string Name, string Value)[] Fields(string? tenant, params (string Name, string Value)[] fields)
+        => tenant is null ? fields : [.. fields, ("tenant", tenant)];
 
     private static T Deserialize<T>(JsonObject body)
         => (T)TransportErrors.Deserialize(JsonSerializer.SerializeToElement(body), typeof(T));

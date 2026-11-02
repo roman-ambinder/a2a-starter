@@ -8,7 +8,10 @@ using A2A.Protocol;
 
 namespace A2A.Client.Transports;
 
-/// <summary>A2A client for the HTTP+JSON (REST) binding.</summary>
+/// <summary>
+/// A2A client for the HTTP+JSON (REST) binding. A request with a tenant (its own, else the default tenant) uses the proto's
+/// <c>/{tenant}/...</c> paths for every operation.
+/// </summary>
 public sealed class RestA2AClient : IA2AClient
 {
     private const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
@@ -18,11 +21,14 @@ public sealed class RestA2AClient : IA2AClient
     private readonly A2AClientOptions _options;
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
+    private readonly string? _defaultTenant;
 
     /// <param name="baseUrl">The REST base URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
-    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options)
+    /// <param name="defaultTenant">Tenant used when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
+    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
     {
+        _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         ArgumentNullException.ThrowIfNull(baseUrl);
         _baseUrl = baseUrl.AbsoluteUri.TrimEnd('/');
         _card = card ?? throw new ArgumentNullException(nameof(card));
@@ -39,47 +45,62 @@ public sealed class RestA2AClient : IA2AClient
     }
 
     public async Task<SendMessageResponse> SendMessageAsync(SendMessageRequest request, CancellationToken ct = default)
-        => ClientSupport.Validate(await CallAsync<SendMessageResponse>(HttpMethod.Post, "/message:send", request, "SendMessage result", ct).ConfigureAwait(false));
+    {
+        request = ClientSupport.WithTenant(request, _defaultTenant);
+        return ClientSupport.Validate(await CallAsync<SendMessageResponse>(HttpMethod.Post, Prefix(request.Tenant) + "/message:send", request,
+            "SendMessage result", ct).ConfigureAwait(false));
+    }
 
     public IAsyncEnumerable<StreamResponse> SendStreamingMessageAsync(SendMessageRequest request, CancellationToken ct = default)
-        => StreamAsync(HttpMethod.Post, "/message:stream", request, ct);
+    {
+        request = ClientSupport.WithTenant(request, _defaultTenant);
+        return StreamAsync(HttpMethod.Post, Prefix(request.Tenant) + "/message:stream", request, ct);
+    }
 
     public Task<AgentTask> GetTaskAsync(GetTaskRequest request, CancellationToken ct = default)
-        => CallAsync<AgentTask>(HttpMethod.Get, $"/tasks/{Seg(request.Id)}{Query(request, "historyLength")}", null, "GetTask result", ct);
+        => CallAsync<AgentTask>(HttpMethod.Get, $"{Prefix(request.Tenant)}/tasks/{Seg(request.Id)}{Query(request, "historyLength")}", null, "GetTask result", ct);
 
     public Task<ListTasksResponse> ListTasksAsync(ListTasksRequest request, CancellationToken ct = default)
         => CallAsync<ListTasksResponse>(HttpMethod.Get,
-            "/tasks" + Query(request, "contextId", "status", "pageSize", "pageToken", "historyLength", "statusTimestampAfter", "includeArtifacts"),
+            Prefix(request.Tenant) + "/tasks" + Query(request, "contextId", "status", "pageSize", "pageToken", "historyLength", "statusTimestampAfter", "includeArtifacts"),
             null, "ListTasks result", ct);
 
     public Task<AgentTask> CancelTaskAsync(CancelTaskRequest request, CancellationToken ct = default)
-        => CallAsync<AgentTask>(HttpMethod.Post, $"/tasks/{Seg(request.Id)}:cancel", request, "CancelTask result", ct);
+    {
+        request = ClientSupport.WithTenant(request, _defaultTenant);
+        return CallAsync<AgentTask>(HttpMethod.Post, $"{Prefix(request.Tenant)}/tasks/{Seg(request.Id)}:cancel", request, "CancelTask result", ct);
+    }
 
     public IAsyncEnumerable<StreamResponse> SubscribeToTaskAsync(SubscribeToTaskRequest request, CancellationToken ct = default)
-        => StreamAsync(HttpMethod.Get, $"/tasks/{Seg(request.Id)}:subscribe", null, ct);
+        => StreamAsync(HttpMethod.Get, $"{Prefix(request.Tenant)}/tasks/{Seg(request.Id)}:subscribe", null, ct);
 
     public Task<TaskPushNotificationConfig> CreateTaskPushNotificationConfigAsync(TaskPushNotificationConfig request, CancellationToken ct = default)
-        => CallAsync<TaskPushNotificationConfig>(HttpMethod.Post, $"/tasks/{Seg(request.TaskId)}/pushNotificationConfigs", request,
+    {
+        request = ClientSupport.WithTenant(request, _defaultTenant);
+        return CallAsync<TaskPushNotificationConfig>(HttpMethod.Post, $"{Prefix(request.Tenant)}/tasks/{Seg(request.TaskId)}/pushNotificationConfigs", request,
             "CreateTaskPushNotificationConfig result", ct);
+    }
 
     public Task<TaskPushNotificationConfig> GetTaskPushNotificationConfigAsync(GetTaskPushNotificationConfigRequest request, CancellationToken ct = default)
-        => CallAsync<TaskPushNotificationConfig>(HttpMethod.Get, $"/tasks/{Seg(request.TaskId)}/pushNotificationConfigs/{Seg(request.Id)}", null,
+        => CallAsync<TaskPushNotificationConfig>(HttpMethod.Get,
+            $"{Prefix(request.Tenant)}/tasks/{Seg(request.TaskId)}/pushNotificationConfigs/{Seg(request.Id)}", null,
             "GetTaskPushNotificationConfig result", ct);
 
     public Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(ListTaskPushNotificationConfigsRequest request, CancellationToken ct = default)
         => CallAsync<ListTaskPushNotificationConfigsResponse>(HttpMethod.Get,
-            $"/tasks/{Seg(request.TaskId)}/pushNotificationConfigs{Query(request, "pageSize", "pageToken")}", null,
+            $"{Prefix(request.Tenant)}/tasks/{Seg(request.TaskId)}/pushNotificationConfigs{Query(request, "pageSize", "pageToken")}", null,
             "ListTaskPushNotificationConfigs result", ct);
 
     public async Task DeleteTaskPushNotificationConfigAsync(DeleteTaskPushNotificationConfigRequest request, CancellationToken ct = default)
     {
-        using var response = await SendAsync(HttpMethod.Delete, $"/tasks/{Seg(request.TaskId)}/pushNotificationConfigs/{Seg(request.Id)}",
+        using var response = await SendAsync(HttpMethod.Delete,
+            $"{Prefix(request.Tenant)}/tasks/{Seg(request.TaskId)}/pushNotificationConfigs/{Seg(request.Id)}",
             null, A2AConstants.ContentType, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
     }
 
     public Task<AgentCard> GetExtendedAgentCardAsync(GetExtendedAgentCardRequest request, CancellationToken ct = default)
-        => CallAsync<AgentCard>(HttpMethod.Get, "/extendedAgentCard", null, "GetExtendedAgentCard result", ct);
+        => CallAsync<AgentCard>(HttpMethod.Get, Prefix(request.Tenant) + "/extendedAgentCard", null, "GetExtendedAgentCard result", ct);
 
     public ValueTask DisposeAsync()
     {
@@ -90,6 +111,13 @@ public sealed class RestA2AClient : IA2AClient
     // ---------- plumbing ----------
 
     private static string Seg(string? value) => Uri.EscapeDataString(value ?? "");
+
+    /// <summary><c>/{tenant}</c> for the request's tenant, else the default tenant; empty when there is none.</summary>
+    private string Prefix(string? tenant)
+    {
+        var t = string.IsNullOrEmpty(tenant) ? _defaultTenant : tenant;
+        return t is null ? "" : "/" + Seg(t);
+    }
 
     /// <summary>Builds <c>?name=value&amp;..</c> from the listed (camelCase) members of the serialized request; unset members are skipped.</summary>
     private static string Query<TRequest>(TRequest request, params string[] names)
