@@ -7,7 +7,7 @@ namespace AgentClient;
 public sealed partial class FlowRunner
 {
     /// <summary>Booking agent: input-required, wrong input, then the answer on the same task.</summary>
-    public Task<FlowResult> MultiTurnAsync(CancellationToken ct = default) => RunFlowAsync("multi-turn", async flow =>
+    public Task<FlowResult> MultiTurnAsync(CancellationToken ct = default) => RunFlowAsync("multi-turn", ct, async flow =>
     {
         var agent = AgentOr(Booking);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -25,7 +25,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Push notifications: register with the receiver, send with a push config, read what the receiver got, manage configs.</summary>
-    public Task<FlowResult> PushAsync(CancellationToken ct = default) => RunFlowAsync("push", async flow =>
+    public Task<FlowResult> PushAsync(CancellationToken ct = default) => RunFlowAsync("push", ct, async flow =>
     {
         var agent = AgentOr(Report);
         var receiver = _options.ReceiverUrl.TrimEnd('/');
@@ -83,7 +83,7 @@ public sealed partial class FlowRunner
     }
 
     /// <summary>Secure agent: step-up from a client token to an approver token, plus the 401 and 403 cases. Always uses the mock identities.</summary>
-    public Task<FlowResult> AuthAsync(CancellationToken ct = default) => RunFlowAsync("auth", async flow =>
+    public Task<FlowResult> AuthAsync(CancellationToken ct = default) => RunFlowAsync("auth", ct, async flow =>
     {
         var weak = await ClientAsync(Secure, Identity.Client, [AuditExtension], forceMock: true, ct: ct);
         await using var weakDispose = weak;
@@ -118,7 +118,7 @@ public sealed partial class FlowRunner
     }
 
     /// <summary>Anonymous call to the extended card is refused; an authenticated one returns more skills.</summary>
-    public Task<FlowResult> ExtendedCardAsync(CancellationToken ct = default) => RunFlowAsync("extended-card", async flow =>
+    public Task<FlowResult> ExtendedCardAsync(CancellationToken ct = default) => RunFlowAsync("extended-card", ct, async flow =>
     {
         var agent = AgentOr(Report);
         var publicCard = await CardAsync(agent, ct);
@@ -137,7 +137,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Extensions: echo timestamp (off and on) and the secure agent's required audit extension.</summary>
-    public Task<FlowResult> ExtensionsAsync(CancellationToken ct = default) => RunFlowAsync("extensions", async flow =>
+    public Task<FlowResult> ExtensionsAsync(CancellationToken ct = default) => RunFlowAsync("extensions", ct, async flow =>
     {
         await using (var plain = await ClientAsync(Echo, ct: ct))
         {
@@ -159,7 +159,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Each protocol error the demo servers can produce, and the code the client sees.</summary>
-    public Task<FlowResult> ErrorsAsync(CancellationToken ct = default) => RunFlowAsync("errors", async flow =>
+    public Task<FlowResult> ErrorsAsync(CancellationToken ct = default) => RunFlowAsync("errors", ct, async flow =>
     {
         async Task Expect(A2AErrorCode code, string what, Func<Task> call)
         {

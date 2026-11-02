@@ -5,7 +5,7 @@ namespace AgentClient;
 public sealed partial class FlowRunner
 {
     /// <summary>Fetches the public card of every agent and the root card.</summary>
-    public Task<FlowResult> DiscoverAsync(CancellationToken ct = default) => RunFlowAsync("discover", async flow =>
+    public Task<FlowResult> DiscoverAsync(CancellationToken ct = default) => RunFlowAsync("discover", ct, async flow =>
     {
         foreach (var agent in new[] { Echo, Report, Booking, Secure })
         {
@@ -23,7 +23,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Blocking send: waits for the report to complete.</summary>
-    public Task<FlowResult> SendAsync(CancellationToken ct = default) => RunFlowAsync("send", async flow =>
+    public Task<FlowResult> SendAsync(CancellationToken ct = default) => RunFlowAsync("send", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -35,7 +35,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Streaming send: prints each event as it arrives.</summary>
-    public Task<FlowResult> StreamAsync(CancellationToken ct = default) => RunFlowAsync("stream", async flow =>
+    public Task<FlowResult> StreamAsync(CancellationToken ct = default) => RunFlowAsync("stream", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -62,7 +62,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Send without waiting, then poll GetTask; also asks for no history.</summary>
-    public Task<FlowResult> GetAsync(CancellationToken ct = default) => RunFlowAsync("get", async flow =>
+    public Task<FlowResult> GetAsync(CancellationToken ct = default) => RunFlowAsync("get", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -80,7 +80,7 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Lists tasks of a context, filters by status and pages.</summary>
-    public Task<FlowResult> ListAsync(CancellationToken ct = default) => RunFlowAsync("list", async flow =>
+    public Task<FlowResult> ListAsync(CancellationToken ct = default) => RunFlowAsync("list", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -103,12 +103,13 @@ public sealed partial class FlowRunner
     });
 
     /// <summary>Starts a report and cancels it. A very fast agent may finish first; that is reported, not an error.</summary>
-    public Task<FlowResult> CancelAsync(CancellationToken ct = default) => RunFlowAsync("cancel", async flow =>
+    public Task<FlowResult> CancelAsync(CancellationToken ct = default) => RunFlowAsync("cancel", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
         var task = (await client.SendMessageAsync(Request("Cancel me", returnImmediately: true), ct)).Task!;
         flow.Step($"task {task.Id} is {task.Status.State}");
+        var observed = (await client.GetTaskAsync(new GetTaskRequest { Id = task.Id }, ct)).Status.State;
         try
         {
             var canceled = await client.CancelTaskAsync(new CancelTaskRequest { Id = task.Id }, ct);
@@ -116,14 +117,14 @@ public sealed partial class FlowRunner
             var got = await WaitForStateAsync(client, task.Id, IsTerminal, ct);
             flow.Check(got.Status.State == TaskState.Canceled, $"GetTask confirms {got.Status.State}");
         }
-        catch (A2AException e) when (e.Code == A2AErrorCode.TaskNotCancelable)
+        catch (A2AException e) when (e.Code == A2AErrorCode.TaskNotCancelable && IsTerminal(observed))
         {
             flow.Step("the task had already finished: TASK_NOT_CANCELABLE (this is the expected error for a finished task)");
         }
     });
 
     /// <summary>Drops a stream mid-task, then attaches again with SubscribeToTask.</summary>
-    public Task<FlowResult> ResubscribeAsync(CancellationToken ct = default) => RunFlowAsync("resubscribe", async flow =>
+    public Task<FlowResult> ResubscribeAsync(CancellationToken ct = default) => RunFlowAsync("resubscribe", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
@@ -143,6 +144,7 @@ public sealed partial class FlowRunner
         }
         flow.Check(taskId is not null, $"stream opened for task {taskId} and dropped after the first artifact chunk");
 
+        var observed = (await client.GetTaskAsync(new GetTaskRequest { Id = taskId! }, ct)).Status.State;
         var events = new List<StreamResponse>();
         try
         {
@@ -150,7 +152,7 @@ public sealed partial class FlowRunner
             flow.Step($"SubscribeToTask delivered {events.Count} event(s); first is {(events[0].Task is { } t ? "the task snapshot, " + t.Status.State : "an update")}");
             flow.Check(events[^1].StatusUpdate?.Status.State == TaskState.Completed, "the subscription ended with the task completed");
         }
-        catch (A2AException e) when (e.Code == A2AErrorCode.UnsupportedOperation)
+        catch (A2AException e) when (e.Code == A2AErrorCode.UnsupportedOperation && IsTerminal(observed))
         {
             flow.Step("the task had already finished, so subscribing is refused (UNSUPPORTED_OPERATION); checking with GetTask");
         }

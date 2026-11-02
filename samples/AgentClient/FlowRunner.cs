@@ -99,7 +99,7 @@ public sealed partial class FlowRunner : IDisposable
 
     private sealed class FlowException(string message) : Exception(message);
 
-    private async Task<FlowResult> RunFlowAsync(string name, Func<Flow, Task> body)
+    private async Task<FlowResult> RunFlowAsync(string name, CancellationToken ct, Func<Flow, Task> body)
     {
         _output.WriteLine($"== {name} ==");
         var flow = new Flow(name, _output);
@@ -107,6 +107,10 @@ public sealed partial class FlowRunner : IDisposable
         try
         {
             await body(flow).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception e)
         {
