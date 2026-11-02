@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using A2A.Protocol;
 using A2A.Server.Auth;
 
 namespace A2A.Server.Tests.Auth;
@@ -26,4 +27,11 @@ public class CallerIdentityTests
     [Fact]
     public void Authenticated_without_tenant_or_key_uses_subject()
         => Assert.Equal("user:s1", CallerIdentity.GetOwner(User(("sub", "s1"))));
+
+    [Fact]
+    public void Authenticated_without_any_identifier_is_rejected()
+    {
+        var ex = Assert.Throws<A2AAuthException>(() => CallerIdentity.GetOwner(User(("role", "x"))));
+        Assert.Equal(401, ex.HttpStatus);
+    }
 }

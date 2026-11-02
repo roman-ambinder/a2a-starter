@@ -20,6 +20,9 @@ internal sealed class TaskExecution(string agentName, string taskId)
     /// <summary>Completes when a blocking send may return: reply, final state, cancel, or the run ended.</summary>
     public TaskCompletionSource Settled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>The task as of this execution's final event (terminal, interrupted or cancel). Returned by a blocking send.</summary>
+    public AgentTask? FinalTask { get; set; }
+
     /// <summary>The direct reply, if the agent replied.</summary>
     public Message? Reply { get; set; }
 }

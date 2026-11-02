@@ -372,6 +372,53 @@ public class TaskManagerTests
     }
 
     [Fact]
+    public async Task Continuation_during_cancel_is_rejected_and_does_not_hang()
+    {
+        var host = new TestHost();
+        var cancelEntered = new Signal();
+        var cancelGate = new Gate();
+        var continuationRan = new Signal();
+        host.Scripts.Execute = async (ctx, sink, ct) =>
+        {
+            if (ctx.CurrentTask is null) { await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct); return; }
+            continuationRan.Set();
+            await Task.Delay(Timeout.Infinite, ct);
+        };
+        host.Scripts.Cancel = async (_, sink, ct) =>
+        {
+            cancelEntered.Set();
+            await cancelGate.WaitAsync(ct);
+            await sink.UpdateStatusAsync(TaskState.Canceled, null, ct);
+        };
+        var task = (await host.SendAsync(TestHost.Text("start"))).Task!;
+
+        var cancel = host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+        await cancelEntered.WaitAsync();
+        await ThrowsA2A(A2AErrorCode.UnsupportedOperation, () => host.SendAsync(TestHost.Text("more", taskId: task.Id)));
+        cancelGate.Open();
+
+        Assert.Equal(TaskState.Canceled, (await cancel.WaitAsync(TestHost.Timeout, TestContext.Current.CancellationToken)).Status.State);
+        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+        Assert.Single(host.Scripts.Contexts); // the continuation's agent never started
+    }
+
+    [Fact]
+    public async Task Blocking_send_returns_the_final_state_even_if_the_task_moves_on()
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = (ctx, sink, ct) => ctx.CurrentTask is null
+            ? sink.UpdateStatusAsync(TaskState.InputRequired, TestHost.AgentText("more?"), ct)
+            : sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+
+        for (var i = 0; i < 20; i++)
+        {
+            var first = (await host.SendAsync(TestHost.Text("start"))).Task!;
+            Assert.Equal(TaskState.InputRequired, first.Status.State);
+            Assert.Equal(TaskState.Completed, (await host.SendAsync(TestHost.Text("go", taskId: first.Id))).Task!.Status.State);
+        }
+    }
+
+    [Fact]
     public async Task Cancel_completed_task_throws_not_cancelable()
     {
         var host = new TestHost();

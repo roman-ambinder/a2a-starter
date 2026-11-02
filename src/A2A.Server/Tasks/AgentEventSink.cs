@@ -162,6 +162,7 @@ internal sealed class AgentEventSink : IAgentEventSink
         if (TaskStateRules.IsFinal(stored.Task.Status.State))
         {
             _done = true;
+            if (_execution is not null) _execution.FinalTask ??= stored.Task;
             _execution?.Settled.TrySetResult();
         }
         _execution?.FirstResult.TrySetResult(new SendMessageResponse { Task = stored.Task });

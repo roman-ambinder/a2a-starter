@@ -22,6 +22,10 @@ public sealed class TaskManager : IA2ARequestHandler
     private readonly TaskWriter _writer;
     private readonly ConcurrentDictionary<(string Agent, string TaskId), TaskExecution> _running = new();
 
+    // Tasks with a CancelTask in progress. Set and checked under the task lock; continuations are rejected
+    // while present, so no new execution can start between the cancel's state check and its CANCELED commit.
+    private readonly ConcurrentDictionary<(string Agent, string TaskId), byte> _cancelling = new();
+
     /// <param name="observers">Called for every task event (seam for push delivery). See <see cref="ITaskEventObserver"/>.</param>
     /// <param name="time">Clock for status timestamps. Default <see cref="TimeProvider.System"/>.</param>
     public TaskManager(AgentCatalog catalog, ITaskStore store, TaskEventBroker broker, IServiceProvider services,
@@ -51,6 +55,7 @@ public sealed class TaskManager : IA2ARequestHandler
 
         await execution.Settled.Task.WaitAsync(ct).ConfigureAwait(false);
         if (execution.Reply is { } reply) return new SendMessageResponse { Message = reply };
+        if (execution.FinalTask is { } final) return new SendMessageResponse { Task = RequestValidator.ShapeHistory(final, historyLength) };
         var stored = await _writer.Store.GetAsync(call.AgentName, execution.TaskId, ct).ConfigureAwait(false)
                      ?? throw new A2AException(A2AErrorCode.InternalError, "The agent produced no result.");
         return new SendMessageResponse { Task = RequestValidator.ShapeHistory(stored.Task, historyLength) };
@@ -88,17 +93,24 @@ public sealed class TaskManager : IA2ARequestHandler
         var registration = GetAgent(call);
         StoredTask stored;
         TaskExecution? running;
+        var key = (call.AgentName, request.Id);
         using (await _writer.LockAsync(call.AgentName, request.Id, ct).ConfigureAwait(false))
         {
             stored = await LoadOwnedAsync(call, request.Id, ct).ConfigureAwait(false);
             if (TaskStateRules.IsTerminal(stored.Task.Status.State))
                 throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is {stored.Task.Status.State} and cannot be canceled.");
-            if (_running.TryGetValue((call.AgentName, request.Id), out running)) running.CancelRequested = true;
+            if (!_cancelling.TryAdd(key, 0))
+                throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is already being canceled.");
+            if (_running.TryGetValue(key, out running)) running.CancelRequested = true;
         }
 
         try
         {
-            if (running is not null) await running.Cts.CancelAsync().ConfigureAwait(false);
+            if (running is not null)
+            {
+                try { await running.Cts.CancelAsync().ConfigureAwait(false); }
+                catch (ObjectDisposedException) { } // the run already finished and disposed its CTS
+            }
 
             var task = stored.Task;
             var context = new AgentRequestContext(call.AgentName, task.Id, task.ContextId ?? "",
@@ -120,10 +132,13 @@ public sealed class TaskManager : IA2ARequestHandler
                 stored = await _writer.Store.GetAsync(call.AgentName, request.Id, CancellationToken.None).ConfigureAwait(false) ?? stored;
                 if (!TaskStateRules.IsTerminal(stored.Task.Status.State))
                     stored = await _writer.CommitStatusAsync(stored, TaskState.Canceled, null).ConfigureAwait(false);
+                if (running is not null) running.FinalTask ??= stored.Task;
+                _cancelling.TryRemove(key, out _);
             }
         }
         finally
         {
+            _cancelling.TryRemove(key, out _);
             running?.Settled.TrySetResult();
         }
 
@@ -210,6 +225,8 @@ public sealed class TaskManager : IA2ARequestHandler
                     throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be continued.");
                 if (!TaskStateRules.IsInterrupted(state))
                     throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; only a task waiting for input can be continued.");
+                if (_cancelling.ContainsKey((agent, taskId)))
+                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is being canceled.");
                 if (!string.IsNullOrEmpty(message.ContextId) && message.ContextId != stored.Task.ContextId)
                     throw new A2AException(A2AErrorCode.InvalidParams, "message.contextId does not match the task's contextId.");
 
@@ -223,9 +240,18 @@ public sealed class TaskManager : IA2ARequestHandler
                     },
                 };
                 execution = new TaskExecution(agent, taskId);
-                _running[(agent, taskId)] = execution;
                 if (subscribe) subscription = _writer.Broker.Open(agent, taskId, ct);
-                await _writer.CommitAsync(stored, new StreamResponse { Task = stored.Task }).ConfigureAwait(false);
+                try
+                {
+                    await _writer.CommitAsync(stored, new StreamResponse { Task = stored.Task }).ConfigureAwait(false);
+                }
+                catch
+                {
+                    subscription?.Dispose();
+                    execution.Cts.Dispose();
+                    throw;
+                }
+                _running[(agent, taskId)] = execution;
                 sink = AgentEventSink.ForExistingTask(_writer, execution, stored);
                 context = new AgentRequestContext(agent, taskId, stored.Task.ContextId ?? "", userMessage, stored.Task, call.User,
                     extensions, request.Configuration);
@@ -271,6 +297,7 @@ public sealed class TaskManager : IA2ARequestHandler
             _running.TryRemove(KeyValuePair.Create((execution.AgentName, execution.TaskId), execution));
             await CompleteFirstResultAsync(execution).ConfigureAwait(false);
             if (!execution.CancelRequested) execution.Settled.TrySetResult(); // on cancel, CancelTaskAsync settles it
+            execution.Cts.Dispose(); // CancelTaskAsync tolerates ObjectDisposedException
         }
     }
 
