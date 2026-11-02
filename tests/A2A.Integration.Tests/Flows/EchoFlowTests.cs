@@ -31,6 +31,7 @@ public sealed class EchoFlowTests(A2ATestHost host)
         var reply = Assert.IsType<Message>(response.Message);
         Assert.Equal(Role.Agent, reply.Role);
         Assert.Equal(contextId, reply.ContextId);
+        Assert.True(string.IsNullOrEmpty(reply.TaskId));
         Assert.Equal(4, reply.Parts.Count);
         Assert.Equal("echo: hello", reply.Parts[0].Text);
         Assert.Equal<byte>([1, 2, 3, 4], reply.Parts[1].Raw!);

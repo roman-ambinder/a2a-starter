@@ -54,7 +54,6 @@ public sealed class ReportAgent(IChatClient chat, IOptions<FakeAgentOptions> opt
             await sink.AddArtifactAsync(new Artifact
             {
                 ArtifactId = SummaryArtifactId,
-                Name = "summary.json",
                 Parts = [Part.FromData(summary.RootElement.Clone())],
             }, append: false, lastChunk: true, ct);
             if (!await PauseAsync(delay, ct)) return;
@@ -71,6 +70,7 @@ public sealed class ReportAgent(IChatClient chat, IOptions<FakeAgentOptions> opt
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+            // PauseAsync absorbs cancellation during delays; this catch covers the sink and chat calls, which throw it.
             // Canceled: the task manager sets CANCELED.
         }
     }

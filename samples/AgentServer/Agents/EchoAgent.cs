@@ -23,7 +23,6 @@ public sealed class EchoAgent : IAgentHandler
         {
             MessageId = Guid.NewGuid().ToString("N"),
             Role = Role.Agent,
-            TaskId = context.TaskId,
             ContextId = context.ContextId,
             Parts = parts,
         };
