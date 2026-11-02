@@ -32,7 +32,8 @@ public static class A2AClientFactory
                   $"this client supports {string.Join(", ", SupportedBindings)}.");
         }
 
-        var url = new Uri(chosen.Url, UriKind.Absolute);
+        if (!Uri.TryCreate(chosen.Url, UriKind.Absolute, out var url))
+            throw new NotSupportedException($"The agent card's {chosen.ProtocolBinding} interface has an invalid URL: '{chosen.Url}'.");
         if (Is(chosen, A2AConstants.BindingRest)) return new RestA2AClient(url, card, options);
         if (Is(chosen, A2AConstants.BindingGrpc)) return new GrpcA2AClient(url, card, options);
         return new JsonRpcA2AClient(url, card, options);

@@ -6,7 +6,6 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.Client" />
-    <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Google.Api.CommonProtos" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
   </ItemGroup>

@@ -70,7 +70,10 @@ internal static class ClientSupport
         return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", data);
     }
 
-    /// <summary>ErrorInfo <c>metadata</c> (string map) as a JSON object, or null when empty.</summary>
+    /// <summary>
+    /// ErrorInfo <c>metadata</c> (string map) as a JSON object, or null when empty. ErrorInfo metadata is string-only, so
+    /// <see cref="A2AException.Data"/> differs per transport by design (JSON-RPC keeps the original JSON, REST/gRPC strings).
+    /// </summary>
     public static JsonElement? MetadataToData(IEnumerable<KeyValuePair<string, string>> metadata)
     {
         var pairs = metadata.ToList();

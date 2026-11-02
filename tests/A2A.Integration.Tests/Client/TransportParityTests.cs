@@ -92,7 +92,7 @@ public sealed class TransportParityTests(MinimalServer server)
         Assert.Equal(TaskState.Canceled, canceled.Status.State);
 
         // 6 SubscribeToTask
-        var slow2 = (await client.SendMessageAsync(Send("slow:300", returnImmediately: true), Ct)).Task!;
+        var slow2 = (await client.SendMessageAsync(Send("slow:1500", returnImmediately: true), Ct)).Task!;
         var sub = new List<StreamResponse>();
         await foreach (var e in client.SubscribeToTaskAsync(new SubscribeToTaskRequest { Id = slow2.Id }, Ct)) sub.Add(e);
         Assert.NotNull(sub[0].Task);
@@ -201,6 +201,19 @@ public sealed class TransportParityTests(MinimalServer server)
 
         var restOnly = card with { SupportedInterfaces = [card.SupportedInterfaces[1]] };
         Assert.IsType<RestA2AClient>(A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC" }));
+    }
+
+    [Fact]
+    public void Factory_throws_NotSupported_naming_binding_and_url_for_a_bad_card_url()
+    {
+        var card = new AgentCard
+        {
+            Name = "bad-url",
+            SupportedInterfaces = [new AgentInterface { Url = "not a url", ProtocolBinding = "GRPC", ProtocolVersion = "1.0" }],
+        };
+        var ex = Assert.Throws<NotSupportedException>(() => A2AClientFactory.Create(card, new A2AClientOptions()));
+        Assert.Contains("GRPC", ex.Message);
+        Assert.Contains("not a url", ex.Message);
     }
 
     [Fact]

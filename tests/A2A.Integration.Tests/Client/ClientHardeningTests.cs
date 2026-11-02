@@ -144,6 +144,20 @@ public sealed class ClientHardeningTests
         Assert.Empty(handler.Requests[0].RequestUri!.Query);
     }
 
+    [Theory]
+    [InlineData("http://stub.test/rest/", "/rest/tasks/t1")]
+    [InlineData("http://stub.test/rest", "/rest/tasks/t1")]
+    [InlineData("http://stub.test/", "/tasks/t1")]
+    [InlineData("http://stub.test/a/b/c", "/a/b/c/tasks/t1")]
+    public async Task Rest_base_url_with_or_without_trailing_slash_and_path_prefix(string baseUrl, string expectedPath)
+    {
+        var handler = new StubHandler((_, _) => Reply(TaskJson));
+        await using var client = new RestA2AClient(new Uri(baseUrl), new AgentCard { Name = "stub" },
+            new A2AClientOptions { HttpClient = new HttpClient(handler) });
+        await client.GetTaskAsync(new GetTaskRequest { Id = "t1" }, Ct);
+        Assert.Equal(expectedPath, handler.Requests[0].RequestUri!.AbsolutePath);
+    }
+
     [Fact]
     public async Task Rest_uses_the_documented_verbs_and_paths()
     {
@@ -219,6 +233,15 @@ public sealed class ClientHardeningTests
         });
         Assert.Single(received);
         Assert.Equal(A2AErrorCode.TaskNotFound, postEx.Code);
+
+        // An in-stream error without a reason does not mention HTTP 200.
+        const string plainFrame = "data: {\"error\":{\"code\":500,\"status\":\"INTERNAL\",\"message\":\"kaput\"}}\n\n";
+        await using var plainPost = Rest(new StubHandler((_, _) => Reply(plainFrame, contentType: "text/event-stream")));
+        var plainEx = await Assert.ThrowsAsync<A2AException>(async () =>
+        {
+            await foreach (var _ in plainPost.SendStreamingMessageAsync(Send("x"), Ct)) { }
+        });
+        Assert.Equal("kaput", plainEx.Message);
 
         // A 200 that is not an event stream is a protocol violation.
         await using var notStream = Rest(new StubHandler((_, _) => Reply(TaskJson)));

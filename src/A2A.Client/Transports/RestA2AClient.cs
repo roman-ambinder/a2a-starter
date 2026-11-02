@@ -161,7 +161,7 @@ public sealed class RestA2AClient : IA2AClient
 
             // After the stream started, the server reports an error as one final `{"error":{..}}` frame.
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.Object)
-                throw ErrorFromStatus(error, response);
+                throw ErrorFromStatus(error, null);
 
             yield return ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(root, "stream event"));
         }
@@ -219,7 +219,7 @@ public sealed class RestA2AClient : IA2AClient
     /// google.rpc.Status JSON → <see cref="A2AException"/>. The ErrorInfo <c>reason</c> selects the A2A code; without one
     /// the error is InternalError, keeping the message and the HTTP status.
     /// </summary>
-    private static A2AException ErrorFromStatus(JsonElement error, HttpResponseMessage response)
+    private static A2AException ErrorFromStatus(JsonElement error, HttpResponseMessage? response)
     {
         var message = error.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
 
@@ -241,6 +241,8 @@ public sealed class RestA2AClient : IA2AClient
             }
         }
 
+        if (response is null) // in-stream error frame: the HTTP status (200) says nothing
+            return new A2AException(A2AErrorCode.InternalError, string.IsNullOrEmpty(message) ? "The agent reported an error." : message);
         var status = (int)response.StatusCode;
         return new A2AException(A2AErrorCode.InternalError, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})");
     }
