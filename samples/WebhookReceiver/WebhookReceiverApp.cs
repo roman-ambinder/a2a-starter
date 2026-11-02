@@ -97,12 +97,15 @@ public static class WebhookReceiverApp
             using (doc)
             {
                 var taskId = TaskIdOf(doc.RootElement);
-                if (taskId is null || taskId != signature.TaskId || !matches.Any(m => m.TaskId == taskId || m.TaskId == Subscription.AnyTask))
-                    return Reject("task id does not match");
+                if (taskId is null || taskId != signature.TaskId) return Reject("task id does not match");
 
                 var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body));
-                var added = store.TryAdd(taskId, hash, doc.RootElement);
-                return Results.Ok(new { status = added ? "stored" : "duplicate" });
+                return store.TryAccept(matches, taskId, hash, doc.RootElement) switch
+                {
+                    NotificationStore.AcceptResult.Rejected => Reject("task id does not match the subscription"),
+                    NotificationStore.AcceptResult.Stored => Results.Ok(new { status = "stored" }),
+                    _ => Results.Ok(new { status = "duplicate" }),
+                };
             }
         });
 

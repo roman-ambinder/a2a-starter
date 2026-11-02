@@ -5,10 +5,18 @@ using System.Text.Json;
 namespace WebhookReceiver;
 
 /// <summary>What a client told the receiver to expect for one task.</summary>
-/// <remarks><see cref="AnyTask"/> (<c>"*"</c>) as task id accepts any task: a client cannot know the task id before its first send.</remarks>
-public sealed record Subscription(string TaskId, string Token, string Credentials)
+/// <remarks>
+/// <see cref="AnyTask"/> (<c>"*"</c>) as task id means "not bound yet": the first accepted push binds the subscription to that
+/// push's task (<see cref="BoundTaskId"/>); later pushes for another task with the same credentials are rejected.
+/// </remarks>
+public sealed class Subscription(string taskId, string token, string credentials)
 {
     public const string AnyTask = "*";
+    public string TaskId { get; } = taskId;
+    public string Token { get; } = token;
+    public string Credentials { get; } = credentials;
+    /// <summary>Set once by <see cref="NotificationStore.TryAccept"/>, under the store lock.</summary>
+    public string? BoundTaskId { get; internal set; }
 }
 
 /// <summary>In-memory subscriptions and received notifications. Notifications are keyed by task id and kept in arrival order.</summary>
@@ -35,15 +43,24 @@ public sealed class NotificationStore
         return snapshot.Where(s => FixedEquals(s.Credentials, credentials) & FixedEquals(s.Token, token)).ToList();
     }
 
-    /// <summary>Stores the payload unless this task already has one with the same body hash. Returns false for a duplicate.</summary>
-    public bool TryAdd(string taskId, string bodyHash, JsonElement payload)
+    public enum AcceptResult { Rejected, Stored, Duplicate }
+
+    /// <summary>
+    /// Atomically: finds a matching subscription for <paramref name="taskId"/> (exact, or a wildcard that is unbound or already bound
+    /// to this task), binds a wildcard to the task, and stores the payload unless this task already has one with the same body hash.
+    /// </summary>
+    public AcceptResult TryAccept(IReadOnlyList<Subscription> matches, string taskId, string bodyHash, JsonElement payload)
     {
         lock (_gate)
         {
+            var exact = matches.Any(m => m.TaskId == taskId);
+            var wildcard = matches.FirstOrDefault(m => m.TaskId == Subscription.AnyTask && (m.BoundTaskId is null || m.BoundTaskId == taskId));
+            if (!exact && wildcard is null) return AcceptResult.Rejected;
+            if (wildcard is not null) wildcard.BoundTaskId = taskId;
             if (!_notifications.TryGetValue(taskId, out var list)) _notifications[taskId] = list = [];
-            if (list.Any(n => n.Hash == bodyHash)) return false;
+            if (list.Any(n => n.Hash == bodyHash)) return AcceptResult.Duplicate;
             list.Add((bodyHash, payload.Clone()));
-            return true;
+            return AcceptResult.Stored;
         }
     }
 

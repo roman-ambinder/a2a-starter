@@ -6,6 +6,8 @@ using A2A.Client;
 using A2A.Integration.Tests.Fixtures;
 using A2A.Protocol;
 using A2A.Server.Push;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -132,8 +134,13 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
 
     private readonly HttpClient _http = new();
     private readonly PushSigningKey _key = new();
+    // A second key in the fake JWKS, for tokens PushSigningKey cannot produce (non-standard lifetime).
+    private readonly System.Security.Cryptography.RSA _rsa = System.Security.Cryptography.RSA.Create(2048);
+    private readonly RsaSecurityKey _extraKey;
     private WebApplication? _fakeServer;
     private WebApplication? _receiver;
+
+    public ReceiverVerificationTests() => _extraKey = new RsaSecurityKey(_rsa) { KeyId = "extra" };
 
     public async ValueTask InitializeAsync()
     {
@@ -141,7 +148,17 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
         builder.Logging.ClearProviders();
         builder.WebHost.UseUrls(FakeServerUrl);
         _fakeServer = builder.Build();
-        _fakeServer.MapGet("/.well-known/a2a-push-jwks.json", () => Results.Json(_key.GetJwks()));
+        _fakeServer.MapGet("/.well-known/a2a-push-jwks.json", () =>
+        {
+            var jwks = _key.GetJwks();
+            var p = _rsa.ExportParameters(false);
+            ((System.Text.Json.Nodes.JsonArray)jwks["keys"]!).Add(new System.Text.Json.Nodes.JsonObject
+            {
+                ["kty"] = "RSA", ["use"] = "sig", ["alg"] = "RS256", ["kid"] = "extra",
+                ["n"] = Base64UrlEncoder.Encode(p.Modulus), ["e"] = Base64UrlEncoder.Encode(p.Exponent),
+            });
+            return Results.Json(jwks);
+        });
         await _fakeServer.StartAsync();
         _receiver = await A2ATestHost.StartReceiverAsync(ReceiverPort, [FakeServerUrl]);
     }
@@ -150,6 +167,7 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
     {
         _http.Dispose();
         _key.Dispose();
+        _rsa.Dispose();
         if (_receiver is not null) await _receiver.DisposeAsync();
         if (_fakeServer is not null) await _fakeServer.DisposeAsync();
     }
@@ -211,6 +229,9 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
             ["untrusted issuer"] = good with { Signature = _key.CreateToken("http://evil.example", ReceiverUrl + "/webhook", taskId, good.Body, Now) },
             ["wrong audience"] = good with { Signature = _key.CreateToken(FakeServerUrl, "http://127.0.0.1:1/webhook", taskId, good.Body, Now) },
             ["expired"] = good with { Signature = _key.CreateToken(FakeServerUrl, ReceiverUrl + "/webhook", taskId, good.Body, Now - TimeSpan.FromHours(1)) },
+            ["HS256 token"] = good with { Signature = HmacToken(taskId, good.Body, signed: true) },
+            ["unsigned (alg none) token"] = good with { Signature = HmacToken(taskId, good.Body, signed: false) },
+            ["iat in the future"] = good with { Signature = _key.CreateToken(FakeServerUrl, ReceiverUrl + "/webhook", taskId, good.Body, Now + TimeSpan.FromMinutes(2)) },
             ["body changed after signing"] = good with { Body = StatusBody(taskId, "TASK_STATE_COMPLETED") },
             ["signed task differs from payload"] = good with { Signature = _key.CreateToken(FakeServerUrl, ReceiverUrl + "/webhook", otherTask, good.Body, Now) },
             ["payload task differs from subscription"] = Valid(otherTask, credentials, token, otherBody),
@@ -223,6 +244,60 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, await PostAsync(good)); // control: the same delivery, unchanged, is accepted
         Assert.Equal(1, await CountAsync(taskId));
+    }
+
+    private string HmacToken(string taskId, byte[] body, bool signed)
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["iss"] = FakeServerUrl, ["aud"] = ReceiverUrl + "/webhook", ["task_id"] = taskId,
+            ["body_sha256"] = Base64UrlEncoder.Encode(System.Security.Cryptography.SHA256.HashData(body)),
+            ["iat"] = Now.ToUnixTimeSeconds(), ["exp"] = Now.AddMinutes(5).ToUnixTimeSeconds(),
+        };
+        if (!signed)
+        {
+            string B64(object o) => Base64UrlEncoder.Encode(JsonSerializer.Serialize(o));
+            return B64(new { alg = "none", typ = "JWT", kid = _key.Kid }) + "." + B64(claims) + ".";
+        }
+        var secret = new SymmetricSecurityKey(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)) { KeyId = _key.Kid };
+        return new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Claims = claims, SigningCredentials = new SigningCredentials(secret, SecurityAlgorithms.HmacSha256),
+        });
+    }
+
+    [Fact]
+    public async Task Receiver_rejects_token_with_too_long_lifetime()
+    {
+        var (taskId, credentials, token) = (Random(), Random(), Random());
+        await SubscribeAsync(taskId, token, credentials);
+        var body = StatusBody(taskId);
+        var claims = new Dictionary<string, object>
+        {
+            ["task_id"] = taskId, ["body_sha256"] = Base64UrlEncoder.Encode(System.Security.Cryptography.SHA256.HashData(body)),
+        };
+        var jwt = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = FakeServerUrl, Audience = ReceiverUrl + "/webhook", IssuedAt = Now.UtcDateTime, Expires = Now.UtcDateTime.AddHours(1),
+            Claims = claims, SigningCredentials = ForgedCredentials(),
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, await PostAsync(new Delivery(credentials, token, body, jwt)));
+        Assert.Equal(0, await CountAsync(taskId));
+    }
+
+    private SigningCredentials ForgedCredentials() => new(_extraKey, SecurityAlgorithms.RsaSha256);
+
+    [Fact]
+    public async Task Wildcard_subscription_binds_to_first_task_and_rejects_others()
+    {
+        var (taskA, taskB, credentials, token) = (Random(), Random(), Random(), Random());
+        await SubscribeAsync("*", token, credentials);
+
+        Assert.Equal(HttpStatusCode.OK, await PostAsync(Valid(taskA, credentials, token)));
+        Assert.Equal(HttpStatusCode.Unauthorized, await PostAsync(Valid(taskB, credentials, token)));
+        Assert.Equal(0, await CountAsync(taskB));
+        Assert.Equal(HttpStatusCode.OK, await PostAsync(Valid(taskA, credentials, token, StatusBody(taskA, "TASK_STATE_COMPLETED"))));
+        Assert.Equal(2, await CountAsync(taskA));
     }
 
     [Fact]
@@ -247,7 +322,9 @@ public sealed class ReceiverVerificationTests : IAsyncLifetime
         await SubscribeAsync(taskId, token, credentials);
         var huge = new Delivery(credentials, token, new byte[1024 * 1024 + 1], "x");
 
-        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, await PostAsync(huge));
+        // Kestrel may answer 413 and close the connection while the client is still writing; the client then sees a reset instead.
+        try { Assert.Equal(HttpStatusCode.RequestEntityTooLarge, await PostAsync(huge)); }
+        catch (HttpRequestException) { }
         Assert.Equal(0, await CountAsync(taskId));
     }
 }

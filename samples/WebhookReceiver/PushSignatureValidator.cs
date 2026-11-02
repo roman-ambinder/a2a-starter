@@ -22,6 +22,7 @@ public sealed class PushSignatureValidator(IHttpClientFactory httpClients, Recei
 {
     public static readonly TimeSpan MinRefreshInterval = TimeSpan.FromSeconds(30);
     public static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan MaxLifetime = TimeSpan.FromMinutes(10);
     public const string JwksPath = "/.well-known/a2a-push-jwks.json";
 
     private sealed class ServerKeys
@@ -66,6 +67,12 @@ public sealed class PushSignatureValidator(IHttpClientFactory httpClients, Recei
             IssuerSigningKey = key,
         }).ConfigureAwait(false);
         if (!result.IsValid) return SignatureResult.Fail("invalid signature token");
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        if (!jwt.TryGetPayloadValue<long>("iat", out var iatSeconds)) return SignatureResult.Fail("missing iat claim");
+        var iat = DateTimeOffset.FromUnixTimeSeconds(iatSeconds).UtcDateTime;
+        if (iat > now + ClockSkew) return SignatureResult.Fail("iat is in the future");
+        if (jwt.ValidTo - iat > MaxLifetime) return SignatureResult.Fail("token lifetime too long");
 
         if (!jwt.TryGetPayloadValue<string>("task_id", out var taskId) || string.IsNullOrEmpty(taskId))
             return SignatureResult.Fail("missing task_id claim");
