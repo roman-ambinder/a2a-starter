@@ -22,6 +22,9 @@ public sealed class AgentAuthorizer(IAuthorizationService authorization) : IAgen
         if (!result.Succeeded) throw new A2AAuthException(403, $"The caller is not allowed to use agent '{agent.Name}'.");
     }
 
-    /// <summary>True when any identity of the principal is authenticated.</summary>
-    public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identities.Any(i => i.IsAuthenticated);
+    /// <summary>
+    /// True when the primary identity (<see cref="ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
+    /// <see cref="CallerIdentity.GetOwner"/>, so a caller is never authorized here and then treated as anonymous for ownership.
+    /// </summary>
+    public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
 }

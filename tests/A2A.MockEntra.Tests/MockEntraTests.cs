@@ -25,7 +25,8 @@ public sealed class MockEntraFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         var offset = int.TryParse(Environment.GetEnvironmentVariable("A2A_TEST_PORT_BASE"), out var b) ? b : 15000;
-        Base = $"http://127.0.0.1:{offset + 100}";
+        // base + 150, not + 100: the integration tests' A2ATestHost runs MockEntra on base + 100, and test projects run in parallel.
+        Base = $"http://127.0.0.1:{offset + 150}";
         _app = MockEntraApp.Build(["--environment", "Development"], builder =>
         {
             builder.WebHost.UseUrls(Base);

@@ -2,6 +2,7 @@ using A2A.Server.Agents;
 using A2A.Server.Auth;
 using A2A.Server.Push;
 using A2A.Server.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,8 @@ public static class A2AServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, <see cref="TaskManager"/>
-    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services and <see cref="IAgentAuthorizer"/>.
+    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/> and a startup check
+    /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
     /// </summary>
     public static A2AServerBuilder AddA2AServer(this IServiceCollection services, Action<A2AServerOptions> configure)
@@ -51,6 +53,7 @@ public static class A2AServiceCollectionExtensions
         services.AddGrpc();
         services.AddAuthorization();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;
     }
 }

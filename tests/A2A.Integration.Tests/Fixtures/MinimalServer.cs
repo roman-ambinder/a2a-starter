@@ -15,7 +15,7 @@ namespace A2A.Integration.Tests.Fixtures;
 
 /// <summary>
 /// The real A2A hosting stack on real Kestrel, with small test agents. One instance per test run (collection fixture).
-/// Ports: base (env <c>A2A_TEST_PORT_BASE</c>, default 16000) + 200 = HTTP; + 201 / + 202 are the
+/// Ports: base (env <c>A2A_TEST_PORT_BASE</c> + 1000, default 16000) + 200 = HTTP; + 201 / + 202 are the
 /// h2c gRPC listeners of <see cref="EchoAgentName"/> / <see cref="ProtectedAgentName"/>; + 203 is an h2c listener no agent owns.
 /// </summary>
 public sealed class MinimalServer : IAsyncLifetime
@@ -28,8 +28,12 @@ public sealed class MinimalServer : IAsyncLifetime
     public const string RolesHeader = TestAuthHandler.RolesHeader;
     public const int DefaultPortBase = 16000;
 
+    /// <summary>
+    /// <c>A2A_TEST_PORT_BASE</c> + 1000 (default 15000 + 1000 = 16000), so it never overlaps <see cref="A2ATestHost"/> (base + 0)
+    /// when the variable is set.
+    /// </summary>
     public static int PortBase { get; } =
-        int.TryParse(Environment.GetEnvironmentVariable("A2A_TEST_PORT_BASE"), out var b) ? b : DefaultPortBase;
+        (int.TryParse(Environment.GetEnvironmentVariable("A2A_TEST_PORT_BASE"), out var b) ? b : A2ATestHost.DefaultPortBase) + 1000;
 
     public static int HttpPort => PortBase + 200;
     public static int EchoGrpcPort => PortBase + 201;
