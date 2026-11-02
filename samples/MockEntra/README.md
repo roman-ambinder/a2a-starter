@@ -2,7 +2,7 @@
 
 Development-only copy of the Microsoft Entra ID v2.0 endpoints the agent server needs. No real tenant required.
 
-Run (it refuses any environment except Development):
+Run (it refuses any environment except Development, so `ASPNETCORE_ENVIRONMENT=Development` is required; Docker Compose sets it):
 
 ```bash
 ASPNETCORE_ENVIRONMENT=Development dotnet run --project samples/MockEntra

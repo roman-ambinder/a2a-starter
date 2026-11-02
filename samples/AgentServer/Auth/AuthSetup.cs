@@ -21,13 +21,18 @@ public static class AuthSetup
 
     /// <summary>
     /// Registers the schemes and policies from the <c>Auth</c> section and returns the bound options.
-    /// Throws <see cref="InvalidOperationException"/> when <c>Auth:Authority</c> or <c>Auth:Audience</c> is missing.
+    /// Throws <see cref="InvalidOperationException"/> when <c>Auth:Authority</c> or <c>Auth:Audience</c> is missing, or when
+    /// <c>Auth:RequireHttpsMetadata</c> is true and the authority is not https.
     /// </summary>
     public static AuthOptions AddA2AAuth(this IServiceCollection services, IConfiguration configuration)
     {
         var auth = configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
         if (string.IsNullOrWhiteSpace(auth.Authority) || string.IsNullOrWhiteSpace(auth.Audience))
             throw new InvalidOperationException("Auth:Authority and Auth:Audience must be configured.");
+        if (auth.RequireHttpsMetadata && !auth.Authority.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                $"Auth:Authority '{auth.Authority}' is not https while Auth:RequireHttpsMetadata is true; every bearer request would fail. " +
+                "Set ASPNETCORE_ENVIRONMENT=Development (enables Auth:RequireHttpsMetadata=false for the local MockEntra) or use an https authority.");
         services.AddSingleton(auth);
 
         services.AddAuthentication(PolicyScheme)

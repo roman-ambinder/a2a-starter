@@ -1,0 +1,13 @@
+{
+  "ServerUrl": "http://agent-server:5200",
+  "ReceiverUrl": "http://webhook-receiver:5300",
+  "ApiKey": "dev-api-key",
+  "MockEntra": {
+    "BaseUrl": "http://mock-entra:5100",
+    "TenantId": "a2a00000-0000-0000-0000-000000000001",
+    "Scope": "api://a2a-demo/.default",
+    "Client": { "Id": "a2a-client", "Secret": "dev-client-secret" },
+    "Approver": { "Id": "a2a-approver", "Secret": "dev-approver-secret" },
+    "NoRoles": { "Id": "a2a-noroles", "Secret": "dev-noroles-secret" }
+  }
+}

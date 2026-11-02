@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.idea/
+.vs/
+.superpowers/
+.env
+docs/
+tests/
+graphify-out/
+*.md
+!samples/**/README.md
