@@ -4,7 +4,11 @@
     <Project Path="src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
     <Project Path="src/A2A.Server/A2A.Server.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/MockEntra/MockEntra.csproj" />
+  </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/A2A.MockEntra.Tests/A2A.MockEntra.Tests.csproj" />
     <Project Path="tests/A2A.Protocol.Tests/A2A.Protocol.Tests.csproj" />
     <Project Path="tests/A2A.Server.Tests/A2A.Server.Tests.csproj" />
   </Folder>
