@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/A2A.Protocol/A2A.Protocol.csproj" />
+    <Project Path="src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/A2A.Protocol.Tests/A2A.Protocol.Tests.csproj" />
+  </Folder>
+</Solution>
