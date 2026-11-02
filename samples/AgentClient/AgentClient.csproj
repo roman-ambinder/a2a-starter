@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AgentClient</RootNamespace>
+    <AssemblyName>AgentClient</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/A2A.Client/A2A.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Copied to a subfolder so it does not collide with other samples' appsettings.json in one output folder
+         (integration tests). FlowSettings looks here first, then next to the executable. -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
+             Link="agentclient-config/appsettings.json" />
+  </ItemGroup>
+</Project>

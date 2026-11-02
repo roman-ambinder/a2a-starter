@@ -6,6 +6,7 @@
     <Project Path="src/A2A.Client/A2A.Client.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/AgentClient/AgentClient.csproj" />
     <Project Path="samples/AgentServer/AgentServer.csproj" />
     <Project Path="samples/MockEntra/MockEntra.csproj" />
     <Project Path="samples/WebhookReceiver/WebhookReceiver.csproj" />
