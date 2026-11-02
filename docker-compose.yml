@@ -11,7 +11,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       # Issuer in tokens and discovery documents; must match what agent-server validates against.
       MockEntra__IssuerBaseUrl: http://mock-entra:5100
-      # appsettings.Development.json binds localhost only; bind all interfaces in the container.
+      # appsettings.json sets Urls to localhost only; bind all interfaces in the container.
       Urls: http://0.0.0.0:5100
     ports:
       - "5100:5100"
@@ -73,7 +73,7 @@ services:
   # Phase 2 only: a local LLM. Not wired to any agent in Phase 1 (agents use the fake chat client).
   ollama:
     profiles: ["ollama"]
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.13.0
     ports:
       - "11434:11434"
     volumes:

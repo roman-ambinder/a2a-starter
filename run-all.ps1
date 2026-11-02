@@ -7,9 +7,11 @@ $env:ASPNETCORE_ENVIRONMENT = 'Development'
 $waitSeconds = if ($env:WAIT_SECONDS) { [int]$env:WAIT_SECONDS } else { 60 }
 $procs = @()
 
-function Start-App($name, $project) {
+# Runs the built DLL directly, so the process we track is the app itself (no `dotnet run` host that could be killed alone).
+function Start-App($name) {
     Write-Host "Starting $name..."
-    Start-Process -FilePath dotnet -NoNewWindow -PassThru -ArgumentList @('run', '--no-build', '--no-launch-profile', '--project', $project)
+    $dll = Join-Path $PSScriptRoot "samples/$name/bin/Debug/net10.0/$name.dll"
+    Start-Process -FilePath dotnet -NoNewWindow -PassThru -ArgumentList @($dll)
 }
 
 function Wait-Ready($name, $url, $proc) {
@@ -25,15 +27,21 @@ function Wait-Ready($name, $url, $proc) {
     throw "$name was not ready at $url after ${waitSeconds}s."
 }
 
+foreach ($port in 5100, 5200, 5201, 5202, 5203, 5204, 5300) {
+    $busy = if ($IsWindows) { Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue }
+            else { & lsof -nP "-iTCP:$port" -sTCP:LISTEN 2>$null }
+    if ($busy) { throw "Port $port is already in use. Stop the other process (an earlier run-all?) and try again." }
+}
+
 try {
     dotnet build A2A.Reference.slnx --nologo -v q
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
-    $entra = Start-App 'MockEntra' 'samples/MockEntra'; $procs += $entra
+    $entra = Start-App 'MockEntra'; $procs += $entra
     Wait-Ready 'MockEntra' 'http://localhost:5100/health/ready' $entra
-    $hook = Start-App 'WebhookReceiver' 'samples/WebhookReceiver'; $procs += $hook
+    $hook = Start-App 'WebhookReceiver'; $procs += $hook
     Wait-Ready 'WebhookReceiver' 'http://localhost:5300/health/ready' $hook
-    $server = Start-App 'AgentServer' 'samples/AgentServer'; $procs += $server
+    $server = Start-App 'AgentServer'; $procs += $server
     Wait-Ready 'AgentServer' 'http://localhost:5200/health/ready' $server
 
     Write-Host @'
