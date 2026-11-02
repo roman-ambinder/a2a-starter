@@ -15,8 +15,8 @@ public static class RequestValidation
         switch (request)
         {
             case SendMessageRequest r:
-                if (r.Message.MessageId.Length == 0 && r.Message.Parts.Count == 0)
-                    throw Missing("message");
+                if (r.Message.MessageId.Length == 0 || r.Message.Parts.Count == 0)
+                    throw Missing("message (messageId and at least one part)");
                 break;
             case GetTaskRequest r: Require(r.Id, "id"); break;
             case CancelTaskRequest r: Require(r.Id, "id"); break;

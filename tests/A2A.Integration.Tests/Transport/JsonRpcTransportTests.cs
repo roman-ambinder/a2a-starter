@@ -246,6 +246,8 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         { """{"jsonrpc":"2.0","id":1,"method":"GetTaskPushNotificationConfig","params":{"id":"c"}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"ListTaskPushNotificationConfigs","params":{}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"DeleteTaskPushNotificationConfig","params":{"id":"c"}}""", -32602 },
+        { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"role":"ROLE_USER","parts":[{"text":"a"}]}}}""", -32602 },
+        { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":[1,2]}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":"x"}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{"status":"TASK_STATE_NOPE"}}""", -32602 },

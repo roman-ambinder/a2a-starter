@@ -147,7 +147,7 @@ internal static class JsonRpcEndpoint
         catch (Exception ex)
         {
             var error = TransportErrors.ToA2AException(ex, logger);
-            if (http.Response.HasStarted) return; // SSE already started; StreamAsync reports its own errors
+            if (http.Response.HasStarted) return; // SSE already started; SseStreaming.RunAsync reports its own errors
             await WriteJsonAsync(http, JsonRpcMessages.Error(request.Id, error)).ConfigureAwait(false);
         }
     }

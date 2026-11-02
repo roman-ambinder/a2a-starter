@@ -54,7 +54,8 @@ public sealed class RestTransportTests(MinimalServer server)
         }
         else if (template.EndsWith(":subscribe", StringComparison.Ordinal))
         {
-            Assert.True(response.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest, $"{response.StatusCode}: {text}");
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("UNSUPPORTED_OPERATION", JsonNode.Parse(text)!["error"]!["details"]![0]!["reason"]!.GetValue<string>());
         }
         else if (method == "DELETE")
         {
@@ -253,6 +254,8 @@ public sealed class RestTransportTests(MinimalServer server)
     [InlineData("{\"message\":{\"messageId\":\"m\",\"role\":\"ROLE_BOGUS\",\"parts\":[{\"text\":\"a\"}]}}")]
     [InlineData("{}")]
     [InlineData("{\"message\":{}}")]
+    [InlineData("{\"message\":{\"role\":\"ROLE_USER\",\"parts\":[{\"text\":\"a\"}]}}")]
+    [InlineData("{\"message\":{\"messageId\":\"m\",\"role\":\"ROLE_USER\",\"parts\":[]}}")]
     public async Task Bad_send_bodies_are_400(string body)
     {
         using var client = Client("ova");
@@ -268,6 +271,31 @@ public sealed class RestTransportTests(MinimalServer server)
         using var response = await client.SendAsync(Req(HttpMethod.Post, Echo, "message:stream", "{}"), Ct);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("INVALID_ARGUMENT", JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!["error"]!["status"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("GET", "tasks/a%3Ab")]
+    [InlineData("POST", "tasks/a:b:cancel")]
+    [InlineData("POST", "tasks/a%3Ab%3Acancel")]
+    [InlineData("GET", "tasks/a:b:subscribe")]
+    public async Task Task_ids_with_colon_are_parsed(string method, string path)
+    {
+        using var client = Client("rho");
+        using var response = await client.SendAsync(Req(new HttpMethod(method), Echo, path, null), Ct);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!["error"]!;
+        Assert.Equal("TASK_NOT_FOUND", error["details"]![0]!["reason"]!.GetValue<string>());
+        Assert.Contains("'a:b'", error["message"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("tasks/")]
+    [InlineData("tasks")]
+    public async Task Trailing_slash_is_accepted(string path)
+    {
+        using var client = Client("sol");
+        using var response = await client.SendAsync(Req(HttpMethod.Get, Echo, path, null), Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
