@@ -5,4 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="../A2A.Protocol/A2A.Protocol.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="A2A.Server.Tests" />
+  </ItemGroup>
 </Project>
