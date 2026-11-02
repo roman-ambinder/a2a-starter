@@ -8,7 +8,7 @@ namespace AgentServer.Agents;
 /// <summary>
 /// Approves a report (<c>approve &lt;id&gt;</c>). Needs the role <c>Reports.Approve</c>: without it the task pauses in AUTH_REQUIRED.
 /// A later message on the same task from a caller with the role completes it with the <c>approval</c> artifact. The id comes from
-/// the first <c>approve</c> message in the stored history; <c>approvedBy</c> is the caller's <c>azp</c> claim.
+/// the latest <c>approve</c> message in the stored history; <c>approvedBy</c> is the caller's <c>azp</c> claim.
 /// </summary>
 public sealed partial class SecureAgent : IAgentHandler
 {
@@ -24,12 +24,13 @@ public sealed partial class SecureAgent : IAgentHandler
         var id = FindId(context);
         if (id is null)
         {
-            await Say(context, sink, TaskState.Rejected, "Try 'approve <id>'.", ct);
+            await Say(context, sink, TaskState.InputRequired, "Try 'approve <id>'.", ct);
             return;
         }
 
         await sink.UpdateStatusAsync(TaskState.Working, null, ct);
 
+        // IsInRole works because the AgentServer auth setup (AuthSetup) sets RoleClaimType = "roles".
         if (!context.User.IsInRole(ApproveRole))
         {
             await Say(context, sink, TaskState.AuthRequired, AuthRequiredText, ct);
@@ -45,14 +46,18 @@ public sealed partial class SecureAgent : IAgentHandler
 
     private static string? FindId(AgentRequestContext context)
     {
-        IEnumerable<Message> messages = (context.CurrentTask?.History ?? []).Where(m => m.Role == Role.User).Append(context.Message);
+        // Latest wins: earlier turns from history (current message excluded), then the current message.
+        var messages = (context.CurrentTask?.History ?? [])
+            .Where(m => m.Role == Role.User && m.MessageId != context.Message.MessageId)
+            .Append(context.Message);
+        string? id = null;
         foreach (var message in messages)
         {
             var text = message.Parts.FirstOrDefault(p => p.Text is not null)?.Text ?? "";
             var match = ApprovePattern().Match(text);
-            if (match.Success) return match.Groups["id"].Value;
+            if (match.Success) id = match.Groups["id"].Value;
         }
-        return null;
+        return id;
     }
 
     private static ValueTask Say(AgentRequestContext context, IAgentEventSink sink, TaskState state, string text, CancellationToken ct)

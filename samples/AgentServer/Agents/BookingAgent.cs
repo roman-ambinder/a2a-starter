@@ -10,7 +10,7 @@ namespace AgentServer.Agents;
 /// <summary>
 /// Books a flight in a short conversation. <c>book &lt;city&gt;</c> (Paris, London, Tokyo; any case) asks for a date; a valid
 /// <c>yyyy-MM-dd</c> date on the same task completes with the <c>booking</c> artifact. The agent instance lives for one execution,
-/// so the city of a running conversation is read back from the first user message in the stored task history.
+/// so the city of a running conversation is read back from the latest 'book' user message in the stored task history.
 /// </summary>
 public sealed partial class BookingAgent : IAgentHandler
 {
@@ -22,23 +22,19 @@ public sealed partial class BookingAgent : IAgentHandler
 
     public async ValueTask ExecuteAsync(AgentRequestContext context, IAgentEventSink sink, CancellationToken ct)
     {
-        if (context.CurrentTask is { } task)
-        {
-            var city = task.History?
-                .Where(m => m.Role == Role.User)
-                .Select(m => ParseCity(Text(m)))
-                .FirstOrDefault(c => c is not null);
-            if (city is not null)
-            {
-                await HandleDateAsync(context, sink, city, Text(context.Message).Trim(), ct);
-                return;
-            }
-        }
-
         var match = BookPattern().Match(Text(context.Message));
         if (!match.Success)
         {
-            await Say(context, sink, TaskState.InputRequired, "Where to? Try 'book Paris'.", ct);
+            // Not a "book <city>" request: a date for the latest city asked earlier in this task (current message excluded).
+            var city = context.CurrentTask?.History?
+                .Where(m => m.Role == Role.User && m.MessageId != context.Message.MessageId)
+                .Reverse()
+                .Select(m => ParseCity(Text(m)))
+                .FirstOrDefault(c => c is not null);
+            if (city is not null)
+                await HandleDateAsync(context, sink, city, Text(context.Message).Trim(), ct);
+            else
+                await Say(context, sink, TaskState.InputRequired, "Where to? Try 'book Paris'.", ct);
             return;
         }
 

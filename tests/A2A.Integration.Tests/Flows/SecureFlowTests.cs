@@ -86,4 +86,33 @@ public sealed class SecureFlowTests(A2ATestHost host)
         Assert.Equal(TaskState.Completed, task.Status.State);
         Assert.Equal("r-4", task.Artifacts.Single().Parts.Single().Data!.Value.GetProperty("id").GetString());
     }
+
+    [Theory]
+    [MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Secure_input_without_approve_asks_again(string binding)
+    {
+        await using var client = await ClientAsync(binding, TestAuth.Approver);
+
+        var first = (await client.SendMessageAsync(Send("hello"), Ct)).Task!;
+        Assert.Equal(TaskState.InputRequired, first.Status.State);
+        Assert.Equal("Try 'approve <id>'.", first.Status.Message!.Parts.Single().Text);
+
+        var done = (await client.SendMessageAsync(Send("approve r-6", first.Id, first.ContextId), Ct)).Task!;
+        Assert.Equal(TaskState.Completed, done.Status.State);
+        Assert.Equal("r-6", done.Artifacts.Single().Parts.Single().Data!.Value.GetProperty("id").GetString());
+    }
+
+    [Theory]
+    [MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Secure_latest_approve_id_wins(string binding)
+    {
+        await using var weak = await ClientAsync(binding, TestAuth.Client);
+        await using var strong = await ClientAsync(binding, TestAuth.Approver);
+        var paused = (await weak.SendMessageAsync(Send("approve r-7"), Ct)).Task!;
+
+        var done = (await strong.SendMessageAsync(Send("approve r-8", paused.Id, paused.ContextId), Ct)).Task!;
+
+        Assert.Equal(TaskState.Completed, done.Status.State);
+        Assert.Equal("r-8", done.Artifacts.Single().Parts.Single().Data!.Value.GetProperty("id").GetString());
+    }
 }
