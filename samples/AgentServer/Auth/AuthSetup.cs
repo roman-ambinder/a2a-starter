@@ -64,17 +64,15 @@ public static class AuthSetup
     }
 
     /// <summary>
-    /// Bad tokens (signature, expiry, audience) already end as 401 and are not logged here. Two cases mean the identity provider's
-    /// OpenID metadata could not be fetched: a non-token exception (the handler would rethrow it and answer 500), and IDX10204
-    /// ("no valid issuer", because the issuer comes only from that metadata). Both are logged as a warning, and the first is
-    /// turned into a failed authentication so the caller gets 401, not 500.
+    /// Bad tokens (signature, expiry, audience) already end as 401 and are not logged here. "Metadata unavailable" (see
+    /// <see cref="IsMetadataUnavailable"/>) is logged as a warning; when it is not a token exception it is turned into a failed
+    /// authentication so the caller gets 401, not 500. Any other exception follows the normal path: the handler rethrows it,
+    /// ASP.NET Core logs it as an error and answers 500.
     /// </summary>
     private static Task OnAuthenticationFailed(AuthenticationFailedContext context)
     {
         var tokenProblem = context.Exception is SecurityTokenException;
-        var noMetadata = !tokenProblem || (context.Exception is SecurityTokenInvalidIssuerException &&
-                                           context.Exception.Message.Contains("IDX10204", StringComparison.Ordinal));
-        if (!noMetadata) return Task.CompletedTask;
+        if (!IsMetadataUnavailable(context.Exception)) return Task.CompletedTask;
 
         context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(AuthSetup))
             .LogWarning(context.Exception,
@@ -82,5 +80,27 @@ public static class AuthSetup
                 context.Options.Authority);
         if (!tokenProblem) context.Fail(context.Exception);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// True when the exception means the identity provider's OpenID metadata could not be loaded: anywhere in the exception chain
+    /// an <see cref="HttpRequestException"/>, an <see cref="IOException"/>, or an <see cref="InvalidOperationException"/> from the
+    /// configuration manager (IDX20803 "unable to obtain configuration", IDX20804 "unable to retrieve document"); or IDX10204
+    /// (no valid issuer, because the issuer comes only from that metadata).
+    /// </summary>
+    public static bool IsMetadataUnavailable(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        if (exception is SecurityTokenInvalidIssuerException && exception.Message.Contains("IDX10204", StringComparison.Ordinal))
+            return true;
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is HttpRequestException or IOException) return true;
+            if (e is InvalidOperationException
+                && (e.Message.Contains("IDX20803", StringComparison.Ordinal) || e.Message.Contains("IDX20804", StringComparison.Ordinal)))
+                return true;
+            if (e is AggregateException aggregate && aggregate.InnerExceptions.Any(IsMetadataUnavailable)) return true;
+        }
+        return false;
     }
 }

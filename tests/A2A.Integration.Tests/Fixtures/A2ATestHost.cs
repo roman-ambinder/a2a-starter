@@ -186,7 +186,10 @@ public sealed class A2ATestHost : IAsyncLifetime
             case TestAuth.None:
                 return null;
             case TestAuth.ApiKey:
-                return new ApiKeyCredentialProvider(ApiKey);
+                // A card that does not advertise an API key scheme (secure) still gets the header, to prove the server refuses it.
+                return card.SecuritySchemes?.Values.Any(s => s.ApiKeySecurityScheme is not null) == true
+                    ? new ApiKeyCredentialProvider(ApiKey)
+                    : new RawHeaderCredentials("X-API-Key", ApiKey);
             default:
                 var (id, secret) = Clients[auth];
                 var hasFlow = card.SecuritySchemes?.Values.Any(s => s.Oauth2SecurityScheme?.Flows.ClientCredentials is not null) == true;
@@ -210,6 +213,13 @@ public sealed class A2ATestHost : IAsyncLifetime
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         return doc.RootElement.GetProperty("access_token").GetString()!;
     }
+}
+
+/// <summary>Sends one fixed header, whatever the card declares.</summary>
+public sealed class RawHeaderCredentials(string name, string value) : IA2ACredentialProvider
+{
+    public ValueTask<IReadOnlyDictionary<string, string>> GetHeadersAsync(AgentCard card, CancellationToken ct)
+        => new(new Dictionary<string, string> { [name] = value });
 }
 
 [CollectionDefinition(Name)]

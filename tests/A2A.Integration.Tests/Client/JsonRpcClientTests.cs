@@ -265,7 +265,9 @@ public sealed class JsonRpcClientTests(MinimalServer server)
     {
         var handler = new StubHandler((_, _) => Reply("", contentType: "text/event-stream"));
         await using var client = Stubbed(handler);
-        await foreach (var _ in client.SendStreamingMessageAsync(Send("x"), Ct)) { }
+        // An empty stream has no final event: InvalidAgentResponse. The request still asked for an event stream.
+        var ex = await Assert.ThrowsAsync<A2AException>(async () => { await foreach (var _ in client.SendStreamingMessageAsync(Send("x"), Ct)) { } });
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, ex.Code);
         Assert.Equal("text/event-stream", handler.Requests[0].Headers.Accept.ToString());
     }
 }

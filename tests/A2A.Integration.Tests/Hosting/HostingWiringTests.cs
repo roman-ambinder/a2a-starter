@@ -31,7 +31,12 @@ public sealed class HostingWiringTests(MinimalServer server)
         var sender = Services.GetRequiredService<PushNotificationSender>();
         Assert.Contains(sender, Services.GetServices<ITaskEventObserver>());
         Assert.Contains(sender, Services.GetServices<IHostedService>().OfType<PushNotificationSender>());
-        Assert.Same(Services.GetRequiredService<TaskManager>(), Services.GetRequiredService<IA2ARequestHandler>());
+        // The fixture wraps the handler in a recorder; the AddA2AServer default is TaskManager itself.
+        Assert.IsType<RecordingHandler>(Services.GetRequiredService<IA2ARequestHandler>());
+        var plain = new ServiceCollection().AddLogging();
+        plain.AddA2AServer(o => o.PublicBaseUrl = "http://localhost:1");
+        using var provider = plain.BuildServiceProvider();
+        Assert.Same(provider.GetRequiredService<TaskManager>(), provider.GetRequiredService<IA2ARequestHandler>());
     }
 
     [Fact]
@@ -62,5 +67,14 @@ public sealed class HostingWiringTests(MinimalServer server)
         var list = AgentCardInterfaces.For("x", options);
         Assert.Equal("http://[::1]:5200/agents/x/jsonrpc", list[0].Url);
         Assert.Equal("http://[::1]:5201", list[2].Url);
+    }
+
+    [Fact]
+    public void Grpc_interface_uses_https_when_public_base_url_is_https()
+    {
+        var options = new A2AServerOptions { PublicBaseUrl = "https://agents.example.com/" };
+        options.GrpcPorts["x"] = 5201;
+        var grpc = AgentCardInterfaces.For("x", options).Single(i => i.ProtocolBinding == "GRPC");
+        Assert.Equal("https://agents.example.com:5201", grpc.Url);
     }
 }

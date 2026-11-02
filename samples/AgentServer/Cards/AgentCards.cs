@@ -8,8 +8,8 @@ namespace AgentServer.Cards;
 /// The four demo agent cards. Hosting replaces <c>supportedInterfaces</c>; everything else is defined here.
 /// <list type="table">
 /// <item>echo: open; streaming; text, JSON and any file; extension timestamp (optional).</item>
-/// <item>report: Invoke; entra OR apiKey; streaming, push, extended card (+ skill <c>report-archive</c>).</item>
-/// <item>booking: Invoke; entra OR apiKey; streaming, push.</item>
+/// <item>report: Invoke; entra OR apiKey (apiKey only when keys are configured); streaming, push, extended card (+ skill <c>report-archive</c>).</item>
+/// <item>booking: Invoke; entra OR apiKey (apiKey only when keys are configured); streaming, push.</item>
 /// <item>secure: InvokeBearer; entra; streaming, push, extended card (+ skill <c>audit-log</c>); extension audit (required).</item>
 /// </list>
 /// </summary>
@@ -102,55 +102,70 @@ public static class AgentCards
         };
     }
 
-    private static AgentCard Protected(string name, string description, AuthOptions auth, bool bearerOnly, bool extendedCard, AgentSkill skill) => new()
+    /// <summary>
+    /// The <c>apiKey</c> scheme and requirement appear only when the agent accepts API keys (<paramref name="bearerOnly"/> false)
+    /// and at least one key is configured, so a card never advertises a scheme the server would refuse.
+    /// </summary>
+    private static AgentCard Protected(string name, string description, AuthOptions auth, bool bearerOnly, bool extendedCard, AgentSkill skill)
     {
-        Name = name,
-        Description = description,
-        Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = true, ExtendedAgentCard = extendedCard },
-        SecuritySchemes = Schemes(auth),
-        SecurityRequirements = bearerOnly
-            ? [Requirement(EntraScheme, auth.Scope)]
-            : [Requirement(EntraScheme, auth.Scope), Requirement(ApiKeyScheme)],
-        DefaultInputModes = ["text/plain"],
-        DefaultOutputModes = ["text/plain", "text/markdown", "application/json"],
-        Skills = [skill],
-    };
-
-    private static Dictionary<string, SecurityScheme> Schemes(AuthOptions auth) => new()
-    {
-        [EntraScheme] = new SecurityScheme
+        var apiKey = !bearerOnly && auth.ApiKeys.Values.Any(k => !string.IsNullOrEmpty(k));
+        return new()
         {
-            Oauth2SecurityScheme = new OAuth2SecurityScheme
+            Name = name,
+            Description = description,
+            Capabilities = new AgentCapabilities { Streaming = true, PushNotifications = true, ExtendedAgentCard = extendedCard },
+            SecuritySchemes = Schemes(auth, apiKey),
+            SecurityRequirements = apiKey
+                ? [Requirement(EntraScheme, auth.Scope), Requirement(ApiKeyScheme)]
+                : [Requirement(EntraScheme, auth.Scope)],
+            DefaultInputModes = ["text/plain"],
+            DefaultOutputModes = ["text/plain", "text/markdown", "application/json"],
+            Skills = [skill],
+        };
+    }
+
+    private static Dictionary<string, SecurityScheme> Schemes(AuthOptions auth, bool apiKey)
+    {
+        var schemes = new Dictionary<string, SecurityScheme>
+        {
+            [EntraScheme] = new SecurityScheme
             {
-                Description = "Microsoft Entra ID client credentials (app roles: A2A.Invoke).",
-                Flows = new OAuthFlows
+                Oauth2SecurityScheme = new OAuth2SecurityScheme
                 {
-                    ClientCredentials = new ClientCredentialsOAuthFlow
+                    Description = "Microsoft Entra ID client credentials (app roles: A2A.Invoke).",
+                    Flows = new OAuthFlows
                     {
-                        TokenUrl = auth.TokenUrl,
-                        Scopes = new Dictionary<string, string> { [auth.Scope] = "Invoke A2A demo agents" },
+                        ClientCredentials = new ClientCredentialsOAuthFlow
+                        {
+                            TokenUrl = auth.TokenUrl,
+                            Scopes = new Dictionary<string, string> { [auth.Scope] = "Invoke A2A demo agents" },
+                        },
                     },
                 },
             },
-        },
-        [EntraOidcScheme] = new SecurityScheme
-        {
-            OpenIdConnectSecurityScheme = new OpenIdConnectSecurityScheme
+            [EntraOidcScheme] = new SecurityScheme
             {
-                Description = "Microsoft Entra ID OpenID Connect metadata.",
-                OpenIdConnectUrl = auth.OpenIdConfigurationUrl,
+                OpenIdConnectSecurityScheme = new OpenIdConnectSecurityScheme
+                {
+                    Description = "Microsoft Entra ID OpenID Connect metadata.",
+                    OpenIdConnectUrl = auth.OpenIdConfigurationUrl,
+                },
             },
-        },
-        [ApiKeyScheme] = new SecurityScheme
+        };
+        if (apiKey)
         {
-            ApiKeySecurityScheme = new ApiKeySecurityScheme
+            schemes[ApiKeyScheme] = new SecurityScheme
             {
-                Description = "Development API key.",
-                Location = "header",
-                Name = ApiKeyAuthenticationHandler.HeaderName,
-            },
-        },
-    };
+                ApiKeySecurityScheme = new ApiKeySecurityScheme
+                {
+                    Description = "API key.",
+                    Location = "header",
+                    Name = ApiKeyAuthenticationHandler.HeaderName,
+                },
+            };
+        }
+        return schemes;
+    }
 
     private static SecurityRequirement Requirement(string scheme, params string[] scopes)
         => new() { Schemes = new Dictionary<string, StringList> { [scheme] = new StringList { List = scopes } } };

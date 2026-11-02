@@ -58,9 +58,29 @@ public sealed class DiscoveryAndAuthTests(A2ATestHost host)
 
         var secure = await host.GetCardAsync("secure", Ct);
         Assert.Equal(["entra"], secure.SecurityRequirements.Select(r => r.Schemes.Keys.Single()));
+        Assert.False(secure.SecuritySchemes!.ContainsKey("apiKey")); // bearer only: no API key scheme advertised
         var echo = await host.GetCardAsync("echo", Ct);
         Assert.Empty(echo.SecurityRequirements);
         Assert.Null(echo.SecuritySchemes);
+    }
+
+    [Theory]
+    [InlineData("report", false, false)]
+    [InlineData("booking", false, false)]
+    [InlineData("secure", false, false)]
+    [InlineData("report", true, true)]
+    [InlineData("booking", true, true)]
+    [InlineData("secure", true, false)]
+    public void Api_key_scheme_only_when_keys_are_configured_and_accepted(string agent, bool keysConfigured, bool expected)
+    {
+        var auth = new AgentServer.Auth.AuthOptions { Audience = "api://a", TokenUrl = "https://idp/t", OpenIdConfigurationUrl = "https://idp/o" };
+        if (keysConfigured) auth.ApiKeys["dev"] = "k";
+        var card = AgentServer.Cards.AgentCards.Build(agent, new A2A.Server.Hosting.A2AServerOptions { PublicBaseUrl = "http://h" }, auth, extended: false);
+
+        Assert.Equal(expected, card.SecuritySchemes!.ContainsKey("apiKey"));
+        Assert.Equal(expected, card.SecurityRequirements.Any(r => r.Schemes.ContainsKey("apiKey")));
+        // Every requirement names a declared scheme.
+        Assert.All(card.SecurityRequirements.SelectMany(r => r.Schemes.Keys), k => Assert.True(card.SecuritySchemes.ContainsKey(k)));
     }
 
     [Theory]

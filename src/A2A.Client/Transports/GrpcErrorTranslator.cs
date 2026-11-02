@@ -9,8 +9,9 @@ internal static class GrpcErrorTranslator
 {
     /// <summary>
     /// UNAUTHENTICATED / PERMISSION_DENIED → <see cref="A2AAuthException"/> (401 / 403). A <c>google.rpc.Status</c> with an
-    /// ErrorInfo reason → <see cref="A2AException"/> with the code from <see cref="A2AError.FromReason"/>. Anything else →
-    /// InternalError that keeps the gRPC status and message.
+    /// ErrorInfo reason → <see cref="A2AException"/> with the code from <see cref="A2AError.FromReason"/> and the ErrorInfo
+    /// metadata as <see cref="A2AException.Data"/>. Without a reason: INVALID_ARGUMENT → InvalidParams, UNIMPLEMENTED →
+    /// MethodNotFound, anything else → InternalError; the message and the gRPC status are kept.
     /// </summary>
     public static Exception Translate(RpcException ex)
     {
@@ -34,7 +35,13 @@ internal static class GrpcErrorTranslator
             }
         }
 
-        return new A2AException(A2AErrorCode.InternalError, $"{Message(ex)} (gRPC {ex.StatusCode})");
+        var fallback = ex.StatusCode switch
+        {
+            StatusCode.InvalidArgument => A2AErrorCode.InvalidParams,
+            StatusCode.Unimplemented => A2AErrorCode.MethodNotFound,
+            _ => A2AErrorCode.InternalError,
+        };
+        return new A2AException(fallback, $"{Message(ex)} (gRPC {ex.StatusCode})");
     }
 
     private static string Message(RpcException ex)

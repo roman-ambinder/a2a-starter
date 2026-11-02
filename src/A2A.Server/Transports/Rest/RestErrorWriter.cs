@@ -43,11 +43,11 @@ public static class RestErrorWriter
                 w.WriteString("@type", ErrorInfoType);
                 w.WriteString("reason", info.Reason);
                 w.WriteString("domain", A2AError.Domain);
-                if (error.Data is { ValueKind: JsonValueKind.Object } data)
+                if (error.Data is { ValueKind: JsonValueKind.Object })
                 {
                     w.WriteStartObject("metadata");
-                    foreach (var p in data.EnumerateObject())
-                        w.WriteString(p.Name, p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : FlattenValue(p.Value));
+                    foreach (var (name, value) in TransportErrors.ErrorMetadata(error.Data))
+                        w.WriteString(name, value);
                     w.WriteEndObject();
                 }
                 w.WriteEndObject();
@@ -58,9 +58,4 @@ public static class RestErrorWriter
         }
         return buffer.WrittenSpan.ToArray();
     }
-
-    private static string FlattenValue(JsonElement value)
-        => value.ValueKind == JsonValueKind.Array
-            ? string.Join(",", value.EnumerateArray().Select(v => v.ValueKind == JsonValueKind.String ? v.GetString() : v.GetRawText()))
-            : value.GetRawText();
 }

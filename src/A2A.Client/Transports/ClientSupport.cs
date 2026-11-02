@@ -80,6 +80,17 @@ internal static class ClientSupport
     public static A2AException HttpFailure(HttpResponseMessage response)
         => new(A2AErrorCode.InternalError, $"The agent answered HTTP {(int)response.StatusCode} {response.ReasonPhrase}.");
 
+    /// <summary>
+    /// The A2A code for an HTTP error that has no ErrorInfo reason: 400 → InvalidParams, 404 → MethodNotFound, else InternalError.
+    /// Same rule as <see cref="GrpcErrorTranslator"/> for INVALID_ARGUMENT / UNIMPLEMENTED.
+    /// </summary>
+    public static A2AErrorCode CodeForStatusWithoutReason(int? httpStatus) => httpStatus switch
+    {
+        400 => A2AErrorCode.InvalidParams,
+        404 => A2AErrorCode.MethodNotFound,
+        _ => A2AErrorCode.InternalError,
+    };
+
     public static A2AException InvalidResponse(string message, Exception? inner = null)
         => inner is null
             ? new A2AException(A2AErrorCode.InvalidAgentResponse, message)
@@ -117,6 +128,19 @@ internal static class ClientSupport
             throw InvalidResponse($"The {what} is not valid.", ex);
         }
     }
+
+    /// <summary>
+    /// True for an event that may end a stream: a message, or a task / status update in a terminal (COMPLETED, FAILED, CANCELED,
+    /// REJECTED) or interrupted (INPUT_REQUIRED, AUTH_REQUIRED) state.
+    /// </summary>
+    public static bool IsFinal(StreamResponse e)
+        => e.Message is not null || IsFinalState(e.Task?.Status.State) || IsFinalState(e.StatusUpdate?.Status.State);
+
+    private static bool IsFinalState(TaskState? state) => state is TaskState.Completed or TaskState.Failed or TaskState.Canceled
+        or TaskState.Rejected or TaskState.InputRequired or TaskState.AuthRequired;
+
+    /// <summary>The error for a stream that closed without a final event (see <see cref="IsFinal"/>).</summary>
+    public static A2AException StreamEndedEarly() => InvalidResponse("stream ended before a final event");
 
     /// <summary>Exactly one of task / message.</summary>
     public static SendMessageResponse Validate(SendMessageResponse response)

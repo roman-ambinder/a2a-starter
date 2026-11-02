@@ -140,12 +140,13 @@ public sealed class GrpcA2AClient : IA2AClient
     {
         var options = new CallOptions(await BuildMetadataAsync(ct).ConfigureAwait(false), cancellationToken: ct);
         using var call = start(request, options); // disposing it (early exit) cancels the RPC quietly
+        var final = false;
         while (true)
         {
             Proto.StreamResponse message;
             try
             {
-                if (!await call.ResponseStream.MoveNext(ct).ConfigureAwait(false)) yield break;
+                if (!await call.ResponseStream.MoveNext(ct).ConfigureAwait(false)) break;
                 message = call.ResponseStream.Current;
             }
             catch (RpcException ex)
@@ -153,8 +154,11 @@ public sealed class GrpcA2AClient : IA2AClient
                 throw Failure(ex, ct);
             }
 
-            yield return ClientSupport.Validate(Map(() => FromProto(message), "stream event"));
+            var evt = ClientSupport.Validate(Map(() => FromProto(message), "stream event"));
+            final |= ClientSupport.IsFinal(evt);
+            yield return evt;
         }
+        if (!final) throw ClientSupport.StreamEndedEarly();
     }
 
     private static StreamResponse FromProto(Proto.StreamResponse message)

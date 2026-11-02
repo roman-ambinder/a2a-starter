@@ -198,6 +198,15 @@ public sealed class TransportParityTests(MinimalServer server)
         await using var oldClient = await CreateAsync(binding, version: "0.3");
         var version = await Assert.ThrowsAsync<A2AException>(async () => await oldClient.SendMessageAsync(Send("x"), Ct));
         Assert.Equal(A2AErrorCode.VersionNotSupported, version.Code);
+        // Error data: JSON-RPC keeps the JSON; REST and gRPC carry it as ErrorInfo metadata strings (arrays joined with ",").
+        var supported = version.Data!.Value.GetProperty("supportedVersions");
+        Assert.Equal("1.0", binding == "JSONRPC" ? supported[0].GetString() : supported.GetString());
+
+        // Errors without an ErrorInfo reason: same client code everywhere (REST 400 / gRPC INVALID_ARGUMENT → InvalidParams).
+        var invalid = await Assert.ThrowsAsync<A2AException>(async () => await client.ListTasksAsync(new ListTasksRequest { PageSize = 1000 }, Ct));
+        Assert.Equal(A2AErrorCode.InvalidParams, invalid.Code);
+        var badHistory = await Assert.ThrowsAsync<A2AException>(async () => await client.GetTaskAsync(new GetTaskRequest { Id = done.Id, HistoryLength = -1 }, Ct));
+        Assert.Equal(A2AErrorCode.InvalidParams, badHistory.Code);
     }
 
     [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]

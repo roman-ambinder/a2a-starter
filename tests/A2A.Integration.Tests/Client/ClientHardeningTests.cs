@@ -179,7 +179,7 @@ public sealed class ClientHardeningTests
     }
 
     [Fact]
-    public async Task Rest_error_body_maps_by_reason_else_internal_error_keeping_status_and_message()
+    public async Task Rest_error_body_maps_by_reason_else_by_http_status_keeping_status_and_message()
     {
         const string notFound = """{"error":{"code":404,"status":"NOT_FOUND","message":"no such task","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"TASK_NOT_FOUND","domain":"a2a-protocol.org"}]}}""";
         await using var withReason = Rest(new StubHandler((_, _) => Reply(notFound, HttpStatusCode.NotFound)));
@@ -196,9 +196,24 @@ public sealed class ClientHardeningTests
         const string noReason = """{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"bad params"}}""";
         await using var plain = Rest(new StubHandler((_, _) => Reply(noReason, HttpStatusCode.BadRequest)));
         var pex = await Assert.ThrowsAsync<A2AException>(async () => await plain.GetTaskAsync(new GetTaskRequest { Id = "t" }, Ct));
-        Assert.Equal(A2AErrorCode.InternalError, pex.Code);
+        Assert.Equal(A2AErrorCode.InvalidParams, pex.Code); // 400 without a reason
         Assert.Contains("bad params", pex.Message);
         Assert.Contains("400", pex.Message);
+
+        const string noMethod = """{"error":{"code":404,"status":"NOT_FOUND","message":"no route"}}""";
+        await using var missing = Rest(new StubHandler((_, _) => Reply(noMethod, HttpStatusCode.NotFound)));
+        var mex = await Assert.ThrowsAsync<A2AException>(async () => await missing.GetTaskAsync(new GetTaskRequest { Id = "t" }, Ct));
+        Assert.Equal(A2AErrorCode.MethodNotFound, mex.Code); // 404 without a reason
+
+        const string internalBody = """{"error":{"code":500,"status":"INTERNAL","message":"boom"}}""";
+        await using var broken = Rest(new StubHandler((_, _) => Reply(internalBody, HttpStatusCode.InternalServerError)));
+        Assert.Equal(A2AErrorCode.InternalError,
+            (await Assert.ThrowsAsync<A2AException>(async () => await broken.GetTaskAsync(new GetTaskRequest { Id = "t" }, Ct))).Code);
+
+        // In-stream error frame without a reason: the body's code decides.
+        await using var frame = Rest(new StubHandler((_, _) => Reply("data: " + noReason + "\n\n", contentType: "text/event-stream")));
+        var fex = await Assert.ThrowsAsync<A2AException>(async () => { await foreach (var _ in frame.SendStreamingMessageAsync(Send("x"), Ct)) { } });
+        Assert.Equal(A2AErrorCode.InvalidParams, fex.Code);
 
         await using var html = Rest(new StubHandler((_, _) => Reply("<html/>", HttpStatusCode.BadGateway, "text/html")));
         var hex = await Assert.ThrowsAsync<A2AException>(async () => await html.GetTaskAsync(new GetTaskRequest { Id = "t" }, Ct));
@@ -281,6 +296,8 @@ public sealed class ClientHardeningTests
                 "nostatus" => Task.FromResult(new Proto.Task { Id = "nostatus" }),
                 "unauth" => throw new RpcException(new Status(StatusCode.Unauthenticated, "who are you")),
                 "denied" => throw new RpcException(new Status(StatusCode.PermissionDenied, "no")),
+                "invalid" => throw new RpcException(new Status(StatusCode.InvalidArgument, "bad params")),
+                "unimplemented" => throw new RpcException(new Status(StatusCode.Unimplemented, "no such method")),
                 _ => throw new RpcException(new Status(StatusCode.Unavailable, "overloaded")),
             };
 
@@ -291,6 +308,15 @@ public sealed class ClientHardeningTests
         public override async Task SubscribeToTask(Proto.SubscribeToTaskRequest request, IServerStreamWriter<Proto.StreamResponse> responseStream,
             ServerCallContext context)
         {
+            if (request.Id == "early")
+            {
+                // A valid WORKING snapshot, then the stream closes without a final event.
+                await responseStream.WriteAsync(new Proto.StreamResponse
+                {
+                    Task = new Proto.Task { Id = "early", ContextId = "c", Status = new Proto.TaskStatus { State = Proto.TaskState.Working } },
+                });
+                return;
+            }
             await responseStream.WriteAsync(new Proto.StreamResponse { StatusUpdate = new Proto.TaskStatusUpdateEvent { TaskId = "t" } }); // no status
         }
     }
@@ -346,5 +372,90 @@ public sealed class ClientHardeningTests
         var other = await Assert.ThrowsAsync<A2AException>(async () => await client.GetTaskAsync(new GetTaskRequest { Id = "other" }, Ct));
         Assert.Equal(A2AErrorCode.InternalError, other.Code);
         Assert.Contains("overloaded", other.Message);
+
+        // No ErrorInfo reason: INVALID_ARGUMENT → InvalidParams, UNIMPLEMENTED → MethodNotFound (same as REST 400 / 404).
+        Assert.Equal(A2AErrorCode.InvalidParams,
+            (await Assert.ThrowsAsync<A2AException>(async () => await client.GetTaskAsync(new GetTaskRequest { Id = "invalid" }, Ct))).Code);
+        Assert.Equal(A2AErrorCode.MethodNotFound,
+            (await Assert.ThrowsAsync<A2AException>(async () => await client.GetTaskAsync(new GetTaskRequest { Id = "unimplemented" }, Ct))).Code);
+
+        // A stream that closes before a final event.
+        var events = new List<StreamResponse>();
+        var early = await Assert.ThrowsAsync<A2AException>(async () =>
+        {
+            await foreach (var e in client.SubscribeToTaskAsync(new SubscribeToTaskRequest { Id = "early" }, Ct)) events.Add(e);
+        });
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, early.Code);
+        Assert.Contains("stream ended before a final event", early.Message);
+        Assert.Equal(TaskState.Working, Assert.Single(events).Task!.Status.State);
+    }
+
+    // ---------- streams that end without a final event ----------
+
+    private const string WorkingTaskJson = """{"id":"t1","contextId":"c","status":{"state":"TASK_STATE_WORKING"}}""";
+
+    public static TheoryData<string, bool> StreamEndings => new()
+    {
+        { "WORKING task only", false },
+        { "WORKING status update", false },
+        { "COMPLETED status update", true },
+        { "INPUT_REQUIRED task", true },
+        { "single message", true },
+    };
+
+    private static string RestFrames(string ending) => ending switch
+    {
+        "WORKING task only" => $"data: {{\"task\":{WorkingTaskJson}}}\n\n",
+        "WORKING status update" => $"data: {{\"task\":{WorkingTaskJson}}}\n\n" +
+                                   """data: {"statusUpdate":{"taskId":"t1","contextId":"c","status":{"state":"TASK_STATE_WORKING"}}}""" + "\n\n",
+        "COMPLETED status update" => $"data: {{\"task\":{WorkingTaskJson}}}\n\n" +
+                                     """data: {"statusUpdate":{"taskId":"t1","contextId":"c","status":{"state":"TASK_STATE_COMPLETED"}}}""" + "\n\n",
+        "INPUT_REQUIRED task" => """data: {"task":{"id":"t1","contextId":"c","status":{"state":"TASK_STATE_INPUT_REQUIRED"}}}""" + "\n\n",
+        "single message" => """data: {"message":{"messageId":"m","role":"ROLE_AGENT","parts":[{"text":"hi"}]}}""" + "\n\n",
+        _ => throw new ArgumentOutOfRangeException(nameof(ending)),
+    };
+
+    /// <summary>The same frames wrapped as JSON-RPC results.</summary>
+    private static string JsonRpcFrames(string ending)
+        => string.Concat(RestFrames(ending).Split("\n\n", StringSplitOptions.RemoveEmptyEntries)
+            .Select(f => $"data: {{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{f["data: ".Length..]}}}\n\n"));
+
+    private static async Task<Exception?> DrainAsync(IAsyncEnumerable<StreamResponse> stream)
+    {
+        try
+        {
+            await foreach (var _ in stream) { }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(StreamEndings))]
+    public async Task Rest_and_jsonrpc_streams_must_end_with_a_final_event(string ending, bool ok)
+    {
+        await using var rest = Rest(new StubHandler((_, _) => Reply(RestFrames(ending), contentType: "text/event-stream")));
+        await using var rpc = new JsonRpcA2AClient(new Uri("http://stub.test/jsonrpc"), new AgentCard { Name = "stub" }, new A2AClientOptions
+        {
+            HttpClient = new HttpClient(new StubHandler((_, _) => Reply(JsonRpcFrames(ending), contentType: "text/event-stream"))),
+        });
+
+        foreach (var stream in new[] { rest.SendStreamingMessageAsync(Send("x"), Ct), rpc.SubscribeToTaskAsync(new SubscribeToTaskRequest { Id = "t1" }, Ct) })
+        {
+            var error = await DrainAsync(stream);
+            if (ok)
+            {
+                Assert.Null(error);
+            }
+            else
+            {
+                var a2a = Assert.IsType<A2AException>(error);
+                Assert.Equal(A2AErrorCode.InvalidAgentResponse, a2a.Code);
+                Assert.Contains("stream ended before a final event", a2a.Message);
+            }
+        }
     }
 }

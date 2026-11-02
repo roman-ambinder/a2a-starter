@@ -102,25 +102,31 @@ public sealed partial class FlowRunner
         flow.Check(page2.Tasks.Count == 1 && page2.Tasks[0].Id != page1.Tasks[0].Id, "the next page has the other task");
     });
 
-    /// <summary>Starts a report and cancels it. A very fast agent may finish first; that is reported, not an error.</summary>
+    /// <summary>
+    /// Starts a report (returnImmediately) and cancels it; GetTask must then show CANCELED. The agent may finish before the cancel
+    /// arrives: then CancelTask answers TASK_NOT_CANCELABLE, the task is read again, and the flow passes only if it is now terminal.
+    /// </summary>
     public Task<FlowResult> CancelAsync(CancellationToken ct = default) => RunFlowAsync("cancel", ct, async flow =>
     {
         var agent = AgentOr(Report);
         await using var client = await ClientAsync(agent, ct: ct);
         var task = (await client.SendMessageAsync(Request("Cancel me", returnImmediately: true), ct)).Task!;
         flow.Step($"task {task.Id} is {task.Status.State}");
-        var observed = (await client.GetTaskAsync(new GetTaskRequest { Id = task.Id }, ct)).Status.State;
+        AgentTask canceled;
         try
         {
-            var canceled = await client.CancelTaskAsync(new CancelTaskRequest { Id = task.Id }, ct);
-            flow.Check(canceled.Status.State == TaskState.Canceled, $"CancelTask returned {canceled.Status.State}");
-            var got = await WaitForStateAsync(client, task.Id, IsTerminal, ct);
-            flow.Check(got.Status.State == TaskState.Canceled, $"GetTask confirms {got.Status.State}");
+            canceled = await client.CancelTaskAsync(new CancelTaskRequest { Id = task.Id }, ct);
         }
-        catch (A2AException e) when (e.Code == A2AErrorCode.TaskNotCancelable && IsTerminal(observed))
+        catch (A2AException e) when (e.Code == A2AErrorCode.TaskNotCancelable)
         {
-            flow.Step("the task had already finished: TASK_NOT_CANCELABLE (this is the expected error for a finished task)");
+            var now = (await client.GetTaskAsync(new GetTaskRequest { Id = task.Id }, ct)).Status.State;
+            flow.Check(IsTerminal(now), $"TASK_NOT_CANCELABLE is only expected for a finished task; the task is {now}");
+            flow.Step($"the task had already finished ({now}): TASK_NOT_CANCELABLE is the expected error for a finished task");
+            return;
         }
+        flow.Check(canceled.Status.State == TaskState.Canceled, $"CancelTask returned {canceled.Status.State}");
+        var got = await WaitForStateAsync(client, task.Id, IsTerminal, ct);
+        flow.Check(got.Status.State == TaskState.Canceled, $"GetTask confirms {got.Status.State}");
     });
 
     /// <summary>Drops a stream mid-task, then attaches again with SubscribeToTask.</summary>

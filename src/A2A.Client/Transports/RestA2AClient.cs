@@ -173,6 +173,7 @@ public sealed class RestA2AClient : IA2AClient
         }
 
         var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        var final = false;
         await foreach (var data in SseReader.ReadAsync(stream, ct).ConfigureAwait(false))
         {
             if (!ClientSupport.IsPayload(data)) continue; // heartbeat
@@ -191,8 +192,11 @@ public sealed class RestA2AClient : IA2AClient
             if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.Object)
                 throw ErrorFromStatus(error, null);
 
-            yield return ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(root, "stream event"));
+            var evt = ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(root, "stream event"));
+            final |= ClientSupport.IsFinal(evt);
+            yield return evt;
         }
+        if (!final) throw ClientSupport.StreamEndedEarly();
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body, string accept, CancellationToken ct)
@@ -244,8 +248,9 @@ public sealed class RestA2AClient : IA2AClient
     }
 
     /// <summary>
-    /// google.rpc.Status JSON → <see cref="A2AException"/>. The ErrorInfo <c>reason</c> selects the A2A code; without one
-    /// the error is InternalError, keeping the message and the HTTP status.
+    /// google.rpc.Status JSON → <see cref="A2AException"/>. The ErrorInfo <c>reason</c> selects the A2A code. Without one the
+    /// HTTP status decides (the body's <c>code</c> for an in-stream frame): 400 → InvalidParams, 404 → MethodNotFound, anything
+    /// else → InternalError. The message and the HTTP status are kept.
     /// </summary>
     private static A2AException ErrorFromStatus(JsonElement error, HttpResponseMessage? response)
     {
@@ -269,9 +274,12 @@ public sealed class RestA2AClient : IA2AClient
             }
         }
 
-        if (response is null) // in-stream error frame: the HTTP status (200) says nothing
-            return new A2AException(A2AErrorCode.InternalError, string.IsNullOrEmpty(message) ? "The agent reported an error." : message);
-        var status = (int)response.StatusCode;
-        return new A2AException(A2AErrorCode.InternalError, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})");
+        // In-stream error frame: the HTTP status (200) says nothing, the body's code does.
+        int? status = response is not null ? (int)response.StatusCode
+            : error.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.Number && c.TryGetInt32(out var n) ? n : null;
+        var fallback = ClientSupport.CodeForStatusWithoutReason(status);
+        if (response is null)
+            return new A2AException(fallback, string.IsNullOrEmpty(message) ? "The agent reported an error." : message);
+        return new A2AException(fallback, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})");
     }
 }

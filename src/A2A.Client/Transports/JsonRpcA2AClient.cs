@@ -106,12 +106,16 @@ public sealed class JsonRpcA2AClient : IA2AClient
         }
 
         var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        var final = false;
         await foreach (var data in SseReader.ReadAsync(stream, ct).ConfigureAwait(false))
         {
             if (!ClientSupport.IsPayload(data)) continue; // heartbeat
             var result = ReadEnvelope(response, System.Text.Encoding.UTF8.GetBytes(data));
-            yield return ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(result, "stream event"));
+            var evt = ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(result, "stream event"));
+            final |= ClientSupport.IsFinal(evt);
+            yield return evt;
         }
+        if (!final) throw ClientSupport.StreamEndedEarly();
     }
 
     private async Task<HttpResponseMessage> SendAsync<TRequest>(string method, TRequest request, string accept, CancellationToken ct)

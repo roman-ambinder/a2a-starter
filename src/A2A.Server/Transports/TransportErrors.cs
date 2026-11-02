@@ -63,6 +63,22 @@ internal static class TransportErrors
         await http.Response.Body.WriteAsync(buffer.ToArray(), http.RequestAborted);
     }
 
+    /// <summary>
+    /// ErrorInfo <c>metadata</c> (a string map) from <see cref="A2AException.Data"/>: the members of a JSON object, strings as is,
+    /// arrays joined with <c>,</c>, anything else as raw JSON. Not an object → nothing. Used by REST and gRPC alike.
+    /// </summary>
+    public static IEnumerable<KeyValuePair<string, string>> ErrorMetadata(JsonElement? data)
+    {
+        if (data is not { ValueKind: JsonValueKind.Object } obj) yield break;
+        foreach (var p in obj.EnumerateObject())
+            yield return KeyValuePair.Create(p.Name, p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString()! : Flatten(p.Value));
+    }
+
+    private static string Flatten(JsonElement value)
+        => value.ValueKind == JsonValueKind.Array
+            ? string.Join(",", value.EnumerateArray().Select(v => v.ValueKind == JsonValueKind.String ? v.GetString() : v.GetRawText()))
+            : value.GetRawText();
+
     /// <summary>HTTP 404 for an agent name not in the catalog.</summary>
     public static Task WriteUnknownAgentAsync(HttpContext http, string? agentName)
         => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'.");
