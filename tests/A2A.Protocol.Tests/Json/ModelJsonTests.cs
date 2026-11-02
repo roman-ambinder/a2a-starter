@@ -29,16 +29,16 @@ public class ModelJsonTests
 
     [Fact]
     public void Unknown_enum_string_throws_JsonException()
-        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TaskStatus>("""{"state":"working"}""", A2AJson.Options));
+        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":"working"}""", A2AJson.Options));
 
     [Fact]
     public void Integer_enum_value_throws_JsonException()
-        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TaskStatus>("""{"state":2}""", A2AJson.Options));
+        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":2}""", A2AJson.Options));
 
     [Fact]
     public void Timestamp_serializes_as_utc_iso8601()
     {
-        var s = new TaskStatus { State = TaskState.Working, Timestamp = new DateTimeOffset(2024, 3, 15, 18, 30, 0, TimeSpan.Zero) };
+        var s = new AgentTaskStatus { State = TaskState.Working, Timestamp = new DateTimeOffset(2024, 3, 15, 18, 30, 0, TimeSpan.Zero) };
         Assert.Equal("""{"state":"TASK_STATE_WORKING","timestamp":"2024-03-15T18:30:00Z"}""", JsonSerializer.Serialize(s, A2AJson.Options));
     }
 
@@ -117,5 +117,22 @@ public class ModelJsonTests
         Assert.Equal("", t.Id);
         Assert.NotNull(t.Status);
         Assert.Empty(t.Artifacts);
+    }
+
+    private sealed class PlainList<T>(params T[] items) : IReadOnlyList<T>
+    {
+        public T this[int index] => items[index];
+        public int Count => items.Length;
+        public IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)items).GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    [Fact]
+    public void Non_collection_read_only_list_is_serialized_when_non_empty_and_omitted_when_empty()
+    {
+        Assert.Equal("""{"messageId":"m","role":"ROLE_USER","extensions":["e"]}""",
+            JsonSerializer.Serialize(new Message { MessageId = "m", Role = Role.User, Extensions = new PlainList<string>("e") }, A2AJson.Options));
+        Assert.Equal("""{"messageId":"m","role":"ROLE_USER"}""",
+            JsonSerializer.Serialize(new Message { MessageId = "m", Role = Role.User, Extensions = new PlainList<string>() }, A2AJson.Options));
     }
 }

@@ -10,7 +10,7 @@ namespace A2A.Protocol;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     Converters = [typeof(UtcTimestampConverter)])]
 [JsonSerializable(typeof(AgentTask))]
-[JsonSerializable(typeof(TaskStatus))]
+[JsonSerializable(typeof(AgentTaskStatus))]
 [JsonSerializable(typeof(TaskState))]
 [JsonSerializable(typeof(Role))]
 [JsonSerializable(typeof(Message))]
@@ -79,8 +79,18 @@ public static class A2AJson
                 continue;
             }
 
-            property.ShouldSerialize = (_, value) => value is System.Collections.ICollection { Count: > 0 };
+            property.ShouldSerialize = (_, value) => value is System.Collections.IEnumerable items && HasAny(items);
         }
+    }
+
+    private static bool HasAny(System.Collections.IEnumerable items)
+    {
+        foreach (var _ in items)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsReadOnlyList(Type type)

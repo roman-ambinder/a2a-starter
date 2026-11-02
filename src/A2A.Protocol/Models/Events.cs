@@ -5,7 +5,7 @@ public sealed record TaskStatusUpdateEvent
 {
     public string TaskId { get => field ?? ""; init; }
     public string ContextId { get => field ?? ""; init; }
-    public TaskStatus Status { get => field ?? new(); init; }
+    public AgentTaskStatus Status { get => field ?? new(); init; }
     public JsonElement? Metadata { get; init; }
 }
 

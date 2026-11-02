@@ -5,14 +5,14 @@ public sealed record AgentTask
 {
     public string Id { get => field ?? ""; init; }
     public string? ContextId { get; init; }
-    public TaskStatus Status { get => field ?? new(); init; }
+    public AgentTaskStatus Status { get => field ?? new(); init; }
     public IReadOnlyList<Artifact> Artifacts { get => field ?? []; init; }
     public IReadOnlyList<Message> History { get => field ?? []; init; }
     public JsonElement? Metadata { get; init; }
 }
 
 /// <summary>Current state of a task with an optional message and timestamp.</summary>
-public sealed record TaskStatus
+public sealed record AgentTaskStatus
 {
     public TaskState State { get; init; }
     public Message? Message { get; init; }
