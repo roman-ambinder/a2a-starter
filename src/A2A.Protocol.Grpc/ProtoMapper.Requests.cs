@@ -32,7 +32,7 @@ public static partial class ProtoMapper
 
     public static SendMessageRequest FromProto(Proto.SendMessageRequest x) => new()
     {
-        Tenant = N(x.Tenant), Message = FromProto(x.Message),
+        Tenant = N(x.Tenant), Message = x.Message is null ? new() : FromProto(x.Message),
         Configuration = x.Configuration is null ? null : FromProto(x.Configuration), Metadata = FromStruct(x.Metadata),
     };
 

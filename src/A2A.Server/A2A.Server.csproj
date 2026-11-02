@@ -4,9 +4,11 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="Grpc.StatusProto" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../A2A.Protocol/A2A.Protocol.csproj" />
+    <ProjectReference Include="../A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="A2A.Server.Tests" />

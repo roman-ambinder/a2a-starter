@@ -15,8 +15,8 @@ namespace A2A.Integration.Tests.Fixtures;
 
 /// <summary>
 /// The real A2A hosting stack on real Kestrel, with small test agents. One instance per test run (collection fixture).
-/// Ports: base (env <c>A2A_TEST_PORT_BASE</c>, default 16000) + 200 = HTTP; + 201 / + 202 are reserved for the
-/// gRPC listeners of <see cref="EchoAgentName"/> / <see cref="ProtectedAgentName"/> (Task 10).
+/// Ports: base (env <c>A2A_TEST_PORT_BASE</c>, default 16000) + 200 = HTTP; + 201 / + 202 are the
+/// h2c gRPC listeners of <see cref="EchoAgentName"/> / <see cref="ProtectedAgentName"/>; + 203 is an h2c listener no agent owns.
 /// </summary>
 public sealed class MinimalServer : IAsyncLifetime
 {
@@ -35,6 +35,9 @@ public sealed class MinimalServer : IAsyncLifetime
     public static int EchoGrpcPort => PortBase + 201;
     public static int ProtectedGrpcPort => PortBase + 202;
 
+    /// <summary>HTTP/2 listener that no agent owns (gRPC call there → NOT_FOUND).</summary>
+    public static int UnmappedGrpcPort => PortBase + 203;
+
     /// <summary>Base URL of the HTTP listener (cards, JSON-RPC, REST), without a trailing slash.</summary>
     public static string BaseUrl => $"http://127.0.0.1:{HttpPort}";
 
@@ -46,7 +49,11 @@ public sealed class MinimalServer : IAsyncLifetime
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
-        builder.WebHost.UseKestrel(k => k.Listen(System.Net.IPAddress.Loopback, HttpPort));
+        // HTTP port + the two agent gRPC ports come from the A2A options (PublicBaseUrl, GrpcPorts).
+        builder.ConfigureA2AKestrel();
+        // One more h2c listener that no agent owns, for the "unknown port -> NOT_FOUND" test.
+        builder.WebHost.ConfigureKestrel(k => k.Listen(System.Net.IPAddress.Loopback, UnmappedGrpcPort,
+            l => l.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2));
 
         builder.Services.AddAuthentication(TestAuthHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
@@ -71,6 +78,7 @@ public sealed class MinimalServer : IAsyncLifetime
         _app = builder.Build();
         _app.UseAuthentication();
         _app.MapA2A();
+        _app.MapA2AGrpc();
         await _app.StartAsync();
     }
 

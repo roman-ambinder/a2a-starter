@@ -13,7 +13,7 @@ public static class A2AServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, <see cref="TaskManager"/>
-    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) and <see cref="IAgentAuthorizer"/>.
+    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services and <see cref="IAgentAuthorizer"/>.
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
     /// </summary>
     public static A2AServerBuilder AddA2AServer(this IServiceCollection services, Action<A2AServerOptions> configure)
@@ -48,6 +48,7 @@ public static class A2AServiceCollectionExtensions
             sp.GetRequiredService<IOptions<PushOptions>>().Value));
         services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<TaskManager>());
 
+        services.AddGrpc();
         services.AddAuthorization();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         return builder;

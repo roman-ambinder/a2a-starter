@@ -87,7 +87,7 @@ public static partial class ProtoMapper
 
     public static AgentTask FromProto(Proto.Task x) => new()
     {
-        Id = x.Id, ContextId = N(x.ContextId), Status = FromProto(x.Status),
+        Id = x.Id, ContextId = N(x.ContextId), Status = x.Status is null ? new() : FromProto(x.Status),
         Artifacts = L(x.Artifacts.Select(FromProto)), History = L(x.History.Select(FromProto)),
         Metadata = FromStruct(x.Metadata),
     };
@@ -99,7 +99,7 @@ public static partial class ProtoMapper
 
     public static TaskStatusUpdateEvent FromProto(Proto.TaskStatusUpdateEvent x) => new()
     {
-        TaskId = x.TaskId, ContextId = x.ContextId, Status = FromProto(x.Status), Metadata = FromStruct(x.Metadata),
+        TaskId = x.TaskId, ContextId = x.ContextId, Status = x.Status is null ? new() : FromProto(x.Status), Metadata = FromStruct(x.Metadata),
     };
 
     public static Proto.TaskArtifactUpdateEvent ToProto(TaskArtifactUpdateEvent x) => new()
@@ -110,7 +110,7 @@ public static partial class ProtoMapper
 
     public static TaskArtifactUpdateEvent FromProto(Proto.TaskArtifactUpdateEvent x) => new()
     {
-        TaskId = x.TaskId, ContextId = x.ContextId, Artifact = FromProto(x.Artifact),
+        TaskId = x.TaskId, ContextId = x.ContextId, Artifact = x.Artifact is null ? new() : FromProto(x.Artifact),
         Append = x.Append, LastChunk = x.LastChunk, Metadata = FromStruct(x.Metadata),
     };
 }
