@@ -2,8 +2,10 @@
   <Folder Name="/src/">
     <Project Path="src/A2A.Protocol/A2A.Protocol.csproj" />
     <Project Path="src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
+    <Project Path="src/A2A.Server/A2A.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/A2A.Protocol.Tests/A2A.Protocol.Tests.csproj" />
+    <Project Path="tests/A2A.Server.Tests/A2A.Server.Tests.csproj" />
   </Folder>
 </Solution>
