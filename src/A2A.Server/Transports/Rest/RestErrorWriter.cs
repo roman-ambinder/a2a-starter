@@ -1,0 +1,66 @@
+using System.Buffers;
+using System.Text.Json;
+using A2A.Protocol;
+using Microsoft.AspNetCore.Http;
+
+namespace A2A.Server.Transports.Rest;
+
+/// <summary>Writes A2A errors for the HTTP+JSON binding in the google.rpc.Status JSON form.</summary>
+public static class RestErrorWriter
+{
+    private const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
+
+    /// <summary>Sends the catalog's HTTP status and the body from <see cref="ToJson"/>. No-op body if the response has started.</summary>
+    public static async Task Write(HttpContext http, A2AException error)
+    {
+        ArgumentNullException.ThrowIfNull(http);
+        ArgumentNullException.ThrowIfNull(error);
+        if (http.Response.HasStarted) return;
+        http.Response.StatusCode = A2AError.Get(error.Code).HttpStatus;
+        http.Response.ContentType = A2AConstants.ContentType;
+        await http.Response.Body.WriteAsync(ToJson(error), http.RequestAborted).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// <c>{"error":{"code":404,"status":"NOT_FOUND","message":"..","details":[ErrorInfo]}}</c>. ErrorInfo only for codes that
+    /// have a reason; the exception's data (for example supported versions) becomes ErrorInfo <c>metadata</c>.
+    /// </summary>
+    public static byte[] ToJson(A2AException error)
+    {
+        var info = A2AError.Get(error.Code);
+        var buffer = new ArrayBufferWriter<byte>(256);
+        using (var w = new Utf8JsonWriter(buffer))
+        {
+            w.WriteStartObject();
+            w.WriteStartObject("error");
+            w.WriteNumber("code", info.HttpStatus);
+            w.WriteString("status", TransportErrors.StatusName(info.GrpcStatus));
+            w.WriteString("message", error.Message);
+            if (info.Reason is not null)
+            {
+                w.WriteStartArray("details");
+                w.WriteStartObject();
+                w.WriteString("@type", ErrorInfoType);
+                w.WriteString("reason", info.Reason);
+                w.WriteString("domain", A2AError.Domain);
+                if (error.Data is { ValueKind: JsonValueKind.Object } data)
+                {
+                    w.WriteStartObject("metadata");
+                    foreach (var p in data.EnumerateObject())
+                        w.WriteString(p.Name, p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : FlattenValue(p.Value));
+                    w.WriteEndObject();
+                }
+                w.WriteEndObject();
+                w.WriteEndArray();
+            }
+            w.WriteEndObject();
+            w.WriteEndObject();
+        }
+        return buffer.WrittenSpan.ToArray();
+    }
+
+    private static string FlattenValue(JsonElement value)
+        => value.ValueKind == JsonValueKind.Array
+            ? string.Join(",", value.EnumerateArray().Select(v => v.ValueKind == JsonValueKind.String ? v.GetString() : v.GetRawText()))
+            : value.GetRawText();
+}

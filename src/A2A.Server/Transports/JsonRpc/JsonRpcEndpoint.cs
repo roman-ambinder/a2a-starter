@@ -121,12 +121,15 @@ internal static class JsonRpcEndpoint
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);
+            RequestValidation.Validate(parameters);
             var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, parameters);
             var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
             if (method.Stream is { } stream)
             {
-                await StreamAsync(http, request.Id, stream(handler, call, parameters, ct), logger, ct).ConfigureAwait(false);
+                var id = request.Id;
+                await SseStreaming.RunAsync(http, stream(handler, call, parameters, ct),
+                    e => JsonRpcMessages.Result(id, e, typeof(StreamResponse)), err => JsonRpcMessages.Error(id, err), logger, ct).ConfigureAwait(false);
                 return;
             }
 
@@ -146,33 +149,6 @@ internal static class JsonRpcEndpoint
             var error = TransportErrors.ToA2AException(ex, logger);
             if (http.Response.HasStarted) return; // SSE already started; StreamAsync reports its own errors
             await WriteJsonAsync(http, JsonRpcMessages.Error(request.Id, error)).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>Waits for the first event before committing to SSE, so early errors are plain JSON-RPC errors.</summary>
-    private static async Task StreamAsync(HttpContext http, JsonElement id, IAsyncEnumerable<StreamResponse> events, ILogger logger, CancellationToken ct)
-    {
-        await using var e = events.GetAsyncEnumerator(ct);
-        var hasFirst = await e.MoveNextAsync().ConfigureAwait(false); // errors here go to DispatchAsync's handler
-        await SseWriter.StartAsync(http.Response, ct).ConfigureAwait(false);
-        if (!hasFirst) return;
-
-        try
-        {
-            do
-            {
-                await SseWriter.WriteEventAsync(http.Response, JsonRpcMessages.Result(id, e.Current, typeof(StreamResponse)), ct).ConfigureAwait(false);
-            }
-            while (await e.MoveNextAsync().ConfigureAwait(false));
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Client disconnected: only this subscriber ends.
-        }
-        catch (Exception ex)
-        {
-            // The stream has started: the error is the last frame.
-            await SseWriter.WriteEventAsync(http.Response, JsonRpcMessages.Error(id, TransportErrors.ToA2AException(ex, logger)), ct).ConfigureAwait(false);
         }
     }
 
