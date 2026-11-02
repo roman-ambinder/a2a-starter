@@ -17,7 +17,16 @@ internal static class PushServiceCollectionExtensions
         services.AddSingleton<Tasks.ITaskEventObserver>(sp => sp.GetRequiredService<PushNotificationSender>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<PushNotificationSender>());
         services.AddHttpClient(PushNotificationSender.HttpClientName)
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false })
+            .ConfigurePrimaryHttpMessageHandler(sp =>
+            {
+                // Checked again at connect time, so DNS rebinding after config creation cannot reach private addresses.
+                var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PushOptions>>().Value;
+                return new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = (context, ct) => WebhookUrlValidator.ConnectCheckedAsync(options.AllowPrivateNetworks, context.DnsEndPoint, ct),
+                };
+            })
             .ConfigureHttpClient(c => c.Timeout = System.Threading.Timeout.InfiniteTimeSpan); // the sender applies PushOptions.Timeout per attempt
         return services;
     }

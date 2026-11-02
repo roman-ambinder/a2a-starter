@@ -160,6 +160,12 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
                     .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode) return;
                 failure = $"HTTP {(int)response.StatusCode}";
+                var code = (int)response.StatusCode;
+                if (code is >= 400 and < 500 && code is not (408 or 429))
+                {
+                    _logger.LogWarning("Push to {Url} for task {TaskId} was rejected ({Failure}); not retrying", where, item.TaskId, failure);
+                    return;
+                }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

@@ -299,6 +299,15 @@ public class PushTests
     [InlineData("https://[::1]/hook")]
     [InlineData("ftp://example.com/x")]
     [InlineData("http://93.184.216.34/hook")] // public but not HTTPS
+    [InlineData("https://[::ffff:127.0.0.1]/hook")]
+    [InlineData("https://[64:ff9b::a00:5]/hook")]       // NAT64 -> 10.0.0.5
+    [InlineData("https://[2002:a9fe:a9fe::1]/hook")]    // 6to4 -> 169.254.169.254
+    [InlineData("https://[::127.0.0.1]/hook")]          // IPv4-compatible
+    [InlineData("https://192.0.2.1/hook")]
+    [InlineData("https://198.18.0.1/hook")]
+    [InlineData("https://198.51.100.7/hook")]
+    [InlineData("https://203.0.113.9/hook")]
+    [InlineData("https://192.0.0.8/hook")]
     public async Task Private_network_url_rejected_when_not_allowed(string url)
     {
         await using var h = new Harness(o => o.AllowPrivateNetworks = false);
@@ -321,6 +330,42 @@ public class PushTests
         var taskId = await NewWorkingTaskAsync(h);
         await ThrowsA2A(A2AErrorCode.InvalidParams, () => h.Host.Manager.CreateTaskPushNotificationConfigAsync(TestHost.Call(), Config("not a url") with { TaskId = taskId }, CancellationToken.None));
         await ThrowsA2A(A2AErrorCode.InvalidParams, () => h.Host.Manager.CreateTaskPushNotificationConfigAsync(TestHost.Call(), Config("") with { TaskId = taskId }, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Client_error_is_not_retried_but_429_is()
+    {
+        await using var h = new Harness();
+        h.Handler.Responder = _ => Task.FromResult(HttpStatusCode.BadRequest);
+        await h.SendWithPushAsync(Config());
+        await h.Handler.WaitForAsync(2); // two events, one attempt each
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+        Assert.Equal(2, h.Handler.Requests.Count);
+
+        await using var h2 = new Harness();
+        h2.Handler.Responder = _ => Task.FromResult((HttpStatusCode)429);
+        await h2.SendWithPushAsync(Config());
+        await h2.Handler.WaitForAsync(8);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
+        Assert.Equal(8, h2.Handler.Requests.Count);
+    }
+
+    [Theory]
+    [InlineData("localhost")]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    [InlineData("169.254.169.254")]
+    public async Task Connect_time_check_rejects_private_hosts(string host)
+    {
+        // Stands in for DNS rebinding: whatever the name resolved to at creation, the connect-time check refuses private results.
+        await Assert.ThrowsAsync<HttpRequestException>(async () =>
+            await WebhookUrlValidator.ResolveCheckedAsync(host, allowPrivateNetworks: false, TestContext.Current.CancellationToken));
+        var allowed = await WebhookUrlValidator.ResolveCheckedAsync(host, allowPrivateNetworks: true, TestContext.Current.CancellationToken);
+        Assert.NotEmpty(allowed);
+
+        var endpoint = new DnsEndPoint(host, 9);
+        await Assert.ThrowsAsync<HttpRequestException>(async () =>
+            await WebhookUrlValidator.ConnectCheckedAsync(false, endpoint, TestContext.Current.CancellationToken));
     }
 
     private static async Task Eventually(Func<Task<bool>> condition)
