@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/A2A.Server/A2A.Server.csproj" />
+    <ProjectReference Include="../../src/A2A.Client/A2A.Client.csproj" />
   </ItemGroup>
 </Project>

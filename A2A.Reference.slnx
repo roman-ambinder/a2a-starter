@@ -3,6 +3,7 @@
     <Project Path="src/A2A.Protocol/A2A.Protocol.csproj" />
     <Project Path="src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
     <Project Path="src/A2A.Server/A2A.Server.csproj" />
+    <Project Path="src/A2A.Client/A2A.Client.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/MockEntra/MockEntra.csproj" />
