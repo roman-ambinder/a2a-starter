@@ -11,6 +11,9 @@
     <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../A2A.Protocol/A2A.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" />
   </ItemGroup>
 </Project>
