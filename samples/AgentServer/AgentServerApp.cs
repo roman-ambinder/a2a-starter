@@ -1,3 +1,4 @@
+using A2A.Protocol;
 using A2A.Server.Hosting;
 using AgentServer.Agents;
 using AgentServer.Auth;
@@ -39,11 +40,17 @@ public static class AgentServerApp
         var a2a = builder.Services.AddA2AServer(o => config.GetSection(A2ASectionName).Bind(o));
         foreach (var name in AgentCards.Names)
         {
-            // Tasks 15-16 replace StubAgent with the real agents.
-            a2a.AddAgent<StubAgent>(name,
-                sp => AgentCards.Build(name, Server(sp), auth, extended: false),
-                AgentCards.HasExtendedCard(name) ? sp => AgentCards.Build(name, Server(sp), auth, extended: true) : null,
-                AgentCards.PolicyFor(name));
+            Func<IServiceProvider, AgentCard> publicCard = sp => AgentCards.Build(name, Server(sp), auth, extended: false);
+            Func<IServiceProvider, AgentCard>? extendedCard =
+                AgentCards.HasExtendedCard(name) ? sp => AgentCards.Build(name, Server(sp), auth, extended: true) : null;
+            var policy = AgentCards.PolicyFor(name);
+            // Task 16 replaces StubAgent for booking and secure.
+            switch (name)
+            {
+                case AgentCards.Echo: a2a.AddAgent<EchoAgent>(name, publicCard, extendedCard, policy); break;
+                case AgentCards.Report: a2a.AddAgent<ReportAgent>(name, publicCard, extendedCard, policy); break;
+                default: a2a.AddAgent<StubAgent>(name, publicCard, extendedCard, policy); break;
+            }
         }
 
         builder.Services.AddHealthChecks();
