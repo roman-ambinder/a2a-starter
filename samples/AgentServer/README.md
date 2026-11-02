@@ -22,7 +22,7 @@ Other environments need an HTTPS authority and their own `Auth:ApiKeys`.
 | `secure` | `InvokeBearer` | `entra` | 5204 | push, extended card (+ skill `audit-log`); extension `https://example.com/a2a/ext/audit/v1` (required) |
 
 `Invoke` = authenticated + role `A2A.Invoke`. `InvokeBearer` = `Invoke` and the caller used a bearer token (API key → 403).
-The agents are stubs until Tasks 15–16.
+What each agent shows: [flow map](../../README.md#flow-map). Phase 2 settings: [docs/production.md](../../docs/production.md).
 
 ## URLs (HTTP port 5200)
 
