@@ -155,7 +155,8 @@ public sealed partial class FlowRunner : IDisposable
                     Identity.NoRoles => _options.NoRoles,
                     _ => _options.Client,
                 };
-                // The echo card has no oauth2 scheme, so the token URL is always given.
+                // The token URL is always given explicitly (never taken from the card), so the client secret only goes to
+                // the configured MockEntra. The echo card has no oauth2 scheme anyway.
                 var provider = new ClientCredentialsProvider(secret.Id, secret.Secret, _options.Scope, new Uri(_options.TokenUrl), _http);
                 _disposables.Add(provider);
                 return provider;

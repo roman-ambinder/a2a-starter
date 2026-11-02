@@ -24,6 +24,8 @@ internal static class PushServiceCollectionExtensions
                 return new SocketsHttpHandler
                 {
                     AllowAutoRedirect = false,
+                    // A proxy would make the connect-time address check see the proxy, not the webhook host.
+                    UseProxy = false,
                     ConnectCallback = (context, ct) => WebhookUrlValidator.ConnectCheckedAsync(options.AllowPrivateNetworks, context.DnsEndPoint, ct),
                 };
             })

@@ -14,7 +14,8 @@ public static class A2AServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, <see cref="TaskManager"/>
-    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/> and a startup check
+    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/>,
+    /// <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>) and a startup check
     /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
     /// </summary>
@@ -47,12 +48,14 @@ public static class A2AServiceCollectionExtensions
             sp.GetService<ILogger<TaskManager>>(),
             sp.GetService<TimeProvider>(),
             sp.GetRequiredService<IPushConfigStore>(),
-            sp.GetRequiredService<IOptions<PushOptions>>().Value));
+            sp.GetRequiredService<IOptions<PushOptions>>().Value,
+            sp.GetRequiredService<IOwnerResolver>()));
         services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<TaskManager>());
 
         services.AddGrpc();
         services.AddAuthorization();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
+        services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
         services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;
     }

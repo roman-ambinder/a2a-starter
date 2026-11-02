@@ -18,6 +18,5 @@ WORKDIR /app
 COPY --from=build /out .
 # Defaults for the compose network (host names instead of localhost).
 COPY docker/agentclient.appsettings.json agentclient-config/appsettings.json
-ENV ASPNETCORE_ENVIRONMENT=Development
 USER app
 ENTRYPOINT ["dotnet", "AgentClient.dll"]

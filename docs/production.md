@@ -40,8 +40,9 @@ Phase 2 — not implemented.
 The card scope is `{Audience}/.default`, so keep the audience in the `api://...` form.
 
 5. Clients ask for the scope `api://<your-app>/.default` with `ClientCredentialsProvider` or `AzureIdentityCredentialProvider`.
-6. Do not run MockEntra. It refuses to start outside Development. Check the `aud`, `iss`, `tid` and `roles` claims of a real token before you rely on them: the server reads `roles` and `tid` (task owner is `tenant:{tid}`) and `azp`.
-7. The Docker images set `ASPNETCORE_ENVIRONMENT=Development`. Override it for real use, or Development-only settings (API key, plain-HTTP metadata, private push targets) turn on.
+6. Do not run MockEntra. It refuses to start outside Development. Check the `aud`, `iss`, `tid` and `roles` claims of a real token before you rely on them: the server reads `roles`, `tid` and `azp`. The task owner is one client app in one tenant: `tenant:{tid}/app:{azp}` (falls back to `appid`, then `sub`/`oid`). Another app in the same tenant cannot see, list, cancel, subscribe to or configure push for that task. The one exception is step-up: a task in `AUTH_REQUIRED` may be continued by another app of the same tenant (`IOwnerResolver.CanContinueInterrupted`). Replace `IOwnerResolver` if you need a different rule.
+7. The Docker images do not set `ASPNETCORE_ENVIRONMENT`, so they run as Production by default. Only `docker-compose.yml` sets `Development` for each service. Do not set `Development` in a real deployment: it turns on Development-only settings (API key, plain-HTTP metadata, private push targets).
+8. Clients send their client secret only to a token URL they trust. `ClientCredentialsProvider` uses the card's `tokenUrl` only when its host is in `allowedTokenHosts` and it is `https` (plain `http` only for loopback). Otherwise pass the token URL yourself.
 
 ## 2. LLM provider
 
@@ -83,7 +84,7 @@ Phase 2 — not implemented.
 
 **Private networks.** `PushOptions.AllowPrivateNetworks` is `false` by default; only `samples/AgentServer/appsettings.Development.json` turns it on. With `false`, webhook URLs must be `https` and must not point to loopback or private addresses. Keep it `false` in production (`A2A:Push:AllowPrivateNetworks`). The check runs again when the connection opens, so DNS changes after config creation do not bypass it.
 
-**Proxy note.** The push `HttpClient` checks the address in its `ConnectCallback`. That check assumes the connection goes straight to the webhook host. If the process uses an HTTP proxy, the callback sees the proxy address, not the webhook address. Either set `UseProxy=false` on the handler, or send push traffic through an egress proxy that blocks private ranges itself.
+**Proxy note.** Push delivery never uses a proxy: the `"a2a-push"` handler sets `UseProxy=false`, so system proxy settings (`HTTP_PROXY`, `HTTPS_PROXY`) are ignored. The address check in `ConnectCallback` therefore always sees the webhook host. If your network needs an egress proxy, replace the handler and make the proxy block private ranges itself.
 
 **Other push settings.** `A2A:Push:MaxRetries` (3), `InitialBackoff` (1 s), `Timeout` (15 s). Webhook receivers should verify the JWT as shown in `samples/WebhookReceiver`.
 

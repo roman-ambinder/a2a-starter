@@ -88,4 +88,5 @@ Notes:
 - `supportedInterfaces` on the cards is generated for you (JSON-RPC, REST, and gRPC when the agent is in `GrpcPorts`).
 - `AddAgent(name, publicCard, extendedCard, authorizationPolicy)`: the policy is an ASP.NET Core policy name; `null` means open. To serve an extended card, pass a factory and set `Capabilities.ExtendedAgentCard = true` on the public card.
 - Every request needs the `A2A-Version: 1.0` header. Cards are exempt.
-- The task owner comes from `CallerIdentity.GetOwner(user)`. Callers only see their own tasks (per tenant for bearer tokens, per key for API keys).
+- The task owner comes from `IOwnerResolver` (default `DefaultOwnerResolver`): `tenant:{tid}/app:{azp}` for bearer tokens (one client app in one tenant), `apikey:{name}` for API keys, `anonymous` otherwise. Callers only see, list, cancel, subscribe to and configure push for their own tasks; other tasks are `TaskNotFound`. One exception: another app of the same tenant may continue an `AUTH_REQUIRED` task (step-up). Register your own `IOwnerResolver` before `AddA2AServer` to change this.
+- REST also accepts the tenant-prefixed paths from the proto (`/{tenant}/message:send`, `/{tenant}/tasks/{id}`, ...). The path tenant becomes the request's `tenant`; a different `tenant` in the body is `InvalidParams`.

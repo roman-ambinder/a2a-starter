@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using A2A.Protocol;
 using A2A.Server.Agents;
+using A2A.Server.Auth;
 using A2A.Server.Push;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public sealed class TaskManager : IA2ARequestHandler
     private readonly ILogger _logger;
     private readonly TaskWriter _writer;
     private readonly PushConfigService _push;
+    private readonly IOwnerResolver _owners;
     private readonly ConcurrentDictionary<(string Agent, string TaskId), TaskExecution> _running = new();
 
     // Tasks with a CancelTask in progress. Set and checked under the task lock; continuations are rejected
@@ -32,10 +34,13 @@ public sealed class TaskManager : IA2ARequestHandler
     /// <param name="pushConfigs">Where push configs live. Default: a new in-memory store (share it with the sender).</param>
     /// <param name="pushOptions">Webhook URL rules. Default <see cref="PushOptions"/>.</param>
     /// <param name="time">Clock for status timestamps. Default <see cref="TimeProvider.System"/>.</param>
+    /// <param name="owners">Ownership rules; only <see cref="IOwnerResolver.CanContinueInterrupted"/> is used here (the transports
+    /// compute <see cref="A2ACallContext.Owner"/>). Default <see cref="DefaultOwnerResolver.Instance"/>.</param>
     public TaskManager(AgentCatalog catalog, ITaskStore store, TaskEventBroker broker, IServiceProvider services,
         IEnumerable<ITaskEventObserver>? observers = null, ILogger<TaskManager>? logger = null, TimeProvider? time = null,
-        IPushConfigStore? pushConfigs = null, PushOptions? pushOptions = null)
+        IPushConfigStore? pushConfigs = null, PushOptions? pushOptions = null, IOwnerResolver? owners = null)
     {
+        _owners = owners ?? DefaultOwnerResolver.Instance;
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _logger = (ILogger?)logger ?? NullLogger.Instance;
@@ -247,7 +252,7 @@ public sealed class TaskManager : IA2ARequestHandler
             var taskId = message.TaskId;
             using (await _writer.LockAsync(agent, taskId, ct).ConfigureAwait(false))
             {
-                var stored = await LoadOwnedAsync(call, taskId, ct).ConfigureAwait(false);
+                var stored = await LoadForContinuationAsync(call, taskId, ct).ConfigureAwait(false);
                 var state = stored.Task.Status.State;
                 if (TaskStateRules.IsTerminal(state))
                     throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be continued.");
@@ -393,6 +398,19 @@ public sealed class TaskManager : IA2ARequestHandler
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         // Another owner's task is reported as not found, so task ids do not leak.
         if (stored is null || stored.Owner != call.Owner)
+            throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found.");
+        return stored;
+    }
+
+    /// <summary>
+    /// Like <see cref="LoadOwnedAsync"/>, but another owner may continue the task when <see cref="IOwnerResolver.CanContinueInterrupted"/>
+    /// allows it (default: step-up of an AUTH_REQUIRED task within one tenant). The task keeps its owner.
+    /// </summary>
+    private async Task<StoredTask> LoadForContinuationAsync(A2ACallContext call, string taskId, CancellationToken ct)
+    {
+        var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
+        if (stored is null
+            || (stored.Owner != call.Owner && !_owners.CanContinueInterrupted(stored.Owner, call.Owner, stored.Task.Status.State)))
             throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found.");
         return stored;
     }

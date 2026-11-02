@@ -2,6 +2,7 @@
 # Run the demo flows:          docker compose run --rm client all
 # Inside the network the services use host names (mock-entra, agent-server, webhook-receiver); config keys are
 # overridden with environment variables (double underscore = ":"). All secrets here are throwaway dev values.
+# The images do not set ASPNETCORE_ENVIRONMENT (they default to Production); every service below sets Development.
 name: a2a-reference
 
 services:
@@ -62,6 +63,8 @@ services:
   client:
     profiles: ["tools"]
     build: { context: ., dockerfile: docker/Dockerfile.client }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
     depends_on:
       agent-server:
         condition: service_healthy

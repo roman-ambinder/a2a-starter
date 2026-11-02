@@ -80,8 +80,8 @@ public sealed class CredentialProviderTests
         var handler = new StubHandler(_ => Task.FromResult(Json(HttpStatusCode.OK,
             $$"""{"access_token":"tok-{{++issued}}","token_type":"Bearer","expires_in":3600}""")));
         using var provider = new ClientCredentialsProvider("cid", "secret", "api://a2a-demo/.default",
-            httpClient: new HttpClient(handler), timeProvider: time);
-        var card = OAuthCard("http://idp.test/tenant/oauth2/v2.0/token");
+            httpClient: new HttpClient(handler), timeProvider: time, allowedTokenHosts: ["IDP.test"]);
+        var card = OAuthCard("https://idp.test/tenant/oauth2/v2.0/token");
 
         var first = await provider.GetHeadersAsync(card, Ct);
         var second = await provider.GetHeadersAsync(card, Ct);
@@ -89,7 +89,7 @@ public sealed class CredentialProviderTests
         Assert.Equal("Bearer tok-1", first["Authorization"]);
         Assert.Equal("Bearer tok-1", second["Authorization"]);
         var call = Assert.Single(handler.Calls);
-        Assert.Equal("http://idp.test/tenant/oauth2/v2.0/token", call.Request.RequestUri!.ToString());
+        Assert.Equal("https://idp.test/tenant/oauth2/v2.0/token", call.Request.RequestUri!.ToString());
         Assert.Equal(HttpMethod.Post, call.Request.Method);
         Assert.Contains("grant_type=client_credentials", call.Body);
         Assert.Contains("client_id=cid", call.Body);
@@ -119,9 +119,9 @@ public sealed class CredentialProviderTests
     {
         var handler = new StubHandler(_ => Task.FromResult(Json(HttpStatusCode.BadRequest,
             """{"error":"invalid_client","error_description":"bad secret"}""")));
-        using var provider = new ClientCredentialsProvider("c", "s", "scope", httpClient: new HttpClient(handler));
+        using var provider = new ClientCredentialsProvider("c", "s", "scope", httpClient: new HttpClient(handler), allowedTokenHosts: ["idp.test"]);
 
-        var ex = await Assert.ThrowsAsync<A2AAuthException>(async () => await provider.GetHeadersAsync(OAuthCard("http://idp.test/t"), Ct));
+        var ex = await Assert.ThrowsAsync<A2AAuthException>(async () => await provider.GetHeadersAsync(OAuthCard("https://idp.test/t"), Ct));
 
         Assert.Equal(401, ex.HttpStatus);
         Assert.Contains("invalid_client", ex.Message);
@@ -136,12 +136,85 @@ public sealed class CredentialProviderTests
             await Task.Delay(50);
             return Json(HttpStatusCode.OK, """{"access_token":"t","expires_in":3600}""");
         });
-        using var provider = new ClientCredentialsProvider("c", "s", "scope", httpClient: new HttpClient(handler));
-        var card = OAuthCard("http://idp.test/t");
+        using var provider = new ClientCredentialsProvider("c", "s", "scope", httpClient: new HttpClient(handler), allowedTokenHosts: ["idp.test"]);
+        var card = OAuthCard("https://idp.test/t");
 
         await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => provider.GetHeadersAsync(card, Ct).AsTask()));
 
         Assert.Single(handler.Calls);
+    }
+
+    private static StubHandler TokenHandler(string json = """{"access_token":"t","expires_in":3600}""")
+        => new(_ => Task.FromResult(Json(HttpStatusCode.OK, json)));
+
+    [Theory]
+    [InlineData("https://evil.test/token", null)]                    // no allow-list at all
+    [InlineData("https://evil.test/token", "idp.test")]              // host not allowed
+    [InlineData("https://idp.test.evil.test/token", "idp.test")]     // suffix trick
+    [InlineData("http://idp.test/token", "idp.test")]                // allowed host, plain http, not loopback
+    [InlineData("ftp://idp.test/token", "idp.test")]                 // not http(s)
+    public async Task ClientCredentialsProvider_refuses_untrusted_card_token_url_without_sending_the_secret(string tokenUrl, string? allowed)
+    {
+        var handler = TokenHandler();
+        using var provider = new ClientCredentialsProvider("c", "top-secret", "scope", httpClient: new HttpClient(handler),
+            allowedTokenHosts: allowed is null ? null : [allowed]);
+
+        var ex = await Assert.ThrowsAsync<A2AAuthException>(async () => await provider.GetHeadersAsync(OAuthCard(tokenUrl), Ct));
+
+        Assert.Equal(401, ex.HttpStatus);
+        Assert.Contains($"'{new Uri(tokenUrl).Host}'", ex.Message);
+        Assert.DoesNotContain("top-secret", ex.Message);
+        Assert.Empty(handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("https://idp.test/token", "idp.test")]
+    [InlineData("http://localhost:5100/token", "localhost")]
+    [InlineData("http://127.0.0.1:5100/token", "127.0.0.1")]
+    [InlineData("http://[::1]:5100/token", "::1")]
+    public async Task ClientCredentialsProvider_uses_allowed_https_or_loopback_card_token_url(string tokenUrl, string allowed)
+    {
+        var handler = TokenHandler();
+        using var provider = new ClientCredentialsProvider("c", "s", "scope", httpClient: new HttpClient(handler), allowedTokenHosts: [allowed]);
+
+        await provider.GetHeadersAsync(OAuthCard(tokenUrl), Ct);
+
+        Assert.Equal(new Uri(tokenUrl), Assert.Single(handler.Calls).Request.RequestUri);
+    }
+
+    [Fact]
+    public async Task ClientCredentialsProvider_override_is_used_even_when_card_names_another_host()
+    {
+        var handler = TokenHandler();
+        using var provider = new ClientCredentialsProvider("c", "s", "scope", new Uri("http://mock-entra:5100/t/token"), new HttpClient(handler));
+
+        await provider.GetHeadersAsync(OAuthCard("https://evil.test/token"), Ct);
+
+        Assert.Equal("http://mock-entra:5100/t/token", Assert.Single(handler.Calls).Request.RequestUri!.ToString());
+    }
+
+    [Theory]
+    [InlineData("60", 30)]          // numeric string; <= 60 s still caches for 30 s
+    [InlineData("5", 30)]
+    [InlineData("0", 30)]
+    [InlineData("-10", 30)]
+    [InlineData("\"120\"", 60)]    // string form
+    [InlineData("\"abc\"", 3540)]  // unreadable → default 1 h
+    [InlineData("1e300", 86340)]    // capped at 24 h, no OverflowException
+    public async Task ClientCredentialsProvider_clamps_expires_in(string expiresIn, int cachedSeconds)
+    {
+        var time = new FakeTime(DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+        var issued = 0;
+        var handler = new StubHandler(_ => Task.FromResult(Json(HttpStatusCode.OK,
+            $$"""{"access_token":"tok-{{++issued}}","expires_in":{{expiresIn}}}""")));
+        using var provider = new ClientCredentialsProvider("c", "s", "scope", new Uri("https://idp.test/t"), new HttpClient(handler), time);
+        var card = new AgentCard();
+
+        await provider.GetHeadersAsync(card, Ct);
+        time.Now += TimeSpan.FromSeconds(cachedSeconds - 1);
+        Assert.Equal("Bearer tok-1", (await provider.GetHeadersAsync(card, Ct))["Authorization"]);
+        time.Now += TimeSpan.FromSeconds(1);
+        Assert.Equal("Bearer tok-2", (await provider.GetHeadersAsync(card, Ct))["Authorization"]);
     }
 
     [Fact]

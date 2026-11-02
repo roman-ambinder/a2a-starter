@@ -24,7 +24,7 @@ public sealed class AgentAuthorizer(IAuthorizationService authorization) : IAgen
 
     /// <summary>
     /// True when the primary identity (<see cref="ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
-    /// <see cref="CallerIdentity.GetOwner"/>, so a caller is never authorized here and then treated as anonymous for ownership.
+    /// <see cref="DefaultOwnerResolver.GetOwner"/>, so a caller is never authorized here and then treated as anonymous for ownership.
     /// </summary>
     public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
 }

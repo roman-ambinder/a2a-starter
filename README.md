@@ -124,7 +124,7 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 
 ## Copy the server side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Server` ([details](src/A2A.Server/README.md)).
+1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Server` ([details](src/A2A.Server/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
 2. Write an `IAgentHandler` (see `samples/AgentServer/Agents/EchoAgent.cs` for the smallest one).
 3. Register it with `AddA2AServer(...).AddAgent<THandler>(name, publicCard, extendedCard, policy)`, then call `MapA2A()` and `MapA2AGrpc()`.
 4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
@@ -134,10 +134,11 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 
 ## Copy the client side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Client` ([details](src/A2A.Client/README.md)).
+1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Client` ([details](src/A2A.Client/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
 2. Fetch the card with `A2ACardResolver`.
 3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card.
 4. Pick credentials: `ClientCredentialsProvider` (any OAuth2 token URL, including Entra), `AzureIdentityCredentialProvider`, `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`, or your own `IA2ACredentialProvider`.
+   `ClientCredentialsProvider` sends your client secret to the token URL, so it does not trust the card blindly. Either pass the token URL yourself (`tokenUrlOverride`), or list the hosts you trust in `allowedTokenHosts` (for example `login.microsoftonline.com`). A card token URL is used only when its host is in that list and it is `https` (`http` only for localhost, 127.0.0.1 or ::1). Anything else throws `A2AAuthException` (401) and no request is sent.
 
 `samples/AgentClient/FlowRunner*.cs` shows every operation.
 

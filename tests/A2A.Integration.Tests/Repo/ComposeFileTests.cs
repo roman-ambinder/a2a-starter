@@ -31,7 +31,23 @@ public sealed class ComposeFileTests
         Assert.Equal(["5100:5100"], Ports("mock-entra"));
         Assert.Equal(["5300:5300"], Ports("webhook-receiver"));
         Assert.Equal(["5200:5200", "5201:5201", "5202:5202", "5203:5203", "5204:5204"], Ports("agent-server"));
-        Assert.Matches(@"ASPNETCORE_ENVIRONMENT:\s*""?Development""?", Service("mock-entra"));
+    }
+
+    [Theory]
+    [InlineData("mock-entra")]
+    [InlineData("webhook-receiver")]
+    [InlineData("agent-server")]
+    [InlineData("client")]
+    public void Every_dotnet_service_sets_Development_in_compose(string service)
+        => Assert.Matches(@"ASPNETCORE_ENVIRONMENT:\s*""?Development""?", Service(service));
+
+    [Fact]
+    public void No_Dockerfile_hard_codes_the_Development_environment()
+    {
+        var files = Directory.GetFiles(Path.Combine(RepoRoot(), "docker"), "Dockerfile*");
+        Assert.NotEmpty(files);
+        foreach (var file in files)
+            Assert.DoesNotContain("ASPNETCORE_ENVIRONMENT=Development", File.ReadAllText(file));
     }
 
     [Fact]

@@ -377,4 +377,19 @@ public class PushTests
             await Task.Delay(10);
         }
     }
+
+    [Fact]
+    public void Push_http_client_never_uses_a_proxy_or_follows_redirects()
+    {
+        using var provider = new ServiceCollection().AddLogging().AddA2APush().BuildServiceProvider();
+        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+
+        HttpMessageHandler? handler = factory.CreateHandler(PushNotificationSender.HttpClientName);
+        while (handler is DelegatingHandler d) handler = d.InnerHandler;
+
+        var sockets = Assert.IsType<SocketsHttpHandler>(handler);
+        Assert.False(sockets.UseProxy);
+        Assert.False(sockets.AllowAutoRedirect);
+        Assert.NotNull(sockets.ConnectCallback);
+    }
 }

@@ -21,7 +21,7 @@ WORKDIR /app
 # The publish output keeps agentserver-config/appsettings*.json, which AgentServer uses as its content root.
 COPY --from=build /out .
 # Kestrel listens on the ports of A2A:PublicBaseUrl / A2A:GrpcPorts; any host other than localhost/IP binds all interfaces.
-ENV ASPNETCORE_ENVIRONMENT=Development
+# No ASPNETCORE_ENVIRONMENT here: the image runs as Production unless the deployment says otherwise (compose sets Development).
 EXPOSE 5200 5201 5202 5203 5204
 USER app
 ENTRYPOINT ["dotnet", "AgentServer.dll"]

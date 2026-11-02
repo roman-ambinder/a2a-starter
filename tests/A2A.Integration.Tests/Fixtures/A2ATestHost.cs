@@ -176,8 +176,8 @@ public sealed class A2ATestHost : IAsyncLifetime
     }
 
     /// <summary>
-    /// The credential provider for <paramref name="auth"/>. Client credentials use the card's token URL; for a card without an
-    /// oauth2 scheme (echo) the MockEntra token URL is passed as override.
+    /// The credential provider for <paramref name="auth"/>. Client credentials use the card's token URL (its loopback MockEntra
+    /// host is in AllowedTokenHosts); for a card without an oauth2 scheme (echo) the MockEntra token URL is passed as override.
     /// </summary>
     public IA2ACredentialProvider? Credentials(TestAuth auth, AgentCard card)
     {
@@ -190,7 +190,9 @@ public sealed class A2ATestHost : IAsyncLifetime
             default:
                 var (id, secret) = Clients[auth];
                 var hasFlow = card.SecuritySchemes?.Values.Any(s => s.Oauth2SecurityScheme?.Flows.ClientCredentials is not null) == true;
-                var provider = new ClientCredentialsProvider(id, secret, Scope, hasFlow ? null : new Uri(TokenUrl), Http);
+                // Cards with a flow name the loopback MockEntra; that host is allowed explicitly. Echo has no flow: override.
+                var provider = new ClientCredentialsProvider(id, secret, Scope, hasFlow ? null : new Uri(TokenUrl), Http,
+                    allowedTokenHosts: [new Uri(TokenUrl).Host]);
                 _disposables.Add(provider);
                 return provider;
         }

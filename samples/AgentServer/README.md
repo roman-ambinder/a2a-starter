@@ -36,7 +36,7 @@ What each agent shows: [flow map](../../README.md#flow-map). Phase 2 settings: [
 
 Default scheme `A2A` forwards to `ApiKey` when the `X-API-Key` header is present, else to JwtBearer (`Bearer`).
 API key callers get identity type `ApiKey`, claim `a2a:apikey` = key name and role `A2A.Invoke`.
-Bearer tokens keep Entra claim names (`roles`, `tid`, `azp`); task owner = `tenant:{tid}` or `apikey:{name}`.
+Bearer tokens keep Entra claim names (`roles`, `tid`, `azp`); task owner = `tenant:{tid}/app:{azp}` (one client app; another app of the same tenant may only continue an `AUTH_REQUIRED` task) or `apikey:{name}`.
 If the identity provider is down, bearer calls get 401 (with a warning in the log), never 500.
 
 ```bash

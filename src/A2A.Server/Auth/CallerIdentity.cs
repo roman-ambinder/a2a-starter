@@ -1,9 +1,8 @@
 using System.Security.Claims;
-using A2A.Protocol;
 
 namespace A2A.Server.Auth;
 
-/// <summary>Derives the task owner key from the caller.</summary>
+/// <summary>Owner-key constants and a static shortcut to <see cref="DefaultOwnerResolver"/>. The server itself uses the registered <see cref="IOwnerResolver"/>.</summary>
 public static class CallerIdentity
 {
     /// <summary>Claim set by the API key handler; value = key name.</summary>
@@ -17,24 +16,6 @@ public static class CallerIdentity
 
     public const string Anonymous = "anonymous";
 
-    /// <summary>
-    /// API key → <c>apikey:{name}</c>; bearer → <c>tenant:{tid}</c> (ownership is tenant-scoped);
-    /// unauthenticated → <c>anonymous</c>. An authenticated caller with neither claim gets
-    /// <c>user:{subject}</c> so it never shares tasks with anonymous callers. An authenticated caller with no
-    /// identifier at all → <see cref="A2AAuthException"/> (401).
-    /// </summary>
-    public static string GetOwner(ClaimsPrincipal user)
-    {
-        ArgumentNullException.ThrowIfNull(user);
-        if (user.Identity?.IsAuthenticated != true) return Anonymous;
-
-        if (Value(user, ApiKeyClaim) is { } key) return $"apikey:{key}";
-        if ((Value(user, TenantIdClaim) ?? Value(user, MappedTenantIdClaim)) is { } tid) return $"tenant:{tid}";
-        if ((Value(user, "sub") ?? Value(user, ClaimTypes.NameIdentifier) ?? user.Identity.Name) is { } sub) return $"user:{sub}";
-        // Never fall back to a shared key: that would let unrelated callers see each other's tasks.
-        throw new A2AAuthException(401, "Caller identity has no subject.");
-    }
-
-    private static string? Value(ClaimsPrincipal user, string type)
-        => user.FindFirst(type)?.Value is { Length: > 0 } v ? v : null;
+    /// <summary>The owner key from <see cref="DefaultOwnerResolver.Instance"/>. See <see cref="DefaultOwnerResolver"/> for the rules.</summary>
+    public static string GetOwner(ClaimsPrincipal user) => DefaultOwnerResolver.Instance.GetOwner(user);
 }

@@ -20,7 +20,8 @@ internal static class TransportRequest
         await authorizer.AuthorizeAsync(agent, http.User, http.RequestAborted).ConfigureAwait(false);
         if (requireAuthenticated && !AgentAuthorizer.IsAuthenticated(http.User))
             throw new A2AAuthException(401, "Authentication is required.");
-        return CallerIdentity.GetOwner(http.User);
+        var owners = http.RequestServices.GetService<IOwnerResolver>() ?? DefaultOwnerResolver.Instance;
+        return owners.GetOwner(http.User);
     }
 
     /// <summary>

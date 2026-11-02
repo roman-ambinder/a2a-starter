@@ -118,4 +118,26 @@ public sealed class BookingFlowTests(A2ATestHost host)
         Assert.Equal(TaskState.Completed, done.Status.State);
         Assert.Equal("London", done.Artifacts.Single().Parts.Single().Data!.Value.GetProperty("city").GetString());
     }
+
+    [Theory]
+    [MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Booking_task_is_private_to_the_app_even_within_the_tenant(string binding)
+    {
+        await using var owner = await host.CreateClientAsync("booking", binding, TestAuth.Client, ct: Ct);
+        await using var sameTenant = await host.CreateClientAsync("booking", binding, TestAuth.Approver, ct: Ct);
+        var first = (await owner.SendMessageAsync(Send("Book Paris"), Ct)).Task!;
+        Assert.Equal(TaskState.InputRequired, first.Status.State);
+
+        async Task NotFound(Func<Task> call) => Assert.Equal(A2AErrorCode.TaskNotFound, (await Assert.ThrowsAsync<A2AException>(call)).Code);
+        await NotFound(() => sameTenant.GetTaskAsync(new GetTaskRequest { Id = first.Id }, Ct));
+        await NotFound(() => sameTenant.CancelTaskAsync(new CancelTaskRequest { Id = first.Id }, Ct));
+        // INPUT_REQUIRED is not a step-up: another app cannot answer it.
+        await NotFound(() => sameTenant.SendMessageAsync(Send("2027-03-15", first.Id, first.ContextId), Ct));
+        var listed = await sameTenant.ListTasksAsync(new ListTasksRequest { ContextId = first.ContextId }, Ct);
+        Assert.DoesNotContain(listed.Tasks, t => t.Id == first.Id);
+
+        Assert.Contains((await owner.ListTasksAsync(new ListTasksRequest { ContextId = first.ContextId }, Ct)).Tasks, t => t.Id == first.Id);
+        var done = (await owner.SendMessageAsync(Send("2027-03-15", first.Id, first.ContextId), Ct)).Task!;
+        Assert.Equal(TaskState.Completed, done.Status.State);
+    }
 }
