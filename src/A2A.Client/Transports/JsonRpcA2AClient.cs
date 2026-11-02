@@ -30,10 +30,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
         }
         else
         {
-            var handler = new SocketsHttpHandler();
-            if (options.ClientCertificate is { } cert)
-                handler.SslOptions.ClientCertificates = [cert];
-            _http = new HttpClient(handler);
+            _http = new HttpClient(ClientSupport.CreateHandler(options));
             _ownsHttp = true;
         }
     }
@@ -108,6 +105,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
         var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         await foreach (var data in SseReader.ReadAsync(stream, ct).ConfigureAwait(false))
         {
+            if (!ClientSupport.IsPayload(data)) continue; // heartbeat
             var result = ReadEnvelope(response, System.Text.Encoding.UTF8.GetBytes(data));
             yield return ClientSupport.Validate(ClientSupport.Deserialize<StreamResponse>(result, "stream event"));
         }

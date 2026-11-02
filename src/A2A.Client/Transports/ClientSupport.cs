@@ -12,18 +12,37 @@ internal static class ClientSupport
     public static async ValueTask ApplyHeadersAsync(HttpRequestMessage request, A2AClientOptions options, AgentCard card,
         string accept, CancellationToken ct)
     {
-        request.Headers.TryAddWithoutValidation(A2AConstants.VersionHeader, options.ProtocolVersion);
-        request.Headers.TryAddWithoutValidation("Accept", accept);
+        AddHeader(request, A2AConstants.VersionHeader, options.ProtocolVersion);
+        AddHeader(request, "Accept", accept);
         if (options.Extensions.Count > 0)
-            request.Headers.TryAddWithoutValidation(A2AConstants.ExtensionsHeader, string.Join(',', options.Extensions));
+            AddHeader(request, A2AConstants.ExtensionsHeader, string.Join(',', options.Extensions));
 
         if (options.Credentials is { } credentials)
         {
             var headers = await credentials.GetHeadersAsync(card, ct).ConfigureAwait(false);
             foreach (var (name, value) in headers)
-                request.Headers.TryAddWithoutValidation(name, value);
+                AddHeader(request, name, value);
         }
     }
+
+    /// <summary>Adds a header; a header HttpClient refuses throws <see cref="ArgumentException"/> naming it (never its value).</summary>
+    private static void AddHeader(HttpRequestMessage request, string name, string value)
+    {
+        if (!request.Headers.TryAddWithoutValidation(name, value))
+            throw new ArgumentException($"The header '{name}' cannot be added to the request.", nameof(name));
+    }
+
+    /// <summary>Handler for a client that creates its own HttpClient (mutual TLS certificate applied).</summary>
+    public static SocketsHttpHandler CreateHandler(A2AClientOptions options)
+    {
+        var handler = new SocketsHttpHandler();
+        if (options.ClientCertificate is { } cert)
+            handler.SslOptions.ClientCertificates = [cert];
+        return handler;
+    }
+
+    /// <summary>True for an SSE payload with content; blank payloads are heartbeats.</summary>
+    public static bool IsPayload(string data) => !string.IsNullOrWhiteSpace(data);
 
     /// <summary>HTTP 401/403 → <see cref="A2AAuthException"/>. Does nothing for other statuses.</summary>
     public static void ThrowIfAuthFailure(HttpResponseMessage response)
@@ -51,6 +70,13 @@ internal static class ClientSupport
         return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", data);
     }
 
+    /// <summary>ErrorInfo <c>metadata</c> (string map) as a JSON object, or null when empty.</summary>
+    public static JsonElement? MetadataToData(IEnumerable<KeyValuePair<string, string>> metadata)
+    {
+        var pairs = metadata.ToList();
+        return pairs.Count == 0 ? null : JsonSerializer.SerializeToElement(pairs.ToDictionary(p => p.Key, p => p.Value));
+    }
+
     /// <summary>Deserializes with the protocol JSON options; failure → InvalidAgentResponse.</summary>
     public static T Deserialize<T>(JsonElement element, string what)
     {
@@ -59,7 +85,7 @@ internal static class ClientSupport
             var value = element.Deserialize((System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)A2AJson.Options.GetTypeInfo(typeof(T)));
             return value ?? throw InvalidResponse($"The {what} is null.");
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException and not A2AException)
         {
             throw InvalidResponse($"The {what} is not valid.", ex);
         }
