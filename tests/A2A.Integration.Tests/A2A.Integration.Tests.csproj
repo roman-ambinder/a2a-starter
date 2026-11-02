@@ -19,5 +19,6 @@
     <ProjectReference Include="../../src/A2A.Client/A2A.Client.csproj" />
     <ProjectReference Include="../../samples/AgentServer/AgentServer.csproj" />
     <ProjectReference Include="../../samples/MockEntra/MockEntra.csproj" />
+    <ProjectReference Include="../../samples/WebhookReceiver/WebhookReceiver.csproj" />
   </ItemGroup>
 </Project>

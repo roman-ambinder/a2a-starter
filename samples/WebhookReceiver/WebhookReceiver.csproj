@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>WebhookReceiver</RootNamespace>
+    <AssemblyName>WebhookReceiver</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Copied to a subfolder so it does not collide with other samples' appsettings.json in one output folder
+         (integration tests). WebhookReceiverApp uses this folder as content root. -->
+    <Content Update="appsettings*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
+             Link="webhookreceiver-config/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

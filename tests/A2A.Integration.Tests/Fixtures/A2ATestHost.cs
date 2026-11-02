@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MockEntra;
+using WebhookReceiver;
 
 namespace A2A.Integration.Tests.Fixtures;
 
@@ -26,7 +27,7 @@ public enum TestAuth
 }
 
 /// <summary>
-/// The real samples on real Kestrel: MockEntra (base + 100) and AgentServer (HTTP base + 200, gRPC base + 201..204), started
+/// The real samples on real Kestrel: MockEntra (base + 100), WebhookReceiver (base + 300) and AgentServer (HTTP base + 200, gRPC base + 201..204), started
 /// through their <c>Build</c> methods. Base = env <c>A2A_TEST_PORT_BASE</c>, default 15000. One instance per test run
 /// (collection fixture <see cref="A2ATestHostCollection"/>). Fast timings: agent step delay 20 ms, push backoff 10 ms.
 /// </summary>
@@ -57,6 +58,8 @@ public sealed class A2ATestHost : IAsyncLifetime
 
     public static string MockEntraBaseUrl => $"http://127.0.0.1:{PortBase + 100}";
     public static string BaseUrl => AgentServerBaseUrl(PortBase);
+    /// <summary>The WebhookReceiver (trusts the test AgentServer; its public URL is this base URL).</summary>
+    public static string ReceiverBaseUrl => $"http://127.0.0.1:{PortBase + 300}";
     public static string Authority => AuthorityFor(MockEntraBaseUrl);
     public static string TokenUrl => $"{MockEntraBaseUrl}/{Tenant}/oauth2/v2.0/token";
     public static string OpenIdConfigurationUrl => $"{Authority}/.well-known/openid-configuration";
@@ -64,8 +67,10 @@ public sealed class A2ATestHost : IAsyncLifetime
     private readonly ConcurrentBag<IDisposable> _disposables = [];
     private WebApplication? _mockEntra;
     private WebApplication? _agentServer;
+    private WebApplication? _receiver;
 
     public WebApplication MockEntra => _mockEntra ?? throw new InvalidOperationException("Not started.");
+    public WebApplication Receiver => _receiver ?? throw new InvalidOperationException("Not started.");
     public WebApplication AgentServer => _agentServer ?? throw new InvalidOperationException("Not started.");
 
     /// <summary>Shared HTTP client (no base address, no auth headers).</summary>
@@ -85,7 +90,7 @@ public sealed class A2ATestHost : IAsyncLifetime
         });
         await _mockEntra.StartAsync();
 
-        // Task 17: start the WebhookReceiver (base + 300) here, before the AgentServer.
+        _receiver = await StartReceiverAsync(PortBase + 300, [AgentServerBaseUrl(PortBase)]);
 
         _agentServer = await StartAgentServerAsync(PortBase, MockEntraBaseUrl);
     }
@@ -94,8 +99,24 @@ public sealed class A2ATestHost : IAsyncLifetime
     {
         foreach (var d in _disposables) d.Dispose();
         if (_agentServer is not null) await _agentServer.DisposeAsync();
+        if (_receiver is not null) await _receiver.DisposeAsync();
         if (_mockEntra is not null) await _mockEntra.DisposeAsync();
         Http.Dispose();
+    }
+
+    /// <summary>Starts a WebhookReceiver on <paramref name="port"/> (public URL = its own base URL) trusting <paramref name="trustedServers"/>.</summary>
+    public static async Task<WebApplication> StartReceiverAsync(int port, IReadOnlyList<string> trustedServers)
+    {
+        var url = $"http://127.0.0.1:{port}";
+        var app = WebhookReceiverApp.Build(["--environment", "Development"], builder =>
+        {
+            builder.Logging.ClearProviders();
+            builder.WebHost.UseUrls(url);
+            builder.Configuration["Receiver:PublicUrl"] = url;
+            for (var i = 0; i < trustedServers.Count; i++) builder.Configuration[$"Receiver:TrustedServers:{i}"] = trustedServers[i];
+        });
+        await app.StartAsync();
+        return app;
     }
 
     public static string AgentServerBaseUrl(int portBase) => $"http://127.0.0.1:{portBase + 200}";
