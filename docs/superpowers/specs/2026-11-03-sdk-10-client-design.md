@@ -291,15 +291,25 @@ public interface IA2AAuthRequiredHandler
     /// Called when a waited task enters AUTH_REQUIRED. Return a continuation to resume the task, or null to stop.
     ValueTask<AuthContinuation?> HandleAsync(AuthRequiredContext context, CancellationToken ct);
 }
-public sealed record AuthRequiredContext(IA2AClient Client, AgentTask Task, Message? StatusMessage);
-public sealed record AuthContinuation(Message Message, A2ARequestOptions? Options); // Options may carry other credentials
+// No positional constructors (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public sealed record AuthRequiredContext
+{
+    public required IA2AClient Client { get; init; }
+    public required AgentTask Task { get; init; }
+    public Message? StatusMessage { get; init; }
+}
+public sealed record AuthContinuation
+{
+    public required Message Message { get; init; }
+    public A2ARequestOptions? Options { get; init; } // may carry other credentials
+}
 ```
 
 - It is used by `SendAndWaitAsync` and `A2AConversation`. It is registered per client (`builder.OnAuthRequired<T>()`) or passed in `A2AWaitOptions`.
 - The SDK sends the continuation message on the same task and context ids, with the given options. That is how a named identity continues the task (package 07's grant rule). After `MaxAuthSteps` (default 3), the wait returns the task in `AUTH_REQUIRED`.
 - After a step-up continuation *(Claude's call, B6)*: the grant holder gets the response of its own continuation call, but cannot Get, List, Subscribe or Cancel the task afterwards (07). So the wait helper stays on the continuation's own stream (or blocking result). If it must resubscribe or poll after that, it uses the original caller's credentials (the client's provider or the original call's options), never the continuation's `Options`.
 - Default (no handler): the wait returns with `State = AuthRequired` and the status message. Credentials stay out of band, as the spec says.
-- `IA2AInputRequiredHandler` has the same shape for `INPUT_REQUIRED`. Default: return to the caller.
+- `IA2AInputRequiredHandler` has the same shape for `INPUT_REQUIRED` (its context and continuation records also use `required` / `init` properties). Default: return to the caller.
 
 ### Resilience
 
