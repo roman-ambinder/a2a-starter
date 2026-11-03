@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Every subagent runs on model `sonnet` (see "Execution notes" at the end). Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Milestone:** M1.
+
 **Goal:** Make the server safe by default (owner keys per app or per user, no anonymous access, continuation only by the owner or a named grant holder, every task operation scoped by A2A tenant), drive authorization from the agent card, flow the caller identity into agent code, and ship Entra building blocks for the server (`Ambinder.A2A.AspNetCore.Entra`) and the client (`Ambinder.A2A.Client.Entra`).
 
 **Spec (binding):** `docs/superpowers/specs/2026-11-03-sdk-07-security-entra-design.md` (called "the spec" below). Work plan: `docs/superpowers/specs/2026-11-03-sdk-00-work-plan.md` (Claude's calls B6–B11, C8, C13; owner decision O3). Package map: `docs/superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md` §1.
@@ -59,7 +61,7 @@ The spec needs seams from other packages (spec "Dependencies"). They are all M1 
 | `IA2AMiddleware`, `A2AOperationContext`, built-in step 3 slot, per-agent options on `AddAgent` | 09 §7.11 | Tasks 11, 12 | **Stop before Task 11** and report. Do not build a pipeline (09 owns it). |
 | Task recovery (`TaskRecoveryService`, `StoredTask.Caller` read on recovery) | 09 §7.7 | Task 10 (recovered-run test) | Write the unit test of the rebuild; mark the recovery integration test as a follow-up in the PR body. |
 | `IAgentCardContributor`, `AgentCardContext` | 03 | Task 15 | **Stop before Task 15** and report. |
-| `IA2ACredentialProvider.ApplyAsync(A2ACredentialContext, ct)`, `A2ACredentialContext` (`ForceRefresh`, `Challenge`), `AuthChallenge`, `A2ARequestOptions.UserAssertion`, `IA2AClientBuilder`, `DelegateCredentialProvider` | 10 | Tasks 18–20 | *(plan-writer's call)* Add exactly the shapes in 10's spec ("Credentials and auth retry", `IA2AClientBuilder`) to `Ambinder.A2A.Client`, with no retry logic. The spec allows this: "07 builds against them first". Copy member names and XML docs from spec 10 verbatim. |
+| `IA2ACredentialProvider.ApplyAsync(A2ACredentialContext, ct)`, `A2ACredentialContext` (`ForceRefresh`, `Challenge`), `AuthChallenge`, `A2ARequestOptions.UserAssertion`, `IA2AClientBuilder`, `DelegateCredentialProvider`, `IA2ACredentialSelector` | 10 | Tasks 18–20 | *(plan-writer's call)* Add exactly the shapes in 10's spec ("Credentials and auth retry", `IA2AClientBuilder`) to `Ambinder.A2A.Client`, with no retry logic. The spec allows this: "07 builds against them first". Copy member names and XML docs from spec 10 verbatim. |
 | Repo-internal test harness (`tests/Ambinder.A2A.TestHarness`: `A2ATestServer`, `FakeTimeProvider` wiring) | 12 slice (B2) | All integration tests | Use `WebApplication.CreateSlimBuilder()` + `builder.WebHost.UseTestServer()` directly. **No fixed ports, no `Task.Delay`/sleeps** (B2). Use `FakeTimeProvider` (`Microsoft.Extensions.TimeProvider.Testing`) for expiry. |
 | `PublicAPI.Unshipped.txt` tracking | 02 | Every task adding public API | If present: add each new public member to the package's `PublicAPI.Unshipped.txt` in the same task (build fails otherwise). If absent: skip; list the public API in the PR body. |
 | `benchmarks/Ambinder.A2A.Benchmarks` | 14 | Task 25 | Skip Task 25, leave the acceptance item open, say so in the PR body. |
@@ -186,12 +188,19 @@ git grep -nE 'ApplyAsync\(A2ACredentialContext|interface IA2AClientBuilder|UserA
 ls tests | grep -E 'TestHarness'; ls benchmarks 2>/dev/null; git grep -l 'PublicAPI.Unshipped' -- src | head -3
 ```
 
+- [ ] **Step 3a:** Check for stand-ins other packages added with 07's shape:
+
+```bash
+git grep -n "Owned by package 07" -- src
+```
+
+  If 05 added `OwnerKey.cs` or `TaskContinuationGrant.cs` (05 plan fallback table), do not recreate them or add duplicates. Tasks 1 and 8 finish those files: keep the names and members, add validation, XML docs and tests, and remove the header comment.
 - [ ] **Step 4:** Write the results as a table in the PR body draft (seam → present/missing → what this run does, from §0.2). Run `dotnet build Ambinder.A2A.slnx` and `dotnet test Ambinder.A2A.slnx` to get a green baseline. No commit.
 
 ### Task 1: `OwnerKey` with a golden format test (B7)
 
 **Files:**
-- Create: `src/Ambinder.A2A.Server/Security/OwnerKey.cs`
+- Create, or finish 05's minimal version if Task 0 Step 3a found it: `src/Ambinder.A2A.Server/Security/OwnerKey.cs`
 - Test: `tests/Ambinder.A2A.Server.Tests/Security/OwnerKeyTests.cs`
 
 - [ ] **Step 1: Write failing tests.**
@@ -263,10 +272,10 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 - [ ] **Step 3: Implement.**
   - `A2ASecurityOptions` (bound from `A2A:Security`; *placement next to `A2AServerOptions` is the builder's choice per spec*): `KeepCallerToken` (false), `Tenants` (per agent: `Dictionary<string, string[]>`), `TenantBindings` (`Dictionary<string, string[]>`), `FilterExtendedCardSkills` (true). XML docs from the spec bullets.
   - `A2ACallContext`: make it a property record (`required` / `init` properties, no positional constructor; spec 02 §4). Replace `User` and `Owner` with `A2ACaller Caller`; make `Tenant` a non-null `string` (`""` = no tenant, 05 §"`TaskManager` builds keys from `A2ACallContext.Tenant` (now required, `""` when none")). Keep `ProtocolVersion`, `RequestedExtensions`, `Transport`, and whatever 09 added (`IsForwarded`). Remove the "Phase 1 does not isolate by it" comment.
-  - **Cross-plan note (package 15, owner decision D1).** The 15 plan asks for this logic to become a public seam, `IA2ACallerResolver.ResolveAsync(HttpContext http, string agentName, string? requestTenant, CancellationToken ct) → (A2ACaller Caller, string Tenant)` in `Ambinder.A2A.AspNetCore`. Then 0.3 compat (its gRPC service and its version dispatcher) uses the same caller and tenant rules as the 1.0 transports, and that seam has to merge before the `1.0.0-rc.1` freeze.
+  - **Package 15 decision D1 (approved by the owner 2026-11-03).** This logic becomes a public seam, `IA2ACallerResolver.ResolveAsync(HttpContext http, string agentName, string? requestTenant, CancellationToken ct) → (A2ACaller Caller, string Tenant)` in `Ambinder.A2A.AspNetCore`. Then 0.3 compat (its gRPC service and its version dispatcher) uses the same caller and tenant rules as the 1.0 transports, and that seam has to merge before the `1.0.0-rc.1` freeze.
     - Write `ResolveCallerAsync` as a separate internal class with that signature, not as a static helper on `TransportRequest`. Then exposing it is a visibility change only.
-    - If the owner has approved D1 when this task runs, make it public here as `IA2ACallerResolver`, with a default implementation registered by `AddA2AServer`, and add it to `PublicAPI.Unshipped.txt`.
-    - Otherwise keep it internal, and list D1 as open in the PR body. *(cross-plan review)*
+    - The 03 plan's Task 8 owns the public interface and its `PublicAPI.Unshipped.txt` line, and runs after this phase (it needs `A2ACaller`). Keep the class internal here. If 03's Task 8 has already landed, implement its `IA2ACallerResolver` directly and do not add a second type.
+    - Task 9 adds tenant resolution to this class, so the seam returns the resolved tenant.
   - `TransportRequest.AuthorizeAsync` → `ResolveCallerAsync(HttpContext, AgentRegistration) → (A2ACaller Caller, string Tenant)`; for this task the tenant is still the raw request tenant or `""` (Task 9 adds the resolver). It must not call `IAgentAuthorizer` any more for card requirements (authorization moves to Task 11), but keeps the existing `AuthorizationPolicy` call until Task 12 replaces it. When `KeepCallerToken` is on, read the bearer from `Authorization` (`Bearer ` prefix) and set `AccessToken` with `with { AccessToken = … }`.
   - gRPC: same through `ServerCallContext.GetHttpContext()`.
   - `TaskManager`: every `call.Owner` → `call.Caller.Owner`.
@@ -352,7 +361,8 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 ### Task 8: Continuation grants and `ITaskContinuationPolicy` (B6)
 
 **Files:**
-- Create: `Security/TaskContinuationGrant.cs`, `Security/ITaskContinuationPolicy.cs`, `Security/DefaultTaskContinuationPolicy.cs`
+- Create: `Security/ITaskContinuationPolicy.cs`, `Security/DefaultTaskContinuationPolicy.cs`
+- Create, or finish 05's minimal version if Task 0 Step 3a found it: `Security/TaskContinuationGrant.cs`
 - Modify: `IAgentEventSink.cs` (new overload), `AgentEventSink.cs`, `TaskWriter.cs` (set and clear the grant), `TaskManager.cs` (`LoadForContinuationAsync` uses the policy under the lock), test doubles implementing `IAgentEventSink`
 - Test: `tests/Ambinder.A2A.Server.Tests/Security/ContinuationPolicyTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Security/ContinuationGrantTests.cs`
 
@@ -368,7 +378,7 @@ XML docs state the format is part of the public contract and frozen at 1.0.
     - `RequireAuthAsync` without a grant → only the owner can continue.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3: Implement.**
-  - Types exactly as in spec "Continuing an `AUTH_REQUIRED` task". `ExpiresAt` has no default (required positional parameter).
+  - Types exactly as in spec "Continuing an `AUTH_REQUIRED` task". `ExpiresAt` has no default (a `required` `init` property; spec 02 §4).
   - `IAgentEventSink.RequireAuthAsync(Message statusMessage, TaskContinuationGrant? grant, CancellationToken ct)`: sets state `AUTH_REQUIRED` with the status message and stores `StoredTask.ContinuationGrant = grant` in the same write. Reject an `ExpiresAt` not in the future with `A2AException(InvalidAgentResponse, "TaskContinuationGrant.ExpiresAt must be in the future.")`.
   - `TaskWriter`: on any state change away from `AUTH_REQUIRED`, write `ContinuationGrant = null` in the same store write.
   - `DefaultTaskContinuationPolicy` (registered with `TryAddSingleton`, takes `TimeProvider`). The tenant check compares the call's resolved tenant with `StoredTask.Key.Tenant` — pass it via the caller-side data the interface allows: since `CanContinue(StoredTask task, A2ACaller caller)` has no tenant parameter, `TaskManager` only calls the policy for tasks it loaded by `TaskKey(call.Tenant, …)`, so a task of another tenant is never loaded (Task 9). Document this in the XML doc of `ITaskContinuationPolicy`.
@@ -384,7 +394,7 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 - Test: `tests/Ambinder.A2A.Server.Tests/Security/DefaultTenantResolverTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Security/TenantIsolationTests.cs`, and conformance cases in 05's suite
 
 - [ ] **Step 1: Write failing tests** (spec acceptance "Tenant tests", Goal 4).
-  - Unit: route tenant `a` and body tenant empty → `a`; route `a`, body `b` → `InvalidParams`; no route, body `x` not configured → `InvalidParams` with "Tenant 'x' is not served by agent 'y'."; no route, body `a` configured in `A2ASecurityOptions.Tenants["y"]` → `a`; configured from the card's `supportedInterfaces[].tenant` → accepted; agent with no tenants and empty body → `""`; agent with no tenants and body `a` → `InvalidParams`.
+  - Unit: route tenant `a` and body tenant empty → `a`; route `a`, body `b` → `InvalidParams`; no route, body `x` not configured → `InvalidParams` with "Tenant 'x' is not served by agent 'y'."; no route, body `a` configured in `A2ASecurityOptions.Tenants["y"]` → `a`; configured from the card's `supportedInterfaces[].tenant` → accepted, except that a gRPC interface's `tenant` in `Tenant` routing mode is a routing value and never counts (09 plan Task 8), so an agent-name routing value sent over REST → `InvalidParams`; agent with no tenants and empty body → `""`; agent with no tenants and body `a` → `InvalidParams`.
   - Unit: `TenantBindings["a"] = ["tidA"]`, caller with `EntraTenantId = "tidB"` → `A2AAuthException` 403; caller `tidA` → OK.
   - Integration (three transports): a task created under tenant `a` → under tenant `b`, same owner: `GetTask`, `ListTasks`, `CancelTask`, `SubscribeToTask` and push-config get/list/delete → `TaskNotFound` (list: not present). gRPC uses the request field.
   - Store conformance: if 05's suite does not already contain "same task id, different tenant, not visible" and "list scoped by tenant even without contextId" cases, add them to 05's case catalog (spec "Dependencies: The conformance suite must include the tenant-isolation and owner-isolation cases from Goal 4").
@@ -429,7 +439,8 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3: Implement.**
   - `ISecurityRequirementEvaluator` exactly as in spec "Card-driven authorization".
-  - `RequirementSet` (internal): built once per agent and per card (public, extended) from `securityRequirements` + `securitySchemes`, with the evaluator chosen per scheme at build time (first registered evaluator whose `CanEvaluate` is true; no per-call lookup — performance budget, spec principle 4).
+  - `EffectiveCardSecurity` (internal, `Ambinder.A2A.Server`) is the one source of what a card requires *(Claude's call: the Entra contributor lives in another assembly, and 01 rule 6 rules out `InternalsVisibleTo`, so no new public type is needed)*. At startup, for each agent and each card (public, extended), it serializes the card model to a `JsonObject`, runs every registered `IAgentCardContributor` with `AgentCardContext.Request = null`, and reads `securitySchemes` and `securityRequirements` from the result. `RequirementSet` and `SecurityStartupValidation` (Task 12) read it, and never the raw `AgentCard` model. Otherwise Entra's generated requirements would be served and not enforced: an empty list means no requirement.
+  - `RequirementSet` (internal): built once per agent and per card (public, extended) from `EffectiveCardSecurity`, with the evaluator chosen per scheme at build time (first registered evaluator whose `CanEvaluate` is true; no per-call lookup — performance budget, spec principle 4).
   - `SecurityMiddleware : IA2AMiddleware`, in 09's step 3: (1) skip card operations; (2) agent-level `RequirementSet` → `A2AAuthException(403, "The caller does not meet the security requirements of agent 'x'. Required (any of): [entra: api://…/.default] | [entraUser: …].")` (lists scheme names and scopes from the card, never the caller's claims); (3) single-skill auto check (Task 12); (4) continuation pre-check for `SendMessage`/`SendStreamingMessage` with a `taskId` (load by `TaskKey(call.Tenant, agent, taskId)`, then `ITaskContinuationPolicy`; `TaskNotFound` on deny). The authoritative check stays in `LoadForContinuationAsync` (§0.3 item 1).
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(security): enforce card security requirements in the middleware pipeline`.
@@ -509,10 +520,12 @@ XML docs state the format is part of the public contract and frozen at 1.0.
   - Evaluator, for generated schemes (matched by name and token URL host): app-only caller with `roles: [A2A.Invoke]` satisfies `{entra: ["api://x/.default"]}` (bare `.default` maps to `InvokeRole`); app-only requirement `api://x/Reports.Approve` needs role `Reports.Approve`; user caller satisfies `{entraUser: ["api://x/A2A.Invoke"]}` only with `A2A.Invoke` in `scp`; user caller with `InvokeScope = null` → 403; a hand-written scheme with another name is not handled unless `AddEntraEvaluatorFor("name")` is called (that method or option is the builder's choice).
   - Card (golden JSON): single-tenant with `InvokeScope` set produces exactly the `securitySchemes` `entra` (clientCredentials, `tokenUrl = {Instance}{TenantId}/oauth2/v2.0/token`, scope `{AppIdUri}/.default` → "Call this agent as an application"), `entraUser` (authorizationCode, `pkceRequired = true`, scope `{AppIdUri}/{InvokeScope}` → "Call this agent as a signed-in user"), `entraOidc` (`{Instance}{TenantId}/v2.0/.well-known/openid-configuration`) and the two `securityRequirements`. Multi-tenant uses `organizations` in the URLs. A second golden case without `InvokeScope` has no `entraUser` and one requirement.
   - The contributor only adds: hand-written agent-level requirements are kept and no generated ones are added; a hand-written scheme with a generated name → startup failure; `AllowAnonymous()` agents get nothing.
-  - End to end: an agent registered with only `AddEntraAuthentication` + `AddAgent` passes Task 12's startup checks (every scheme has an evaluator) and enforces the card.
+  - End to end: an agent registered with only `AddEntraAuthentication` + `AddAgent` passes Task 12's startup checks (every scheme has an evaluator) and enforces the card: a caller without the role gets 403, with no hand-written card security.
+  - Extended card: `GetExtendedAgentCard` on all three transports returns the generated schemes and requirements, and `FilterExtendedCardSkills` still filters by them.
   - `RequireA2AEntraAccess(roles: [...], scopes: [...])` passes app-only callers with all roles and user callers with all scopes, fails otherwise.
 - [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec. The contributor implements 03's `IAgentCardContributor` and runs in 09's card build step; it writes into the card JSON only new `securitySchemes` keys and `securityRequirements` when absent at agent level.
+- [ ] **Step 3: Implement** per spec. The contributor implements 03's `IAgentCardContributor` and runs in 09's card build step; it writes into the card JSON only new `securitySchemes` keys and `securityRequirements` when absent at agent level. Its security output must not depend on `AgentCardContext.Request`, because `EffectiveCardSecurity` (Task 11) runs it at startup with no request.
+  - **Extended card.** Contributors do not run on the extended card (03 plan owner note 5; 09's `Extended` path skips step 5), but the spec adds the schemes "to each card of an `Authenticated` agent". In the `GetExtendedAgentCard` path, merge the extended card's `EffectiveCardSecurity` onto the model: `card with { SecuritySchemes = ..., SecurityRequirements = ... }`. Do this in `Ambinder.A2A.Server`, next to where 11 merges extensions (11 plan), so it covers all three transports.
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(entra): card schemes, requirement evaluator and policy helper`.
 
@@ -520,7 +533,10 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 
 **Files:** Test only: `tests/Ambinder.A2A.AspNetCore.Entra.Tests/EntraEndToEndTests.cs`
 
-- [ ] **Step 1: Write the tests** (theory over three transports, fake authority): app-only owner key is `tid:{tid}/app:{azp}`; delegated owner key is `tid:{tid}/user:{oid}`; missing role → 403 / `PERMISSION_DENIED`; no token → 401 with `WWW-Authenticate: Bearer` / `UNAUTHENTICATED`; two client apps do not see each other's tasks; a grant-based continuation by a second app works.
+- [ ] **Step 1: Write the tests** (theory over three transports, fake authority): app-only owner key is `tid:{tid}/app:{azp}`; delegated owner key is `tid:{tid}/user:{oid}`; missing role → 403 / `PERMISSION_DENIED`; no token → 401 with `WWW-Authenticate: Bearer` / `UNAUTHENTICATED`; two client apps do not see each other's tasks; a grant-based continuation by a second app works. Also every row of the spec's error table (tier 1 says "on all three transports"), which earlier tasks test on one path only:
+  - a bad signature, an issuer outside `AllowedTenants` and a v1 token when v1 is off (Task 14) → 401 / `UNAUTHENTICATED`;
+  - Entra tenant binding mismatch (Task 9) → 403 / `PERMISSION_DENIED`;
+  - skill authorization (Task 12): 403 / `PERMISSION_DENIED` before the first event, `REJECTED` state after it.
 - [ ] **Step 2:** Run. Expected: PASS. Fix causes, not tests.
 - [ ] **Step 3:** Commit `test(entra): end-to-end owner, role and grant tests`.
 
@@ -576,8 +592,10 @@ Expected: the project exists, the provider is in it, and only `Client.Entra` ref
 ### Task 19: `EntraCredentialProvider` with cache, refresh, claims challenge and card-scope rule
 
 **Files:**
-- Create/rewrite: `EntraCredentialProvider.cs`, `EntraTokenCache.cs` (internal), `A2AEntraClientOptions.cs`, `EntraCredentialType.cs`, `EntraClientBuilderExtensions.cs` (`AddEntraCredentials`)
+- Create/rewrite: `EntraCredentialProvider.cs` (also implements 10's `IA2ACredentialSelector`), `EntraTokenCache.cs` (internal), `A2AEntraClientOptions.cs`, `EntraCredentialType.cs`, `EntraClientBuilderExtensions.cs` (`AddEntraCredentials`)
 - Test: `tests/Ambinder.A2A.Client.Entra.Tests/EntraCredentialProviderTests.cs`
+
+**Selector.** 10 picks only providers that implement `IA2ACredentialSelector` when a client has more than one (10 spec, card-scheme selection). `CanSatisfy(schemeName, scheme)` returns true for an OAuth2 or OpenID Connect scheme whose token or discovery URL is on the configured `Instance` host, or whose name is one of the generated names (`entra`, `entraUser`, `entraOidc`). Add a test `TwoProviders_EntraAndApiKey_PickByCardScheme`.
 
 - [ ] **Step 1: Write failing tests** with a counting fake `TokenCredential` and `FakeTimeProvider` (spec acceptance "Entra client tests"):
   - Cache hit: two calls, one `GetTokenAsync`.
@@ -598,7 +616,7 @@ Expected: the project exists, the provider is in it, and only `Client.Entra` ref
 ### Task 20: `EntraOnBehalfOfCredentialProvider` and `AddEntraOnBehalfOf`
 
 **Files:**
-- Create: `EntraOnBehalfOfCredentialProvider.cs`, `A2AEntraOboOptions.cs`; extend `EntraClientBuilderExtensions.cs`
+- Create: `EntraOnBehalfOfCredentialProvider.cs` (also implements `IA2ACredentialSelector`: true only for authorization-code schemes on the `Instance` host and for `entraUser`), `A2AEntraOboOptions.cs`; extend `EntraClientBuilderExtensions.cs`
 - Test: `tests/Ambinder.A2A.Client.Entra.Tests/OnBehalfOfProviderTests.cs`
 
 - [ ] **Step 0: Confirm the Azure.Identity API.** In the pinned version, confirm the `OnBehalfOfCredential` constructor that takes a client-assertion callback. Record it in the commit message. If absent, support certificate and secret only and list the gap in the PR body.
@@ -631,7 +649,7 @@ Expected: the project exists, the provider is in it, and only `Client.Entra` ref
 
 ### Task 22: Sample client uses `AddEntraCredentials`
 
-**Files:** `samples/AgentClient/*` (use `AddEntraCredentials` with `CredentialType = ClientSecret` against MockEntra in Development; keep API key flows on the moved sample provider), related tests in `ConsoleFlowRunnerTests.cs`.
+**Files:** `samples/AgentClient/*` (use `AddEntraCredentials` with `CredentialType = ClientSecret` against MockEntra in Development; keep API key flows on the moved sample provider, which implements `IA2ACredentialSelector` for its `apiKey` scheme, so the sample's two providers can be picked by the card), related tests in `ConsoleFlowRunnerTests.cs`.
 
 - [ ] **Step 1:** Update the client sample tests to the new registration (they fail).
 - [ ] **Step 2:** Run. Expected: FAIL.
@@ -740,3 +758,13 @@ Expected: the project exists, the provider is in it, and only `Client.Entra` ref
 - **Each subagent's brief:** the task text from this plan, §0 and Global Constraints, the spec path, and the Task 0 seam table. Tell it to quote the spec's exact error messages and names, not to add public API beyond the spec, and to stop and ask when a seam differs from what this plan assumes.
 - **Reviews check in particular:** Review Focus items 1–8; no token in any message, log or store field; every new public member has XML docs and (if 02 is present) an `PublicAPI.Unshipped.txt` line.
 - **No cloud:** no subagent creates Azure resources or app registrations (O3). Live tests must skip.
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- **Already fixed on master (PR #66).** Task 11 says "register the middleware in 09's built-in step 3" without naming 09's hook `A2AServerBuilder.UseAuthorizationMiddleware<T>()` (09 plan:433). Plan: docs/superpowers/plans/2026-11-03-sdk-07-security-entra.md:401. Spec: Dependencies (09 §7.11 step 3). Fix: name `UseAuthorizationMiddleware<SecurityMiddleware>()` and add it to the Task 0 search.
+- §0.3 item 2 offers `OwnerClaims` to 09's rate limiter as linked source, but 09 reuses it only "If 07 has landed with a public claim-name class", otherwise writes its own `A2ARateLimitPartitionKey` with a `sub:` fallback (09 plan:1005-1018): two copies of a frozen rule. Plan: docs/superpowers/plans/2026-11-03-sdk-07-security-entra.md:75, :237. Spec: §Caller identity "Rate-limit key"; Provides "To 09". Fix: say in 07 and 09 that 09's partition key calls the linked `OwnerClaims.TryGetPartitionKey` in `Ambinder.A2A.AspNetCore`.
+- No task checks principle 3: "the getting-started agent with Entra is at most 25 lines". Plan: docs/superpowers/plans/2026-11-03-sdk-07-security-entra.md:503-522. Spec: §How it meets the six principles, item 3. Fix: line-count assertion or docs snippet test in Task 17 or 26.
