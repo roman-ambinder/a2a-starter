@@ -1,0 +1,62 @@
+{
+  "$comment": "Allow-list of the NuGet dependencies of every shipped package, checked by eng/check-packages.cs against the packed nuspecs. Each package spec edits only its own entry. A dependency change in a shipped project must change this file in the same PR, so it is visible in review. Our own packages are listed by ID. frameworkReferences are the shared frameworks named in the nuspec.",
+  "packages": {
+    "Ambinder.A2A.Protocol": {
+      "dependencies": [],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.Server": {
+      "dependencies": [
+        "Ambinder.A2A.Protocol",
+        "Microsoft.Extensions.DependencyInjection.Abstractions",
+        "Microsoft.Extensions.Hosting.Abstractions",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.Options",
+        "Microsoft.IdentityModel.JsonWebTokens"
+      ],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.AspNetCore": {
+      "dependencies": [
+        "Ambinder.A2A.Server"
+      ],
+      "frameworkReferences": [
+        "Microsoft.AspNetCore.App"
+      ]
+    },
+    "Ambinder.A2A.AspNetCore.Grpc": {
+      "dependencies": [
+        "Ambinder.A2A.AspNetCore",
+        "Google.Api.CommonProtos",
+        "Google.Protobuf",
+        "Grpc.AspNetCore",
+        "Grpc.StatusProto"
+      ],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.Client": {
+      "dependencies": [
+        "Ambinder.A2A.Protocol"
+      ],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.Client.Grpc": {
+      "dependencies": [
+        "Ambinder.A2A.Client",
+        "Google.Api.CommonProtos",
+        "Google.Protobuf",
+        "Grpc.Net.Client",
+        "Grpc.StatusProto"
+      ],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.Client.Entra": {
+      "dependencies": [
+        "Ambinder.A2A.Client",
+        "Azure.Identity"
+      ],
+      "frameworkReferences": []
+    }
+  }
+}

@@ -36,8 +36,9 @@ dotnet test --project tests/Ambinder.A2A.Server.Tests -c Release
 - **No `InternalsVisibleTo` between shipped assemblies.** It is allowed only to the matching test assemblies and to the
   benchmarks assembly. Share small helpers by linking source files from `src/Shared/` instead.
 - **New dependencies are visible in review.** Add every new package dependency of a shipped project to
-  `eng/package-dependencies.json` in the same PR (the file is added together with the package checks). The package check fails
-  when the packed dependencies differ from that file. Core packages (`Protocol`, `Server`, `Client`) must not depend on
+  `eng/package-dependencies.json` in the same PR. The package check fails when the packed dependencies differ from that file.
+  Run it locally: `dotnet pack Ambinder.A2A.slnx -c Release -o artifacts/packages`, then
+  `dotnet run eng/check-packages.cs -- --packages artifacts/packages --map eng/package-dependencies.json`. Core packages (`Protocol`, `Server`, `Client`) must not depend on
   ASP.NET Core, gRPC, Azure, EF or a database.
 - **Public API files.** Workflow for `PublicAPI.*.txt`: added by package 02.
 - **Performance rules.** Added by package 14.
