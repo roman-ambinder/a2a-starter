@@ -62,12 +62,14 @@ public sealed class MockEntraFixture : IAsyncLifetime
 
 public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixture>
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task Discovery_document_matches_entra_shape()
     {
-        var res = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/v2.0/.well-known/openid-configuration");
+        var res = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/v2.0/.well-known/openid-configuration", Ct);
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(Ct));
         var r = doc.RootElement;
         var t = $"{fx.Base}/{MockEntraFixture.Tenant}";
         Assert.Equal($"{t}/v2.0", r.GetProperty("issuer").GetString());
@@ -78,16 +80,16 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
         Assert.Equal(["client_secret_post", "client_secret_basic"],
             r.GetProperty("token_endpoint_auth_methods_supported").EnumerateArray().Select(e => e.GetString()));
 
-        var keys = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/discovery/v2.0/keys");
-        using var jwks = JsonDocument.Parse(await keys.Content.ReadAsStringAsync());
+        var keys = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/discovery/v2.0/keys", Ct);
+        using var jwks = JsonDocument.Parse(await keys.Content.ReadAsStringAsync(Ct));
         var key = jwks.RootElement.GetProperty("keys")[0];
         Assert.Equal("RSA", key.GetProperty("kty").GetString());
         Assert.False(string.IsNullOrEmpty(key.GetProperty("kid").GetString()));
 
-        var authz = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/oauth2/v2.0/authorize");
+        var authz = await fx.Http.GetAsync($"/{MockEntraFixture.Tenant}/oauth2/v2.0/authorize", Ct);
         Assert.Equal(HttpStatusCode.NotImplemented, authz.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await fx.Http.GetAsync("/health/live")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await fx.Http.GetAsync("/health/ready")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await fx.Http.GetAsync("/health/live", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await fx.Http.GetAsync("/health/ready", Ct)).StatusCode);
     }
 
     [Fact]
@@ -95,7 +97,7 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
     {
         var res = await fx.PostToken("a2a-approver", "dev-approver-secret");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-        using var body = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        using var body = JsonDocument.Parse(await res.Content.ReadAsStringAsync(Ct));
         Assert.Equal("Bearer", body.RootElement.GetProperty("token_type").GetString());
         Assert.Equal(3600, body.RootElement.GetProperty("expires_in").GetInt32());
 
@@ -131,7 +133,7 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
         };
         req.Headers.Authorization = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes("a2a-client:dev-client-secret")));
-        var res = await fx.Http.SendAsync(req);
+        var res = await fx.Http.SendAsync(req, Ct);
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
@@ -154,16 +156,16 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
         api.UseAuthentication();
         api.UseAuthorization();
         api.MapGet("/whoami", (ClaimsPrincipal user) => user.FindFirst("appid")?.Value ?? "none").RequireAuthorization();
-        await api.StartAsync();
+        await api.StartAsync(Ct);
         var apiBase = api.Urls.First();
 
         using var http = new HttpClient { BaseAddress = new Uri(apiBase) };
-        Assert.Equal(HttpStatusCode.Unauthorized, (await http.GetAsync("/whoami")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await http.GetAsync("/whoami", Ct)).StatusCode);
 
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var res = await http.GetAsync("/whoami");
+        var res = await http.GetAsync("/whoami", Ct);
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
-        Assert.Equal("a2a-approver", await res.Content.ReadAsStringAsync());
+        Assert.Equal("a2a-approver", await res.Content.ReadAsStringAsync(Ct));
     }
 
     [Fact]
@@ -171,7 +173,7 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
     {
         var res = await fx.PostToken("a2a-client", "nope");
         Assert.Equal(HttpStatusCode.Unauthorized, res.StatusCode);
-        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(Ct));
         Assert.Equal("invalid_client", doc.RootElement.GetProperty("error").GetString());
         Assert.StartsWith("AADSTS7000215", doc.RootElement.GetProperty("error_description").GetString());
     }
@@ -181,7 +183,7 @@ public class MockEntraTests(MockEntraFixture fx) : IClassFixture<MockEntraFixtur
     {
         var res = await fx.PostToken("a2a-client", "dev-client-secret", "api://other/.default");
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
-        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(Ct));
         Assert.Equal("invalid_scope", doc.RootElement.GetProperty("error").GetString());
         Assert.StartsWith("AADSTS70011", doc.RootElement.GetProperty("error_description").GetString());
     }
