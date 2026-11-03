@@ -41,4 +41,29 @@ public sealed class SampleTelemetryTests
         Assert.IsNotType<FakeChatClient>(chat);
         Assert.NotNull(chat.GetService<FakeChatClient>()); // wrapped, not replaced
     }
+
+    [Fact]
+    public async Task Message_content_capture_stays_off_even_if_the_environment_asks_for_it()
+    {
+        // The variable is set for this whole test process by CaptureContentEnvironment (the library reads it once).
+        Assert.Equal("true", Environment.GetEnvironmentVariable(CaptureContentEnvironment.Variable));
+        await using var app = Build("http://127.0.0.1:4317");
+        var otel = app.Services.GetRequiredService<IChatClient>().GetService<OpenTelemetryChatClient>();
+        Assert.NotNull(otel);
+        Assert.False(otel.EnableSensitiveData);
+    }
+}
+
+/// <summary>
+/// Microsoft.Extensions.AI reads this variable once, as the default of <c>EnableSensitiveData</c>. Setting it before any test runs
+/// makes the pin in <c>AddDemoChatClient</c> testable whatever the test order.
+/// </summary>
+internal static class CaptureContentEnvironment
+{
+    public const string Variable = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
+
+#pragma warning disable CA2255 // test process setup, not a library
+    [System.Runtime.CompilerServices.ModuleInitializer]
+    internal static void Set() => Environment.SetEnvironmentVariable(Variable, "true");
+#pragma warning restore CA2255
 }

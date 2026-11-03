@@ -24,9 +24,10 @@ public static class ChatClientRegistration
         if (string.IsNullOrWhiteSpace(provider) || provider.Equals(FakeProvider, StringComparison.OrdinalIgnoreCase))
         {
             if (SampleTelemetryExtensions.IsEnabled(configuration))
-                // Spans for chat calls. EnableSensitiveData stays false: prompts and answers never reach a span.
+                // Pinned to false: the library default can be flipped by OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT,
+                // and prompts and answers must never reach a span.
                 services.AddChatClient(sp => ActivatorUtilities.CreateInstance<FakeChatClient>(sp))
-                    .UseOpenTelemetry(sourceName: SampleTelemetryExtensions.LlmSource);
+                    .UseOpenTelemetry(sourceName: SampleTelemetryExtensions.LlmSource, configure: c => c.EnableSensitiveData = false);
             else
                 services.AddSingleton<IChatClient, FakeChatClient>();
             return services;
