@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to carry out this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking. All subagents run on model `sonnet` (see "Execution notes").
 
+**Milestone:** M1.
+
 **Goal:** Finish package 03 as approved in `docs/superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md`. Cover only what PR #6 (`feat/spec-conformance`, merged as `4dca419`) did not do, and the places where PR #6 differs from the final spec.
 
 **Architecture:** Most of the protocol rules are already in the library (PR #6). This plan adds four things. (1) The TCK runs in CI on every PR, per transport, with a report checker, a known-issues list and a claimed-behaviours file. (2) The two seams other packages need: `IA2AVersionDispatcher` and `IAgentCardContributor`. (3) The server-side rules PR #6 left open: tenant match, cancel and state-transition table (D13), trace id on internal errors, and the B13 card ETag. (4) Transport-matrix tests for every acceptance criterion that only has a single-transport or unit test today.
@@ -62,7 +64,7 @@ PR #6 implemented an earlier copy of spec 03. This table shows what is done, so 
 | D1 TCK SUT | `tests/A2A.Tck.Sut` exists. It serves 3 transports and the scenario prefixes. Push is off, there is no extended card, and an unknown prefix completes the task. | Tasks 1–6: the `tck` CI job, the report checker, known issues, claimed behaviours, the weekly job, SUT capabilities |
 | D2 server version | Done: patch accepted, empty means 0.3 with an actionable message, `supportedVersions` metadata on all transports | Task 7: negotiated `Major.Minor` on `A2ACallContext`, `error.type` on the request span. Task 8: `IA2AVersionDispatcher` |
 | D2 client version | Selection by `protocolVersion` is done. The header still comes from the fixed `A2AClientOptions.ProtocolVersion`. | Task 7: send the selected interface's version, remove the option, "add Ambinder.A2A.Compat.V0_3" hint |
-| D3 tolerant enums | Done (`ProtoEnumConverter`, counter, gRPC mapper, role check) | Task 9: make the converter internal; client tests for unknown `TaskState` |
+| D3 tolerant enums | Code done (`ProtoEnumConverter`, counter, gRPC mapper, role check). The acceptance tests on all three transports are not. | Task 9: make the converter internal; client tests for unknown `TaskState`; transport matrix for `Role` and integer enums |
 | D4 error model | ErrorInfo on all transports; JSON-RPC `data` array; client maps by reason on all transports | Task 10: `A2AException.Details`, `metadata.traceId` on internal errors, message review, a catalog-wide matrix test |
 | D5 extensions | Required check and echo on JSON-RPC, REST and gRPC (in each transport) | Task 11: a streaming echo test. The move into 09's middleware and the client `ActivatedExtensions` are blocked (section 0.3). |
 | D6 ListTasks | Behaviour is mostly right in `InMemoryTaskStore` | Task 12: end-to-end matrix tests for every rule |
@@ -616,7 +618,7 @@ public interface IA2ACallerResolver
 
 There is no `A2AAgentRoute` type: the context replaces it. The names and shapes are the ones in the 15 plan's D1. Package 02's API review checks them before `rc.1`.
 
-- [ ] **Step 3: The default caller resolver.** Make 07's `TransportRequest.ResolveCallerAsync` the body of an internal `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
+- [ ] **Step 3: The default caller resolver.** 07's Task 3 writes the caller logic as a separate internal class with this signature. Make that class `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. This task owns the public interface; 07 does not add it. If the logic is still on `TransportRequest`, move it. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
 
 - [ ] **Step 4: Wire the dispatcher (D2).** In one helper shared by the JSON-RPC and REST endpoints, in this order:
   1. Resolve the agent (as today).
@@ -638,15 +640,19 @@ git commit -am "feat(aspnetcore): version dispatcher seam with resolved caller a
 
 **Files:**
 - Modify: `src/Ambinder.A2A.Protocol/Json/ProtoEnumConverter.cs`
-- Test: `tests/Ambinder.A2A.Protocol.Tests/Json/ModelJsonTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Client/...`
+- Test: `tests/Ambinder.A2A.Protocol.Tests/Json/ModelJsonTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Client/...`, `tests/Ambinder.A2A.Integration.Tests/Conformance/EnumWireTests.cs`
 
 - [ ] **Step 1: Make `ProtoEnumConverter<T>` `internal`.** The spec says "an internal ... ProtoEnumConverter<T>". The 02 plan (Task 2.3) does the same change. If it is already `internal`, skip this step. Otherwise make it internal here, and also add the consumer-context test from the 02 plan, Task 2.5 (`ConsumerJsonContextTests`: a consumer's own source-generated context that lists our models still compiles and writes enum names). If 02's test project does not exist yet, put the test in a test assembly that has no `InternalsVisibleTo` to `Ambinder.A2A.Protocol`. If that test fails, stop and ask the owner; do not make the converter public. Update the API file and the breaking-change records (section 0.4, items 3 and 4).
 - [ ] **Step 2: Use the meter-name constant.** `new Meter("A2A.Protocol")` becomes `new Meter(A2ATelemetryNames.ProtocolMeter)`. After package 01 the constant's value is `Ambinder.A2A.Protocol`; check that it is.
 - [ ] **Step 3: Client tests.** For each binding, a test agent (or a stub server for JSON-RPC and REST) returns a task whose state is a value this version does not know (`"TASK_STATE_FUTURE"` in JSON; number `99` in proto). Assert `GetTaskAsync` returns the task with `Status.State == TaskState.Unspecified` and does not throw. Assert `TaskStateRules.IsTerminal` and `IsInterrupted` are false for `Unspecified` (unit test).
+- [ ] **Step 3a: Transport matrix for the acceptance bullet (spec section Acceptance, Tests).** In `EnumWireTests`, a theory over the three bindings, against the running server:
+  - A message with an unknown role (`"ROLE_FUTURE"` in JSON, number `99` in proto) and, on JSON-RPC and REST, the 0.3 spelling `"user"` → `InvalidParams` with the D3 message that `RequestValidator` writes today. Assert the message text on each binding.
+  - JSON-RPC and REST: a request with integer `role` (`1`) is accepted, and a stub-served task with integer `state` reads as that state.
+  - Every response names enums as strings on JSON bindings, even when the request used integers.
 - [ ] **Step 4: Run all tests and commit.**
 
 ```bash
-git commit -am "refactor(protocol): ProtoEnumConverter is internal; client reads unknown task states"
+git commit -am "refactor(protocol): ProtoEnumConverter is internal; enum reads tested on all transports"
 ```
 
 ### Task 10: Error model leftovers (D4)
@@ -1036,3 +1042,12 @@ These are the places where PR #6, or the spec itself, differs from what spec 03 
 12. **Internal errors carry no trace id** in PR #6. [Plan: Task 10.]
 13. **No server-side tenant check** in PR #6 (client side only). [Plan: Task 14.]
 14. **OAuth flows** are marked deprecated only in XML docs, not with `[Obsolete]` as the spec says. [Plan: Task 16.]
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- **Already fixed on master.** Task 4's `tck` job YAML has no `permissions:` block; 01 requires least permissions per job. Plan: docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md:336-339. Spec: 01 spec §6. Fix: `permissions: contents: read`.
+- §0.3 hands "D13: recovery moves `WORKING`/`SUBMITTED` to `FAILED`" to 09 with `TransitionSource.Recovery`; plan 09 never mentions `TransitionSource` or `CanTransition`. Same outcome today; hand-off gap only. Plan: docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md:91. Spec: 03 spec §D13. Fix: add to 09's recovery task (Task 20/21): commit through `CanTransition(state, Failed, TransitionSource.Recovery)`.
