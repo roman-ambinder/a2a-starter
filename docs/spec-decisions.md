@@ -41,4 +41,4 @@ The script leaves the reports in `$RUNNER_TEMP/a2a-tck/reports/` and the SUT log
 
 The TCK runs once, with no `--level` and no `--transport`. The pinned TCK's `--level should` runs only SHOULD tests. One run covers MUST, SHOULD and MAY on every interface in the card, and `tck/check-report.py` grades each requirement by its own level.
 
-The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it. Known TCK bugs are listed in `tck/known-issues.json` (see spec 03, D1).
+The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it. A known TCK bug can go on the list in `tck/known-issues.json` only once it has an upstream issue. The list is empty today (see spec 03, D1).
