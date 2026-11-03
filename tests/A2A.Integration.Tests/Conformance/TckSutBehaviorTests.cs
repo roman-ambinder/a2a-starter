@@ -1,3 +1,4 @@
+using System.Text.Json;
 using A2A.Protocol;
 using A2A.Server.Agents;
 
@@ -11,12 +12,12 @@ public sealed class TckSutBehaviorTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    /// <summary>One row per yaml entry: id, response kind, terminal state.</summary>
-    public static TheoryData<string, string, string> Entries()
+    /// <summary>One row per yaml entry: id, response kind, terminal state (null for a message reply).</summary>
+    public static TheoryData<string, string, string?> Entries()
     {
-        var data = new TheoryData<string, string, string>();
+        var data = new TheoryData<string, string, string?>();
         foreach (var e in ReadYaml())
-            data.Add(e.Id, e.Response, e.Terminal);
+            data.Add(e.Id, e.Response, e.TerminalState);
         return data;
     }
 
@@ -29,13 +30,13 @@ public sealed class TckSutBehaviorTests
     }
 
     [Theory, MemberData(nameof(Entries))]
-    public async Task Each_listed_behavior_reaches_its_terminal_state(string id, string response, string terminal)
+    public async Task Each_listed_behavior_reaches_its_terminal_state(string id, string response, string? terminal)
     {
         var sink = new RecordingSink();
         await new TckAgent().ExecuteAsync(ContextFor(id + "-1"), sink, Ct);
 
         Assert.Equal(response == "message", sink.Reply is not null);
-        if (terminal == "none")
+        if (terminal is null)
         {
             Assert.NotNull(sink.Reply);
             Assert.DoesNotContain(TaskState.Failed, sink.States);
@@ -45,9 +46,9 @@ public sealed class TckSutBehaviorTests
         Assert.Null(sink.Reply);
         var expected = terminal switch
         {
-            "completed" => TaskState.Completed,
-            "input-required" => TaskState.InputRequired,
-            "rejected" => TaskState.Rejected,
+            "TASK_STATE_COMPLETED" => TaskState.Completed,
+            "TASK_STATE_INPUT_REQUIRED" => TaskState.InputRequired,
+            "TASK_STATE_REJECTED" => TaskState.Rejected,
             _ => throw new ArgumentException(terminal),
         };
         Assert.Equal(expected, sink.States[^1]);
@@ -76,8 +77,9 @@ public sealed class TckSutBehaviorTests
         new Message { MessageId = messageId, Role = Role.User, Parts = [Part.FromText("x")] },
         null, new System.Security.Claims.ClaimsPrincipal(), [], null);
 
-    private sealed record Entry(string Id, string Response, string Terminal);
+    private sealed record Entry(string Id, string Scenario, string Response, string? TerminalState, string[] Requirements);
 
+    /// <summary>The file is YAML written in JSON syntax, so System.Text.Json reads it.</summary>
     private static List<Entry> ReadYaml()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -85,22 +87,15 @@ public sealed class TckSutBehaviorTests
             dir = dir.Parent;
         Assert.NotNull(dir);
 
-        var entries = new List<Entry>();
-        string? id = null, response = null, terminal = null;
-        void Flush()
-        {
-            if (id is not null) entries.Add(new Entry(id, response!, terminal!));
-            id = response = terminal = null;
-        }
-        foreach (var raw in File.ReadAllLines(Path.Combine(dir.FullName, "tck", "sut-behaviors.yaml")))
-        {
-            var line = raw.Trim().TrimStart('-').Trim();
-            if (line.StartsWith("id:", StringComparison.Ordinal)) { Flush(); id = line[3..].Trim(); }
-            else if (line.StartsWith("response:", StringComparison.Ordinal)) response = line[9..].Trim();
-            else if (line.StartsWith("terminal:", StringComparison.Ordinal)) terminal = line[9..].Trim();
-        }
-        Flush();
-        return entries;
+        using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir.FullName, "tck", "sut-behaviors.yaml")));
+        return doc.RootElement.GetProperty("behaviors").EnumerateArray()
+            .Select(e => new Entry(
+                e.GetProperty("id").GetString()!,
+                e.GetProperty("scenario").GetString()!,
+                e.GetProperty("response").GetString()!,
+                e.GetProperty("terminalState").GetString(),
+                [.. e.GetProperty("requirements").EnumerateArray().Select(r => r.GetString()!)]))
+            .ToList();
     }
 
     private sealed class RecordingSink : IAgentEventSink

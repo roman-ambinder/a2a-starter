@@ -1,1 +1,125 @@
-[]
+{
+  "entries": [
+    {
+      "suite": "tck",
+      "requirement": "CORE-CANCEL-002",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: TaskNotCancelableError is FAILED_PRECONDITION / 400",
+      "issue": "draft:tck-error-table",
+      "reason": "TCK expects HTTP 409 for TaskNotCancelableError; v1.0.1 says 400.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "STREAM-SUB-003",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: UnsupportedOperationError is FAILED_PRECONDITION / 400",
+      "issue": "draft:tck-error-table",
+      "reason": "TCK expects UNIMPLEMENTED for UnsupportedOperationError; v1.0.1 says FAILED_PRECONDITION.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "GRPC-ERR-002",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: VersionNotSupportedError is FAILED_PRECONDITION / 400",
+      "issue": "draft:tck-error-table",
+      "reason": "TCK expects UNIMPLEMENTED for VersionNotSupportedError; v1.0.1 says FAILED_PRECONDITION.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "issue": "draft:tck-send-003",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "issue": "draft:tck-send-003",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "issue": "draft:tck-send-003",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "PUSH-CREATE-001",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "issue": "draft:tck-jsonrpc-snake-case",
+      "reason": "TCK JSON-RPC client sends task_id in params; the spec requires taskId.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-HIST-002",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "issue": "draft:tck-jsonrpc-snake-case",
+      "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-HIST-001",
+      "transport": "jsonrpc",
+      "level": "SHOULD",
+      "kind": "tck-bug",
+      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "issue": "draft:tck-jsonrpc-snake-case",
+      "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "HTTP_JSON-SVC-001",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 11.1: application/a2a+json SHOULD be used for HTTP+JSON requests and responses (A2A #1753); v1.0.0 said application/json",
+      "issue": "draft:tck-rest-media-type",
+      "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
+      "expires": "2026-11-17"
+    },
+    {
+      "suite": "tck",
+      "requirement": "HTTP_JSON-ERR-001",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 11.1: application/a2a+json SHOULD be used for HTTP+JSON requests and responses (A2A #1753); v1.0.0 said application/json",
+      "issue": "draft:tck-rest-media-type",
+      "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
+      "expires": "2026-11-17"
+    }
+  ]
+}

@@ -1,51 +1,141 @@
-# Behaviours the TCK SUT (tests/A2A.Tck.Sut/TckAgent.cs) implements, in match order.
-# id = messageId prefix; response = task|message; terminal = completed|input-required|rejected|none.
-behaviors:
-  - id: tck-stream-artifact-chunked
-    response: task
-    terminal: completed
-  - id: test-resubscribe-message-id
-    response: task
-    terminal: completed
-  - id: tck-stream-artifact-text
-    response: task
-    terminal: completed
-  - id: tck-stream-artifact-file
-    response: task
-    terminal: completed
-  - id: tck-stream-ordering-001
-    response: task
-    terminal: completed
-  - id: tck-artifact-file-url
-    response: task
-    terminal: completed
-  - id: tck-message-response
-    response: message
-    terminal: none
-  - id: tck-input-required
-    response: task
-    terminal: input-required
-  - id: tck-complete-task
-    response: task
-    terminal: completed
-  - id: tck-artifact-text
-    response: task
-    terminal: completed
-  - id: tck-artifact-file
-    response: task
-    terminal: completed
-  - id: tck-artifact-data
-    response: task
-    terminal: completed
-  - id: tck-reject-task
-    response: task
-    terminal: rejected
-  - id: tck-stream-001
-    response: task
-    terminal: completed
-  - id: tck-stream-002
-    response: task
-    terminal: completed
-  - id: tck-stream-003
-    response: task
-    terminal: completed
+{
+  "behaviors": [
+    {
+      "id": "tck-stream-artifact-chunked",
+      "scenario": "streaming.feature: Streaming with chunked artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": []
+    },
+    {
+      "id": "test-resubscribe-message-id",
+      "scenario": "streaming.feature: Long-running task for resubscription test",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": []
+    },
+    {
+      "id": "tck-stream-artifact-text",
+      "scenario": "streaming.feature: Streaming with text artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": []
+    },
+    {
+      "id": "tck-stream-artifact-file",
+      "scenario": "streaming.feature: Streaming with file artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": []
+    },
+    {
+      "id": "tck-stream-ordering-001",
+      "scenario": "streaming.feature: Streaming with ordered status updates (STREAM-ORDER-001)",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "STREAM-ORDER-001"
+      ]
+    },
+    {
+      "id": "tck-artifact-file-url",
+      "scenario": "core_operations.feature: Task with file URL artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "DM-ART-001"
+      ]
+    },
+    {
+      "id": "tck-message-response",
+      "scenario": "core_operations.feature: Return message instead of task",
+      "response": "message",
+      "terminalState": null,
+      "requirements": [
+        "DM-MSG-001"
+      ]
+    },
+    {
+      "id": "tck-input-required",
+      "scenario": "core_operations.feature: Task requiring user input",
+      "response": "task",
+      "terminalState": "TASK_STATE_INPUT_REQUIRED",
+      "requirements": [
+        "CORE-CANCEL-001",
+        "STREAM-SUB-002"
+      ]
+    },
+    {
+      "id": "tck-complete-task",
+      "scenario": "core_operations.feature: Complete the task",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "CORE-SEND-001",
+        "CORE-GET-001",
+        "CORE-EXECUTION-MODE-001"
+      ]
+    },
+    {
+      "id": "tck-artifact-text",
+      "scenario": "core_operations.feature: Task with text artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "DM-ART-001"
+      ]
+    },
+    {
+      "id": "tck-artifact-file",
+      "scenario": "core_operations.feature: Task with file artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "DM-ART-001"
+      ]
+    },
+    {
+      "id": "tck-artifact-data",
+      "scenario": "core_operations.feature: Task with data artifact",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "DM-ART-001"
+      ]
+    },
+    {
+      "id": "tck-reject-task",
+      "scenario": "core_operations.feature: Task rejected by executor",
+      "response": "task",
+      "terminalState": "TASK_STATE_REJECTED",
+      "requirements": []
+    },
+    {
+      "id": "tck-stream-001",
+      "scenario": "streaming.feature: Basic streaming lifecycle (CORE-STREAM-001)",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "CORE-STREAM-001"
+      ]
+    },
+    {
+      "id": "tck-stream-002",
+      "scenario": "streaming.feature: Message-only stream (CORE-STREAM-002)",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "CORE-STREAM-002"
+      ]
+    },
+    {
+      "id": "tck-stream-003",
+      "scenario": "streaming.feature: Task lifecycle stream (CORE-STREAM-003)",
+      "response": "task",
+      "terminalState": "TASK_STATE_COMPLETED",
+      "requirements": [
+        "CORE-STREAM-003"
+      ]
+    }
+  ]
+}
