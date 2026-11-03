@@ -24,7 +24,7 @@ namespace Ambinder.A2A.Server.Transports.Rest;
 /// </summary>
 internal static class RestEndpoints
 {
-    private const string LoggerName = "A2A.Server.Rest";
+    private const string LoggerName = "Ambinder.A2A.Server.Rest";
 
     private const string CancelSuffix = ":cancel";
     private const string SubscribeSuffix = ":subscribe";

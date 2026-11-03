@@ -7,10 +7,10 @@ namespace Ambinder.A2A.Protocol;
 public static class A2ATelemetryNames
 {
     // Sources and meter.
-    public const string ServerSource = "A2A.Server";
-    public const string ServerMeter = "A2A.Server";
-    public const string ClientSource = "A2A.Client";
-    public const string ProtocolMeter = "A2A.Protocol";
+    public const string ServerSource = "Ambinder.A2A.Server";
+    public const string ServerMeter = "Ambinder.A2A.Server";
+    public const string ClientSource = "Ambinder.A2A.Client";
+    public const string ProtocolMeter = "Ambinder.A2A.Protocol";
 
     // Attributes.
     public const string Method = "a2a.method";

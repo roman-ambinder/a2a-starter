@@ -96,8 +96,8 @@ Built, and off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDPOI
 
 | Name | Kind | Emitted by |
 |---|---|---|
-| `A2A.Server` | activity source and meter | `A2A.Server` |
-| `A2A.Client` | activity source | `A2A.Client` |
+| `Ambinder.A2A.Server` | activity source and meter | `Ambinder.A2A.Server` |
+| `Ambinder.A2A.Client` | activity source | `Ambinder.A2A.Client` |
 | `AgentClient` | activity source | the per-flow spans of the AgentClient sample |
 | `Grpc.Net.Client` | activity source | gRPC client calls; AgentClient exports it |
 | `AgentServer.Llm` | activity source | the demo LLM client |
@@ -115,7 +115,7 @@ Names are constants in `A2ATelemetryNames` (`src/Ambinder.A2A.Protocol`). If you
 - `flow <name>` (AgentClient sample): one root span per demo flow, so each flow is one trace. The Aspire dashboard shows it as `agentclient: flow <name>`. On failure the status description is only the exception type and the A2A code or HTTP status. The full failure text stays in the console.
 - Demo LLM client spans (`AgentServer.Llm`) come from `UseOpenTelemetry()` in `Microsoft.Extensions.AI`.
 
-**Metrics** (meter `A2A.Server`).
+**Metrics** (meter `Ambinder.A2A.Server`).
 
 | Name | Type | Tags |
 |---|---|---|

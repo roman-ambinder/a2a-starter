@@ -21,7 +21,7 @@ namespace Ambinder.A2A.Server.Transports.JsonRpc;
 /// </summary>
 internal static class JsonRpcEndpoint
 {
-    private const string LoggerName = "A2A.Server.JsonRpc";
+    private const string LoggerName = "Ambinder.A2A.Server.JsonRpc";
 
     private static readonly Dictionary<string, Method> Methods = new Method[]
     {

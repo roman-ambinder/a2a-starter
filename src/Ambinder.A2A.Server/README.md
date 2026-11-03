@@ -23,7 +23,7 @@ Replace a store by registering your type before `AddA2AServer`; the library uses
 
 ## Telemetry
 
-The default `IA2ARequestHandler` is `TracingRequestHandler` (`Telemetry/`). It records one `a2a.server <Method>` span per operation, the same for all three transports (`A2ACallContext.Transport` carries the transport name). The task manager adds the `a2a.agent.run` span and task state events, and the push sender adds an `a2a.push.deliver` span. The library uses only `System.Diagnostics`: add the `A2A.Server` activity source and meter (`A2ATelemetryNames`) to your own exporter. Names, attributes, metrics and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp).
+The default `IA2ARequestHandler` is `TracingRequestHandler` (`Telemetry/`). It records one `a2a.server <Method>` span per operation, the same for all three transports (`A2ACallContext.Transport` carries the transport name). The task manager adds the `a2a.agent.run` span and task state events, and the push sender adds an `a2a.push.deliver` span. The library uses only `System.Diagnostics`: add the `Ambinder.A2A.Server` activity source and meter (`A2ATelemetryNames`) to your own exporter. Names, attributes, metrics and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp).
 If you register your own `IA2ARequestHandler`, wrap it in `TracingRequestHandler` to keep the spans.
 
 ## Minimal use

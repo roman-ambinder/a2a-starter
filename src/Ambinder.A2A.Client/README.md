@@ -18,7 +18,7 @@ Reference or copy the project (plus [Ambinder.A2A.Protocol](../Ambinder.A2A.Prot
 ## Telemetry
 
 `A2AClientFactory.Create` returns a `TracingA2AClient` that wraps the transport client and records one `a2a.client <Method>` span per call, with `a2a.method`, `a2a.agent`, `a2a.transport` and the task and context IDs. The HTTP or gRPC request below it joins that span's trace, so the server's `a2a.server` span becomes its child. To reach the transport client, cast the result to `TracingA2AClient` and read `Inner`. A transport client that you construct yourself records no spans.
-The library uses only `System.Diagnostics`: add the `A2A.Client` activity source (`A2ATelemetryNames.ClientSource`) to your own exporter. Details and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp). The sample client wires this up in `samples/AgentClient/ClientTelemetry.cs`.
+The library uses only `System.Diagnostics`: add the `Ambinder.A2A.Client` activity source (`A2ATelemetryNames.ClientSource`) to your own exporter. Details and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp). The sample client wires this up in `samples/AgentClient/ClientTelemetry.cs`.
 
 Writing your own provider:
 
