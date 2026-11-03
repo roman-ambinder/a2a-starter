@@ -51,7 +51,7 @@ These were checked in the repo when this plan was written. They drive several st
 - `ProtoEnumConverter<T>` is the enum converter (`src/A2A.Protocol/Json/ProtoEnumConverter.cs:15`). Spec 02 calls it `StrictEnumConverter<T>`; that type does not exist. This plan treats the spec row as meaning `ProtoEnumConverter<T>`. It is attached to the public enums `TaskState` and `Role` by `[JsonConverter(typeof(ProtoEnumConverter<...>))]` (`src/A2A.Protocol/Models/Enums.cs:6,21`).
 - `A2AJsonContext` is used across assemblies in one place: `src/A2A.Client/A2ACardResolver.cs:41` (`A2AJsonContext.Default.AgentCard`). Everything else uses `A2AJson.Options`.
 - Positional public records: `StoredTask` (`src/A2A.Server/Tasks/ITaskStore.cs:6`), `A2ACallContext` (`src/A2A.Server/A2ACallContext.cs:14`), and also `AgentRegistration` (`src/A2A.Server/Agents/AgentRegistration.cs:11`), `AgentRequestContext` (`src/A2A.Server/Agents/AgentRequestContext.cs:15`) and `A2AErrorInfo` (`src/A2A.Protocol/Errors/A2AError.cs:8`). The spec names only the first two. This plan does not convert any of them (their owner specs do; spec 02 section 4, "Records and models"). It lists all five in the API review checklist (Task 11).
-- `A2AClientFactory` (`src/A2A.Client/A2AClientFactory.cs:7`) is public and is not in the spec 02 table. `samples/AgentClient` and the integration tests use it. It stays public (package 10 designs the client entry points). Its XML doc names `TracingA2AClient.Inner`, which becomes internal, so the doc text changes (Task 4).
+- `A2AClientFactory` (`src/A2A.Client/A2AClientFactory.cs:7`) is public and is not in the spec 02 table. `samples/AgentClient` and the integration tests use it. It stays public until package 10 lands. Package 10 then deletes it in favour of `A2AClient.Create` and `IA2AClientFactory` (10 plan Task 12), so skip it here if 10 has already landed. Its XML doc names `TracingA2AClient.Inner`, which becomes internal, so the doc text changes (Task 4).
 - `A2AAuthException` is `public class` (not sealed) and derives from `Exception`, not `A2AException` (`src/A2A.Protocol/Errors/A2AAuthException.cs:7`). This plan does not change it; it goes on the API review checklist.
 - `new HttpClient(` appears 3 times in `src/`: `Auth/ClientCredentialsProvider.cs:53`, `Transports/JsonRpcA2AClient.cs:36`, `Transports/RestA2AClient.cs:41` (all in the client).
 - `GetAwaiter().GetResult()` appears once: `src/A2A.Server/Hosting/A2AStartupValidation.cs:37`, inside a synchronous `IStartupFilter`.
@@ -234,7 +234,7 @@ public sealed class PublicSurfaceTests
         ["Ambinder.A2A.Stores.EntityFrameworkCore.PostgreSql"] = ["Microsoft.Extensions.", "Microsoft.EntityFrameworkCore", "Npgsql"],
         ["Ambinder.A2A.Stores.EntityFrameworkCore.Sqlite"] = ["Microsoft.Extensions.", "Microsoft.EntityFrameworkCore"],
         ["Ambinder.A2A.Stores.EntityFrameworkCore.SqlServer"] = ["Microsoft.Extensions.", "Microsoft.EntityFrameworkCore"],
-        ["Ambinder.A2A.Stores.Cosmos"] = ["Microsoft.Extensions.", "Microsoft.Azure.Cosmos"],
+        ["Ambinder.A2A.Stores.Cosmos"] = ["Microsoft.Extensions.", "Microsoft.Azure.Cosmos", "Azure.Core"], // Azure.Core: the Cosmos options take a TokenCredential (05 plan, Cosmos options)
         ["Ambinder.A2A.Push.Receiver"] = ["Microsoft.Extensions.", "Microsoft.AspNetCore."],
         ["Ambinder.A2A.Cluster"] = ["Microsoft.Extensions.", "Microsoft.AspNetCore."],
         ["Ambinder.A2A.Cluster.Entra"] = ["Microsoft.Extensions.", "Microsoft.AspNetCore.", "Azure.Core"],
@@ -795,7 +795,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - `IAgentHandler`: a new instance is created per execution and per cancel; `HttpContext` is not available (R36).
   - `ITaskStore`: the concurrency and ordering contract **as the code implements it today**, in a few sentences, with "Package 05 replaces this contract text." in the remarks. Package 05 owns the final text.
   - `IPushConfigStore`, `IOwnerResolver`, `IAgentAuthorizer`, `ITaskEventObserver`, `IA2ACredentialProvider`, `IA2ARequestHandler`: the lifetime they are registered with and whether calls can be concurrent.
-- `<example>` on the entry points: `AddA2AServer`, `AddA2AServerCore` (a console or worker host, A14), `A2AServerBuilder.AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`. (`AddA2AClient` gets one when package 10 adds it.) Each example is short, in a `<code>` block, and uses only public API. The code should compile when pasted into the getting-started sample; package 13's docs build checks it later.
+- `<example>` on the entry points: `AddA2AServer`, `AddA2AServerCore` (a console or worker host, A14), `A2AServerBuilder.AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`. (`AddA2AClient` gets one in the 10 plan's Task 17, which has a step for it; check 8 of Task 11 skips the name until then.) Each example is short, in a `<code>` block, and uses only public API. The code should compile when pasted into the getting-started sample; package 13's docs build checks it later.
 - Options properties: state the default and the unit in the `<summary>` or a `<value>`.
 - Every public enum: add the line "More values can be added in later versions; handle unknown values." in `<remarks>`. Do not rely on numeric values.
 - `Add...` methods: say which services they register, their lifetimes, and which are `TryAdd` (replaceable) (spec 02 section 1, item 5).
@@ -981,3 +981,13 @@ These are spec 02 steps for later milestones. They are listed so the plan covers
 - **Stop points that need the owner:** Task 0.4 (an assumption about 01 is false), Task 2.5 (an internal converter breaks a consumer context), Task 9.4 (no command fills the API files). A subagent that hits one stops and reports; it does not work around it.
 - **Review of each task:** the reviewer checks the Review focus items that apply, that the build has zero warnings, that all tests pass, that no wire-format test changed, and that the CHANGELOG and migration-map records were added.
 - **Deferred tasks D1 to D5 are not part of this execution.**
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- Spec 02 lets store packages expose database SDK types "only on their own registration and model methods"; plan 02 adds a member-level check for gRPC only, so EF/Cosmos types are allowed anywhere. Plan: docs/superpowers/plans/2026-11-03-sdk-02-public-api.md:231-235, :332. Spec: 02 spec §3 (Guard test, store packages). Fix: extend the member-level assertion to store rows.
+- Assumption A7 expects 01 to give `InternalsVisibleTo` to "the TCK SUT", which would fail `InternalsVisibleTo_only_to_tests_and_benchmarks` and break spec 03 D1 ("uses only public SDK APIs"). Plan: docs/superpowers/plans/2026-11-03-sdk-02-public-api.md:36, :261. Spec: 02 spec §Constraints; 03 spec §D1. Fix: drop "the TCK SUT" from A7; Task 0.4 removes any such entry.
+- EventId blocks are defined for only four assemblies; others take "the next free block" (04 plan:85 does so for KeyVault). 04, 05, 07, 08 run in parallel in M1 and can collide; EventIds are API. Plan: docs/superpowers/plans/2026-11-03-sdk-02-public-api.md:665. Spec: 02 spec §1 item 7. Fix: assign a fixed block to every row of 01's package map in Task 7.3 / 13.1.
