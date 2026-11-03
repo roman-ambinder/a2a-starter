@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task, with every subagent on model `sonnet` (see [Execution notes](#execution-notes)). Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Milestone:** M1.
+
 **Goal:** The server signs every agent card it serves (public and extended) with JWS over the RFC 8785 (JCS) payload that spec 8.4 defines, and the client verifies cards under the policy `Off`, `IfPresent` (default) or `Required`. Every verify failure has a reason code. A separate `Ambinder.A2A.Azure.KeyVault` package signs inside Key Vault.
 
 **Architecture:**
@@ -62,7 +64,7 @@ Package 04 depends on 03, 07, 10 and 16 (spec "Dependencies"). They may or may n
 
 | Dependency | Used in | If landed | If not landed |
 |---|---|---|---|
-| 03 card pipeline (`IAgentCardContributor`, per-version card bytes cache) | Task 9 | Branch A: sign inside 03's cache, after the contributors run | Branch B: sign in the card endpoint's serializer; implement B13 there |
+| 03 card pipeline (`IAgentCardContributor`, per-version card bytes cache) | Task 9 | Branch A: sign inside 03's cache, after the contributors run. Branch C when 09's `AgentCardBuilderPipeline` also exists | Branch B: sign in the card endpoint's serializer; implement B13 there |
 | 03 `docs/spec-decisions.md` | Task 19 | add rows | the file already exists on `master` today; add rows |
 | 07 credential helper | Task 16 | reuse it only if it is public in a package that `Ambinder.A2A.Azure.KeyVault` may reference (it may reference `Ambinder.A2A.Server` and Azure packages only) | implement the same rule as an internal helper |
 | 10 resolver (`IA2ACardResolver`, `ResolvedAgentCard`, `AddA2AClient`, `A2AClient`; plan `2026-11-03-sdk-10-client.md`) | Task 14 | Branch A: wire the verifier into 10's resolver, options and DI | Branch B: verify inside the existing `A2ACardResolver` only; 10's types and DI are left to 10, with a hand-off |
@@ -82,7 +84,7 @@ Package 04 depends on 03, 07, 10 and 16 (spec "Dependencies"). They may or may n
   - **No positional public records.** Public records use `required` / `init` properties (`JsonWebKeySet`, `CardVerificationResult`, `SignedAgentCard` below).
   - **Complete XML docs.** The code blocks in this plan leave out some XML docs to stay short. The implementation documents every public member (`<summary>`, `<param>`, `<returns>`, `<exception>`), puts `<remarks>` with lifetime and concurrency on every implementer-facing interface, states the default of every options property, and adds "More values can be added in later versions; handle unknown values." to every public enum. Once 02 has landed, a gap fails the build (CS1591) and `XmlDocQualityTests`.
   - **API files and records.** If `PublicAPI.Unshipped.txt` exists, update it with the analyzer fix in the task that adds the API (not only in Task 19). New public types must pass 02's `PublicSurfaceTests` allow-list: `Ambinder.A2A.Azure.KeyVault` may expose `Azure.Core` types (`TokenCredential`) but no `Azure.Security.KeyVault.*` type, so `KeyVaultSigningKey`, `IKeyVaultKeyOperations` and the adapter stay `internal`.
-  - **Logging.** `[LoggerMessage]` with fixed `EventId`s in the assembly's block from the 02 plan (Task 7.3: `Server` 1000–1999, `AspNetCore` 2000–2999, `Client` 4000–4999), unless `docs/policies/versioning.md` already lists another scheme. `Ambinder.A2A.Azure.KeyVault` takes the next free block of 1000 and records it there.
+  - **Logging.** `[LoggerMessage]` with fixed `EventId`s in the assembly's block from the 02 plan (Task 7.3: `Server` 1000–1999, `AspNetCore` 2000–2999, `Client` 4000–4999), unless `docs/policies/versioning.md` already lists another scheme. `Ambinder.A2A.Azure.KeyVault` uses 8000–8999, its fixed block in the 02 plan's Task 7.3 table *(cross-plan review)*.
 - **Bytes are exact:** files under `tests/vectors/**` are compared byte for byte. Add `tests/vectors/** -text` to `.gitattributes`, so git never rewrites line endings. Payload files have no trailing newline.
 - **Error messages say what to do** (principle 3). The message texts given in this plan are the required wording. Tests assert on key phrases.
 - **Never log** private key material, full signatures or JWKS bodies. Log key ids, algorithm names, card URLs (without query string) and status codes.
@@ -231,6 +233,7 @@ Expected: "01 landed" and no `namespace A2A.` lines. If either check fails: stop
 
 ```bash
 git grep -n "interface IAgentCardContributor" -- src     # 03 card pipeline -> Task 9 Branch A if found
+git grep -n "class AgentCardBuilderPipeline" -- src      # 09 card pipeline -> Task 9 Branch C if found (wins over A)
 ```
 
 ```bash
@@ -1179,6 +1182,7 @@ internal static class AgentCardETag
     - A `signatures` member already in the input is replaced, not appended to.
     - ETag = `AgentCardETag.Compute(payload, kids)`.
     - Signing the same card twice with the same keys returns the cached entry (the source and `SignAsync` are not called again; count calls on a fake key). After a key change, the card is signed again and the ETag changes.
+    - **Cache key and bound** *(cross-plan review)*: the signer's cache is keyed by (SHA-256 of the canonical signing payload, `KeySetId`), never by agent name, because package 09 builds one card per variant (host, tenant or caller) and signs each one (09 plan Task 10, step 6). Two cards that differ only in a host-specific URL get two entries and two ETags. Two identical payloads share one. The cache is a bounded LRU of 1,000 entries, the same bound as 09's variant cache, so per-host variants cannot grow memory without limit. Test: 1,001 distinct payloads leave at most 1,000 entries (internal count, read through `InternalsVisibleTo` to `Ambinder.A2A.Server.Tests`).
     - No usable key and `FailWhenNoKey = false`: an unsigned result, an error log ("Card signing is configured but no usable key is available ... the card is served unsigned"), and ETag = `Compute(payload, [])`.
     - With `FailWhenNoKey = true`: an `InvalidOperationException`.
   - Registration:
@@ -1308,13 +1312,20 @@ Signing happens once per card variant and key set. The payload is computed on ea
 
 ### Task 9: Serve signed cards (public and extended) with the B13 ETag
 
-**Check first:** read Task 0's answer for `IAgentCardContributor`.
+**Check first:** read Task 0's answers for `IAgentCardContributor` and `AgentCardBuilderPipeline`. Pick one branch: C if 09's pipeline exists, else A if 03's exists, else B. If this task lands on A or B and 09 lands later, 09's Task 10 moves the signing call to its step 6 as Branch C describes.
 
 **Branch A: package 03's card pipeline exists.**
 - Find where 03 builds the per-version card bytes, after the contributors run (`git grep -n "IAgentCardContributor" -- src`).
 - Right after the contributors run, call `IAgentCardSigner.SignAsync(cardJson)` if one is registered (`RequestServices.GetService<IAgentCardSigner>()`). Cache `SignedAgentCard.Json` and `SignedAgentCard.ETag` in place of 03's bytes and ETag, and rebuild the entry when `GetKeySetIdAsync` no longer equals `SignedAgentCard.KeySetId`.
 - 03's ETag code must use `AgentCardETag.Compute(payload, kids)` (the linked `src/Shared` helper from Task 7), which is the B13 rule 03 defines. If 03 computed its own hash, replace it with `AgentCardETag`, so there is one implementation.
-- The extended card goes through the same path, with its own cache entry.
+- Use `AgentCardCanonicalizer.GetSigningPayload(cardJson)` as 03's `payload` on the unsigned path too (no signer registered). 03 hands this swap to 04 (03 plan, Task 13 step 4). Without it the unsigned ETag stays over serializer output and breaks B13.
+- 03's pipeline runs on the public card endpoints only, so there is no shared extended path to sign. Apply Branch B's `TaskManager.GetExtendedAgentCardAsync` step here too: `card with { Signatures = signed.Signatures }`.
+
+**Branch C: package 09's `AgentCardBuilderPipeline` exists** (09 plan Task 10). It replaces the endpoint's card cache with a variant cache that does not rebuild on a key-set change, so A and B do not apply.
+- Call `IAgentCardSigner.SignAsync(cardJson)` at the pipeline's step 6, once per variant, when a signer is registered.
+- Store `SignedAgentCard.Json`, `ETag` and `KeySetId` in the variant entry. Without a signer, store the serializer bytes and `AgentCardETag.Compute(GetSigningPayload(cardJson), [])`.
+- On each hit, compare `GetKeySetIdAsync` with the entry's `KeySetId`. If they differ, drop the entry and rebuild. `GetKeySetIdAsync` is cached (Task 8), so this adds no key-source call per request.
+- Sign the `Extended` path too. It skips step 5 (contributors), not step 6. The transports return it as a model, so apply `card with { Signatures = signed.Signatures }` as in Branch B.
 
 **Branch B: 03's pipeline is not there.**
 
@@ -1323,7 +1334,7 @@ Signing happens once per card variant and key set. The payload is computed on ea
 - Modify: `src/Ambinder.A2A.Server/Tasks/TaskManager.cs` (`GetExtendedAgentCardAsync`, today `src/A2A.Server/Tasks/TaskManager.cs:209-220`)
 - Test: `tests/Ambinder.A2A.Integration.Tests/Signing/SignedCardEndpointTests.cs`; update `tests/Ambinder.A2A.Integration.Tests/Conformance/AgentCardCachingTests.cs` if it needs to
 
-- [ ] **Step 1: Failing tests** (both branches, via the in-memory host the integration tests use):
+- [ ] **Step 1: Failing tests** (all branches, via the in-memory host the integration tests use):
   - Signing configured with a fixed test ES256 key:
     - `GET /.well-known/agent-card.json` has `signatures` with one entry that verifies against the key's JWK over `GetSigningPayload(body)`.
     - The per-agent card route is also signed.
@@ -1333,7 +1344,7 @@ Signing happens once per card variant and key set. The payload is computed on ea
   - Two separate host instances with the same key give the same `ETag` (B13, acceptance).
   - After a re-sign (new process, same key) the `ETag` is unchanged, even though the ECDSA signature bytes differ.
   - A key rotation (a fake source switches keys, `KeyRefreshInterval` passes on the `FakeTimeProvider`) changes the `ETag`.
-  - Without signing: no `signatures`, and `ETag` = `Compute(payload, [])`. The existing caching tests (304, `Vary`, `Cache-Control`) still pass.
+  - Without signing: no `signatures`, and `ETag` = `AgentCardETag.Compute(GetSigningPayload(body), [])`. The existing caching tests (304, `Vary`, `Cache-Control`) still pass.
 
 - [ ] **Step 2: Run, see it fail.**
 
@@ -1684,7 +1695,7 @@ Retired-at time: the moment a version stopped being the signing version, observe
 **Files:** `eng/package-dependencies.json` (01). If 01's allow-list test does not cover project-level references, add `tests/Ambinder.A2A.Integration.Tests/Repo/CoreDependencyTests.cs`.
 
 - [ ] **Step 1:** Add the `Ambinder.A2A.Azure.KeyVault` row to 01's allow-list, with `Ambinder.A2A.Server`, `Azure.Security.KeyVault.Keys` and `Azure.Identity`. Run 01's allow-list test.
-- [ ] **Step 2:** A test that reads `project.assets.json` (from `obj/`) for `Ambinder.A2A.Protocol`, `Server`, `AspNetCore` and `Client`, and fails on any `Azure.*` or `Microsoft.IdentityModel.*` library in their dependency closure. The failure message names the package and the path. Skip it only if 01's test already checks the same closure; say so in the PR body.
+- [ ] **Step 2:** A test that reads `project.assets.json` (from `obj/`) for `Ambinder.A2A.Protocol`, `Server`, `AspNetCore` and `Client`, and fails on any `Azure.*` library in their dependency closure. This is the spec's principle 5 check. Do not ban `Microsoft.IdentityModel.*` here: 01 leaves `Microsoft.IdentityModel.JsonWebTokens` in `Server` until 08's Task 13, and 07's Task 24 owns that rule with its one exception. The failure message names the package and the path. Skip it only if 01's test already checks the same closure; say so in the PR body.
 - [ ] **Step 3: Run, pass, commit.** `test(signing): core packages have no Azure dependency`
 
 ---
@@ -1790,3 +1801,11 @@ Expected: green. Skipped tests are only the Key Vault live test and the Python/J
   - a required package version cannot be found as stable;
   - anything in this plan contradicts spec 04 or the work plan. The spec wins; report the contradiction.
 - **Commits and PR:** one commit per task, as each task says. When Task 20 is green, open one PR into `master` with the body from Task 20 Step 4. CI must be green before review.
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- Task 14 adds `ClientMeter = "Ambinder.A2A.Client"` "if it is not there yet", but 10 already names the client meter `A2ATelemetryNames.ClientSource` (10 plan:47 A6, :990; exists at `src/A2A.Protocol/A2ATelemetryNames.cs:12`). Result: two constants, maybe two `Meter`s with the same name. Plan: docs/superpowers/plans/2026-11-03-sdk-04-card-signing.md:196, :1507. Spec: §Verification metrics. Fix: record `a2a.client.card_verifications` on the meter named by `A2ATelemetryNames.ClientSource`; add no `ClientMeter`.
