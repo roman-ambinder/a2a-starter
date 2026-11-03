@@ -1,7 +1,7 @@
 # Package 15: A2A 0.3 compatibility
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M2 (ships in 1.0 GA)
 Size: L
 

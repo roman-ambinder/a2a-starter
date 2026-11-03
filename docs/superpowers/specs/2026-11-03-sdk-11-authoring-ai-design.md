@@ -1,7 +1,7 @@
 # SDK 11: Agent authoring and AI bridges
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M2 (`1.0.0`)
 Size: L (1–3 weeks)
 

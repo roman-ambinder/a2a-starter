@@ -1,7 +1,7 @@
 # SDK 02: Public API and versioning
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M1 (internals hidden, API tracking on); frozen at M2 (`1.0.0`, semver from there)
 Size: M-L
 

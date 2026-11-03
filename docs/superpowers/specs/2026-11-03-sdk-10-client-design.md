@@ -1,7 +1,7 @@
 # SDK package 10: Production client
 
 - Date: 2026-11-03
-- Status: draft for approval
+- Status: approved by owner 2026-11-03
 - Milestone: M1 (`1.0.0-preview`)
 - Size: L
 

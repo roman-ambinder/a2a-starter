@@ -1,7 +1,7 @@
 # Ambinder.A2A SDK: work plan
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 
 This is the master plan for turning this repo into an official, open-source .NET SDK for the A2A (Agent2Agent) protocol. It lists the decisions, the principles every package must meet, and the work packages in order. Each package has its own design spec (`2026-11-03-sdk-NN-*-design.md`).
 

@@ -1,7 +1,7 @@
 # Package 03: Spec conformance and TCK
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M1
 Size: L
 
@@ -41,6 +41,7 @@ Most of the work is in the existing core assemblies (after package 01 they are `
 12. Deprecated `implicit` and `password` OAuth flows survive JSON and proto round-trips.
 13. The vendored proto is the `v1.0.1` release tag. A CI check fails when the vendored file differs from the tag.
 14. A `docs/spec-decisions.md` page lists every place where the spec is open and the choice this SDK made.
+15. *(Moved to package 16, owner decision 2026-11-03.)* The ACTS conformance suite from `a2aproject/a2a-itk` runs on every PR against the `itk/` agent. It needs that agent, so package 16 owns it.
 
 ## Non-goals
 
@@ -91,6 +92,8 @@ Most of the work is in the existing core assemblies (after package 01 they are `
 - Only SHOULD failures caused by a TCK bug may go on the list. Each entry is reviewed in its PR and needs an upstream issue link and an expiry date. A MUST failure may never go on the list. *(Claude's call, C3)*
 - The `tck` job is advisory for the first two weeks after it lands, then it is a required check *(Claude's call, C13; package 12 owns the gate list)*.
 - A weekly scheduled job runs the same steps against TCK `main` HEAD and opens an issue on new failures. It never blocks PRs. *(writer's call)*
+- **Claimed behaviours** *(Claude's call, borrowed from ACTS §11.1 and the official .NET SDK's `acts/sut-behaviors.yaml`)*: `tck/sut-behaviors.yaml` lists every scenario behaviour the SUT implements (for example `tck-complete-task`, `tck-input-required`, `tck-cancel`, `tck-stream-chunked`), with its expected response type and terminal state. The SUT does not restate the names; the runner checks the claim by running the tests. A behaviour listed but not implemented fails, never skips, so lagging support stays visible. Adding a behaviour means a branch in the SUT dispatcher and an entry in the file.
+- **ACTS** (the second conformance suite in `a2aproject/a2a-itk`) is owned by package 16 (owner decision 2026-11-03), because it runs against package 16's `itk/` agent. It reuses the claimed-behaviours rule above.
 
 ### D2. Version negotiation
 
@@ -272,6 +275,7 @@ Provides:
 ## Acceptance criteria
 
 - [ ] `tck` CI job runs on every PR, all three transports, `--level should`; required for merge two weeks after it lands (C13); zero MUST failures and no MUST entry in `tck/known-issues.json`; every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3).
+- [ ] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
 - [ ] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
 - [ ] Tests, each on JSON-RPC, REST and gRPC (use `tests/A2A.Integration.Tests/Fixtures/TransportMatrix.cs`):
   - [ ] missing version gives `VersionNotSupported` with the 0.3 message and `supportedVersions` metadata

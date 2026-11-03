@@ -1,7 +1,7 @@
 # Package 16: Cross-SDK interop test suite
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M1
 Size: M
 
@@ -9,7 +9,7 @@ Size: M
 
 Passing the TCK proves our server follows the spec as the TCK reads it. It does not prove that our client works with the agents teams will call, or that their clients work with our agents. In practice the failures are between SDKs: different JSON shapes, different error forms, different readings of open spec points (pain point 2, with reports across .NET, Java, Go, JS and Python).
 
-This package builds a CI suite that runs our client against the Python, JS and Java reference servers, and their clients against our server, on all three transports. It also adds golden JSON fixtures for every wire type, so JSON drift is caught by a fast test before any container starts. M1 exits only when this suite passes (work plan, M1 exit criteria).
+This package builds a CI suite that runs our client against the Python, JS and Java reference servers, and their clients against our server, on all three transports. The traversal part reuses the official `a2aproject/a2a-itk` kit, which already covers Python, Go, TypeScript, Java, Rust and the official .NET SDK (see "Official ITK"). It also adds golden JSON fixtures for every wire type, so JSON drift is caught by a fast test before any container starts. M1 exits only when this suite passes (work plan, M1 exit criteria).
 
 ## Findings addressed
 
@@ -38,7 +38,7 @@ This package builds a CI suite that runs our client against the Python, JS and J
 - The TCK run and fixing spec gaps in the core. Package 03 (this suite reports bugs; 03 and the owning packages fix them).
 - Card signing and verification code. Package 04 (this suite only feeds it vectors and checks interop).
 - 0.3 scenarios and 0.3 peers. Package 15 adds them in M2 on top of this harness.
-- Go, Rust or other SDKs. Possible later; the harness must make adding a peer a folder plus a matrix entry.
+- Own peer apps for Go, Rust or the official .NET SDK. They come through `a2a-itk` traversal (see "Official ITK"), not through `interop/peers/`.
 - Load, soak or performance comparison between SDKs. Package 14.
 - Entra auth interop. Peers do not support our Entra setup out of the box; auth interop uses a static bearer token (see Design).
 - Fixing other SDKs. We file upstream issues and record them.
@@ -176,14 +176,36 @@ Known starting entries to verify, from the research: Python returns whole number
 
 - Unit test job (every PR): golden fixture check 1 (our side). Fast, no Docker.
 - `interop-smoke` job (every PR): JSON-RPC only, both directions, scenarios CARD-01, SEND-02, STREAM-01, ERR-01, for each peer. Target under 10 minutes with cached peer images. *(writer's call)* It is advisory for the first two weeks after it lands, then a required check *(Claude's call, C13; package 12 owns the gate list)*.
+- `itk-pr` job (every PR): `a2a-itk` `scenarios/traversal/pr.yaml` with our `itk/` agent mounted as `current`, pinned peers. Same advisory-then-required rule as `interop-smoke`. `itk-nightly`: `nightly.yaml`, full peer matrix.
 - `interop-full` job: the full matrix, nightly, on release tags, before every release, and on PRs with the label `interop`. Required for publishing a release (package 01's release pipeline checks it). The full matrix does not gate every PR *(Claude's call, C15)*.
 - Peer images are built from the Dockerfiles in `interop/peers/*` and cached in the GitHub Actions cache by a hash of the peer folder. No registry push. *(writer's call)*
 - Peer version bumps: Dependabot (already in the repo, `.github/dependabot.yml`) watches `pyproject.toml`, `package.json` and `pom.xml` under `interop/peers`. A bump PR runs `interop-full`.
 - Job summary: a Markdown matrix with one row per scenario and columns per (peer, transport, direction), cells pass / fail / skip (with reason link). JUnit for the test UI.
 
-### Evaluate the official ITK first
+### Official ITK
 
-`a2aproject/a2a-itk` ("Integration Testing Kit for A2A SDKs", `research-spec.md` section 4) was not checked in depth. Before building peers, the builder spends at most two days on it. If it already runs cross-SDK scenarios with pluggable SUTs on all three transports, we adopt it for the scenario part, contribute a .NET SUT upstream, and keep only the golden fixtures, the signed-card exchange and the reporting here. If not, we build the harness above. The choice and reasons go in `interop/README`. *(writer's call)*
+Checked on 2026-11-03 (`a2a-itk` at `d53108a`, see `docs/superpowers/research/2026-11-03-other-a2a-sdks.md`). It replaces the earlier "evaluate first" step.
+
+What `a2a-itk` provides:
+- One container image with every SDK toolchain, one launcher, and two suites: **ITK** (interop) and **ACTS** (conformance, owned here; moved from package 03 D1a).
+- ITK traversal: a cluster of agents from several SDKs passes one nested instruction over JSON-RPC, gRPC or HTTP+JSON, with streaming, push and resubscribe variants, and checks the returned trace. Both directions are covered by the topology.
+- Peer lines in `matrix.yaml`: Python 1.0/0.3, Go 1.0/0.3, TypeScript 1.0/0.3, Java 1.0, Rust 1.0, .NET (official) 1.0. A line declares the transports it can serve; a peer drops out of a transport it cannot speak.
+- Scenario tiers: `scenarios/traversal/pr.yaml` (star of the SUT against Python and Go, both lines) and `nightly.yaml` (every peer, one pair at a time). `known_failures.yaml` records combinations an SDK cannot serve.
+- The SUT is a small agent under `itk/` in the SDK repo, mounted as `current`. The official .NET SDK's `itk/` project (`ItkAgent.cs`, `InstructionProto.cs`, `run_itk.sh`) is the reference to copy.
+
+Decision *(Claude's call)*:
+1. **Traversal scenarios use `a2a-itk`.** Add `itk/` with an agent built on public `Ambinder.A2A.*` APIs and a `run_itk.sh` like the official .NET SDK's. CI checks out `a2a-itk` at a SHA stored in `itk/ITK_VERSION`, as package 03 does for the TCK.
+2. **Peer pinning.** `matrix.yaml` resolves peers from `main` at run time, which breaks the "no unpinned peers" anti-goal. The PR job passes a matrix overlay that pins every peer line to a tag or SHA, kept in `itk/matrix.pinned.yaml` and bumped by PR. Nightly may use `main`, and its report says so.
+3. **Keep here** what `a2a-itk` does not do: the golden JSON fixtures and peer fixture tools, the scenario table above for checks finer than a traversal trace (LIST-01, ERR-01/02, EXT-01, TEN-01, DATA-01, PUSH-01), SIGN-01 and the card-signing vectors, wire capture, and the matrix report. Peer apps under `interop/peers/` are kept only for those scenarios, and only for Python, JS and Java.
+4. **Upstream.** Ask for `Ambinder.A2A` to be added to the `a2a-itk` matrix as an extra .NET line once the agent is stable. Until then, run with `--mount` only.
+5. Each `a2a-itk` known failure we rely on also goes in `interop/known-divergences.json`, with the same expiry rules.
+6. **ACTS in CI** (moved from package 03 D1a, owner decision 2026-11-03). ACTS is a second conformance suite in `a2a-itk`, driven by the ACTS corpus in the A2A repository. It overlaps the TCK but is not the same corpus, and the official SDKs gate PRs on it.
+   - New job `acts`. It checks out `a2a-itk` at the SHA in `itk/ITK_VERSION` and runs `run_itk.sh` with `ITK_ACTS_RUN=1` and `ITK_ACTS_TRANSPORTS=jsonrpc,rest,grpc`, mounting the `itk/` agent. That agent reads `acts/sut-behaviors.yaml`, with the same claimed-behaviours rule as package 03's `tck/sut-behaviors.yaml`; it may share agent code with `Ambinder.A2A.Tck.Sut`.
+   - Exit code 0 means every `must` test passed on every binding. The job summary lists one report per transport and fails if one is missing.
+   - Combinations we cannot serve go in `a2a-itk`'s known-failures mechanism and are mirrored in `tck/known-issues.json` with the same expiry and "still fails" checks.
+   - Advisory for two weeks after it lands, then required (C13).
+
+The decision and the steps to run locally go in `interop/README`.
 
 ## How it meets the six principles
 
@@ -205,6 +227,7 @@ Needs:
 
 Provides:
 - `tests/Ambinder.A2A.Interop.Tests`, the `interop-smoke` and `interop-full` CI jobs.
+- The `itk/` agent (also the ACTS SUT) and the `itk-pr`, `itk-nightly` and `acts` jobs.
 - `tests/vectors/wire/v1.0/` golden fixtures (to 03, 12, 15).
 - Python and JS signed cards in `tests/vectors/card-signing/` (to 04).
 - A harness with a protocol-version dimension and peer folders (to 15 for 0.3 peers).
@@ -220,6 +243,9 @@ Provides:
 - [ ] Peer fixture differences are either zero or in `known-divergences.json` with upstream links; expiry and "no longer reproduces" checks work (tested with a fake entry).
 - [ ] SIGN-01 produces Python and JS signed cards into `tests/vectors/card-signing/` and records each verify status.
 - [ ] `interop-smoke` runs on every PR and is a required check two weeks after it lands (C13); `interop-full` runs nightly, on tags, before release and on the `interop` label (C15); the job summary shows the matrix.
+- [ ] `itk/` agent and `run_itk.sh` exist; `a2a-itk` PR traversal passes on all three transports against pinned Python and Go peers (both lines); nightly runs the full matrix including JS, Java, Rust and the official .NET SDK.
+- [ ] `itk/ITK_VERSION` and `itk/matrix.pinned.yaml` pin the kit and every PR peer.
+- [ ] `acts` CI job runs on every PR against the `itk/` agent on all three transports, publishes one report per transport, and has zero `must` failures; required two weeks after it lands (C13).
 - [ ] `dotnet test tests/Ambinder.A2A.Interop.Tests` runs locally with only Docker installed.
 - [ ] Upstream issues filed for each real divergence found, linked from the divergence file.
 - [ ] Docs section (package 13): "Interop status" page generated from the last `interop-full` run *(writer's call)*.

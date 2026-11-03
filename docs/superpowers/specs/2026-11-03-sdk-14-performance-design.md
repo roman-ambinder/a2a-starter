@@ -1,7 +1,7 @@
 # SDK 14: Performance and benchmarks
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M1 (baseline and the hot-path fixes), M2 (budgets enforced)
 Size: M
 

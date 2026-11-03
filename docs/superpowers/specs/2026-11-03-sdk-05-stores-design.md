@@ -1,7 +1,7 @@
 # SDK 05: Store contract and durable stores
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M1 (`1.0.0-preview`)
 Size: L
 
@@ -234,6 +234,7 @@ The core owns page tokens (`Ambinder.A2A.Server.Stores.PageTokens`, internal; sh
 - Token = base64url of `v1:{utcTicks}:{taskId}:{filterHash}`, where `filterHash` is the first 8 bytes of SHA-256 over the canonical filter (context id, state, timestamp-from, include-artifacts) *(writer's call)*. A token used with a different filter is `InvalidParams` ("pageToken does not match this query; start again without pageToken").
 - The core validates page size (1–100, default 50) and history length, and decodes the token, then builds `TaskQuery`. This replaces the checks now in `InMemoryTaskStore.cs:25-37` and `InMemoryPushConfigStore.cs:44-49`.
 - The core sets `NextPageToken = ""` when `Next` is null, and `PageSize` to the size used.
+- Tokens are not signed, on purpose *(Claude's call)*. The official .NET SDK HMAC-signs its push-config cursors and binds them to a revision (`InMemoryPushNotificationStore`), because its offsets are positional. Ours are keyset cursors, and `TaskQuery.Scope` comes from the call context, never from the token, so an edited token can only move the caller within their own data. A malformed token is `InvalidParams`. The same holds for push-config tokens (`v1:{sequence}`, §7.7). Recorded in `docs/spec-decisions.md`.
 
 ### 7.5 Instance leases
 

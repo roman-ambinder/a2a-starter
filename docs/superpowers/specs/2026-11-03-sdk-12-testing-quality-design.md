@@ -1,7 +1,7 @@
 # SDK 12: Testing package and quality
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M2 (`1.0.0`). An internal slice of the test harness is built in M1 as repo test code (B2), and the store conformance suite starts in M1 inside package 05; this package makes both public in M2.
 Size: L (1–3 weeks), including the repo test migration *(Claude's call, C13; the work plan table is updated)*.
 

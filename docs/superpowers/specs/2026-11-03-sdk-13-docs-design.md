@@ -1,7 +1,7 @@
 # SDK 13: Docs for product teams
 
 Date: 2026-11-03
-Status: draft for approval
+Status: approved by owner 2026-11-03
 Milestone: M2 (skeleton, getting started, package READMEs and the Phase 1 migration page already in M1)
 Size: M
 
