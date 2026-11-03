@@ -225,8 +225,8 @@ class CheckTests(unittest.TestCase):
         self.assert_problem(warnings, "MAY REQ-Y failed on grpc")
 
     def test_unclaimed_skipped_requirement_is_not_a_problem(self):
-        problems, warnings = self.run_check(reports(**{"REQ-M": req("MUST", grpc="SKIPPED")}))
-        self.assertEqual([], problems + warnings)
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="SKIPPED")}))
+        self.assertEqual([], problems)
 
     def test_top_level_fail_with_a_passing_transport_is_a_problem(self):
         reps = reports(**{"REQ-M": req("MUST")})
@@ -239,6 +239,18 @@ class CheckTests(unittest.TestCase):
         reps["http_json"]["per_requirement"]["REQ-M"]["status"] = "FAIL"
         problems, _ = self.run_check(reps, [must_bug(transport="http_json")])
         self.assertEqual([], problems)
+
+    def test_top_level_fail_with_no_entry_for_this_transport_is_a_problem(self):
+        reps = reports(**{"REQ-M": req("MUST")})
+        reps["jsonrpc"]["per_requirement"]["REQ-M"].update(status="FAIL", transports={"grpc": "PASS"})
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "MUST REQ-M failed on jsonrpc")
+
+    def test_skipped_musts_are_summarised_per_transport_in_one_line(self):
+        reps = reports(A=req("MUST", grpc="SKIPPED"), B=req("MUST", grpc="SKIPPED"), C=req("SHOULD", grpc="SKIPPED"))
+        problems, warnings = self.run_check(reps)
+        self.assertEqual([], problems)
+        self.assertEqual(["2 MUST requirements skipped on grpc"], warnings)
 
     def test_failure_on_another_transport_in_this_run_is_not_counted(self):
         reps = reports(**{"REQ-M": req("MUST")})

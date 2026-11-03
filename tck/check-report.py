@@ -101,7 +101,7 @@ def failing_transports(req, transport):
     failed = {t for t in scope if transports.get(t) == "FAIL"}
     # A top-level FAIL with a PASS (or no) transport entry is still a failure: the TCK lets a later passing test
     # overwrite the entry.
-    if req.get("status") == "FAIL" and not failed and (not transports or transports.get(transport) == "PASS"):
+    if req.get("status") == "FAIL" and "FAIL" not in transports.values():
         failed = {transport}
     return failed
 
@@ -146,6 +146,13 @@ def check(reports, known, behaviors, today):
                         continue
                     suffix = " and is not in known issues" if level == "SHOULD" else ""
                     problems.append(f"{level} {req_id} failed on {failed_on}{suffix}")
+
+    for transport, report in reports.items():
+        skipped = sum(
+            1 for r in (report.get("per_requirement") or {}).values()
+            if isinstance(r, dict) and r.get("level") == "MUST" and result_for(r, transport) == "SKIPPED")
+        if skipped:
+            warnings.append(f"{skipped} MUST requirements skipped on {transport}")
 
     covered = set(reports) | {t for _, t in failing_now if t not in BINDINGS}
     for (req_id, transport) in valid:
