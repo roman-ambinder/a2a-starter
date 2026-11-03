@@ -828,7 +828,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   Members with `<inheritdoc/>` skip checks 1 to 5.
 - [ ] **11.3** Run it. Fix the docs it flags (in the source comments). Build and test.
 - [ ] **11.4** Write `docs/policies/api-review-checklist.md`, used by the review before `rc.1` (spec 02 section 9). Content: the review items from spec 02 section 9 (names, sealing, nullability, async shape, options, namespaces, XML docs, the forbidden-type test) and the evolution rules from section 4 as checkboxes, plus the open items found by this plan:
-  - positional public records: `StoredTask`, `A2ACallContext`, `AgentRegistration`, `AgentRequestContext`, `A2AErrorInfo` (owner specs convert them; the spec names only the first two);
+  - positional public records: `StoredTask`, `A2ACallContext`, `AgentRegistration`, `AgentRequestContext`, `A2AErrorInfo` (owner specs convert them; the spec names only the first two). Planned: `StoredTask` by plan 05, `A2ACallContext` by plan 07 Task 3, `AgentRequestContext` by plan 11 Task 1, `AgentRegistration` by plan 11 Task 4. `A2AErrorInfo` has no plan yet; convert it in the review if no package has;
   - `A2AAuthException` is not sealed and does not derive from `A2AException`;
   - the `#pragma warning disable RS0030` sites from Task 8;
   - analyzer suppressions for public names from Task 7;
