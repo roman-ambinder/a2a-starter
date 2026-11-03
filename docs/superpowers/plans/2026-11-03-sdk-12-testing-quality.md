@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task by task, with every subagent on model `sonnet` (see "Execution notes" at the end). Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Milestone:** M2. The internal harness slice and the store suite are in M1 (B2).
+
 **Goal:** Ship `Ambinder.A2A.Testing`, `Ambinder.A2A.Testing.AI` and `Ambinder.A2A.Testing.Conformance` (in-memory hosts, fakes, recorders, assertions, event-driven waiters, telemetry collectors, the store conformance suite), move the repo's own tests onto them, and add the repo's quality gates (test-side analyzers, security scanning, coverage, CI layout, soak and fuzz tests).
 
 **Spec (binding):** `docs/superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md` ("the spec"; "§N" means its Design section N). Work plan: `docs/superpowers/specs/2026-11-03-sdk-00-work-plan.md` (B2, C1, C13, O2). Package map: `docs/superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md` §1.
@@ -60,7 +62,7 @@ Package 12 is M2. Task 0 records which seams exist. **Gate rule (binding):** a t
 | gRPC routing without ports; `TimeProvider` everywhere; `UseA2AHosting` on `TestServer` | 09 | Task 3 | Task 3 ships JSON-RPC and REST only and lists gRPC as blocked. |
 | `StartClusterAsync` (06 plan Task 16 adds it to the slice if missing) | 06 | Task 12 | Build the shared-store part (spec §3 "Cluster") in Task 12; 06 adds forwarding. |
 | `src/` analyzer settings, `eng/BannedSymbols.txt`, `CS1591` as error, public API files | 02 | Task 22 | Task 22 does only the test-side rules and lists the `src/` items as "02 open" in the PR body. Do not set `src/` rules here (spec §6: "where it differs, 02 wins"). |
-| TCK job (`tck`), interop job (`interop`), benchmark job (`bench`) | 03, 16, 14 | Task 25 | Leave their slots in the layout and list them as "not yet present". |
+| TCK job (`tck`), interop jobs (`interop-smoke`, `interop-full`, `itk-pr`, `acts`), benchmark job (`perf`) | 03, 16, 14 | Task 25 | Leave their slots in the layout and list them as "not yet present". |
 | Docs tree (`docs/agents/`, `docs/clients/`) | 13 | Task 27 | Create the pages at 13's paths anyway. |
 
 ### 0.3 Decisions this plan makes (plan-writer's calls)
@@ -397,16 +399,16 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - NUnit/MSTest path: a plain loop over `TaskStoreConformanceCases.All` with a fresh `StoreSet` runs without xunit types.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Move; apply §0.3 item 2 (drop `xunit.v3.assert`). The in-memory, EF Core and Cosmos store test projects subclass from the package. Two checks first (review item 12):
-  - 05's abstract classes call `Assert.Skip(reason)` (dynamic skip by capability) and `TestContext.Current.CancellationToken` (05 plan Task 5). Find which xunit v3 package defines each in the pinned version. If `Assert.Skip` lives only in `xunit.v3.assert`, keep that reference and record the deviation from spec §1 for the owner. Capability skips must keep showing their reason.
+  - 05's abstract classes call `Assert.Skip(reason)` (dynamic skip by capability) and `TestContext.Current.CancellationToken` (05 plan Task 5). Skip mechanism *(Claude's call)*: `ConformanceAssert.Skip(reason)` throws an exception whose message starts with xunit v3's dynamic skip token (`DynamicSkipToken.Value`), which the runner reports as a skip with that reason, without `xunit.v3.assert`. Confirm the token's package in the pinned version; `xunit.v3.extensibility.core` must bring it. If it does not, keep `xunit.v3.assert` and record the deviation from spec §1. Capability skips must keep showing their reason, and Task 14's skip test proves it.
   - Swap 05's `ConformanceFailedException` for `A2ATestAssertException` (05 plan Task 5 left this to 12). Case ids do not change.
 - [ ] **Step 4:** Run all store suites. Expected: PASS. `dotnet pack` the package.
 - [ ] **Step 5:** Commit `feat(testing): publish Ambinder.A2A.Testing.Conformance`.
 
 ### Task 15: Hello-world test and framework-neutrality proof (Goal 1, principle 2)
 
-**Files:** `tests/Ambinder.A2A.Testing.Tests/HelloWorldTests.cs`, `FrameworkNeutralityTests.cs`.
+**Files:** Create `samples/TestYourAgent/` (a test project with `HelloWorldTests.cs`, and a `README.md` with 13's front matter: `title`, `shows`, `packages`, `run`, `needs`, `lines`), built and run in CI by `Samples.Tests`' job. 13 §2 includes C# only from `samples/`, and 13 §6 lists this sample. `tests/Ambinder.A2A.Testing.Tests/FrameworkNeutralityTests.cs`, `HelloWorldLineCountTests.cs`.
 
-- [ ] **Step 1: Write the test** exactly as it will appear in the docs: at most 12 lines including the method signature (start `A2ATestServer` with `FakeAgents.Echo`, create a client, send, assert with `ShouldBeCompleted` or the reply text). A second test counts its non-blank lines from the source file region (marked with `// docs:hello-start` / `// docs:hello-end`) and fails above 12.
+- [ ] **Step 1: Write the test** exactly as it will appear in the docs: at most 12 lines including the method signature (start `A2ATestServer` with `FakeAgents.Echo`, create a client, send, assert with `ShouldBeCompleted` or the reply text). A second test counts its non-blank lines from the DocFX tag region (`// <hello>` … `// </hello>`, 13 plan Task 8) and fails above 12.
 - [ ] **Step 2:** Framework-neutrality: §0.3 item 4.
 - [ ] **Step 3:** Run. Expected: PASS.
 - [ ] **Step 4:** Commit `test(testing): 12-line hello-world test and framework-neutral run`.
@@ -514,7 +516,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`.
 
-- [ ] **Step 1:** Split `ci.yml` into jobs per spec §6: `build-test` (restore, build with analyzers, unit + library integration tests, coverage + gates), `samples` (build samples, `Samples.Tests`), plus the slots that call 03's `tck`, 16's `interop-smoke` (and `interop-full` nightly, C15) and 14's `perf` job (`perf.yml`, 14 plan Task 14) when they exist. Keep every 01 job, and the jobs and workflows other packages added: 05's `stores-containers` job and its SQL-script and migration drift steps, 06's `tck-cluster` leg and container suite, 09's `aks-kind.yml`/`aks-live.yml` (review item 9). Jobs run in parallel.
+- [ ] **Step 1:** Split `ci.yml` into jobs per spec §6: `build-test` (restore, build with analyzers, unit + library integration tests, coverage + gates), `samples` (build samples, `Samples.Tests`), plus the slots that call 03's `tck`, 16's `interop-smoke` (and `interop-full` nightly, C15) and 14's `perf` job (`perf.yml`, 14 plan Task 14) when they exist. Keep every 01 job, and the jobs and workflows other packages added: 05's `stores-containers` job and its SQL-script and migration drift steps, 06's `tck-cluster` leg and container suite, 09's `aks-kind.yml`/`aks-live.yml` (review item 9), and 02's `public-api-diff` job. Keep that job's name: the owner makes it a required check (02 plan Task 14.1), and a renamed job would never report *(cross-plan review)*. Jobs run in parallel.
 - [ ] **Step 2:** `nightly.yml` (`schedule` + `workflow_dispatch`; 05 may have created it already — extend it and keep 05's soak and `Db` benchmark steps): the audit (Task 23), `Stress.Tests` (Task 26), the FsCheck properties with a higher iteration count, Stryker.NET on Protocol and Server task logic (advisory: score to the job summary, never fails), and a call to 01's Windows leg if 01 put it elsewhere. Nightly and release builds use 01's strict audit flag (C1).
 - [ ] **Step 3:** `build-test` prints its test run time to the job summary and fails above 6 minutes.
 - [ ] **Step 4:** Push and confirm all jobs run. Record the `build-test` time.
@@ -536,7 +538,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `docs/agents/test-your-agent.md`, `docs/clients/test-your-client.md` (13's tree, front matter with `owner: 12`).
 
-- [ ] **Step 1:** Write the pages: the 12-line hello-world test (from Task 15's marked region, through 13's snippet mechanism if present), `AgentHarness` vs `A2ATestServer`, `ScriptedAgent`, `TestIdentity`, fake time, `PushReceiverDouble`, `FakeRemoteAgent`/`AddFakeA2AClient`, `RecordingA2AClient`, stream rule assertions, the conformance suite for store authors (one derived class), and the NUnit/MSTest loop.
+- [ ] **Step 1:** Write the pages: the 12-line hello-world test (a DocFX include of `samples/TestYourAgent` with the tag `hello`), `AgentHarness` vs `A2ATestServer`, `ScriptedAgent`, `TestIdentity`, fake time, `PushReceiverDouble`, `FakeRemoteAgent`/`AddFakeA2AClient`, `RecordingA2AClient`, stream rule assertions, the conformance suite for store authors (one derived class), and the NUnit/MSTest loop.
 - [ ] **Step 2:** If 13's `DocsLint` or the repo's docs tests exist, run them. Expected: PASS.
 - [ ] **Step 3:** Commit `docs: testing your agent and your client`.
 
@@ -550,7 +552,7 @@ test ! -d tests/Shared && ! git ls-files | grep -E 'TestAgents\.cs|MinimalServer
 ```
 
 - [ ] **Step 3:** `dotnet build Ambinder.A2A.slnx -c Release`, `dotnet test Ambinder.A2A.slnx`, `dotnet pack` of the three packages. Expected: green; packages listed in the API tracking files (02).
-- [ ] **Step 4: Owner steps** (§0.3 item 8): ask the owner to set required checks (`build-test`, `security` now; `tck` and `interop-smoke` two weeks after each lands, C13 and C15) and to turn on secret scanning and push protection; record the evidence (settings export or screenshot) in the PR, as the acceptance list asks.
+- [ ] **Step 4: Owner steps** (§0.3 item 8): ask the owner to set required checks (`build-test`, `security` now; `tck`, `interop-smoke` and `acts` two weeks after each lands, C13 and C15). Advisory means not yet a required check, never `continue-on-error` and to turn on secret scanning and push protection; record the evidence (settings export or screenshot) in the PR, as the acceptance list asks.
 - [ ] **Step 5:** Walk the spec's acceptance list and tick each item in the PR body with the test, job or link that proves it, or "open: <reason>".
 - [ ] **Step 6:** Open the PR. Body: Task 0 gate table and baseline, acceptance checklist, coverage numbers, `build-test` time, owner steps.
 
@@ -590,3 +592,12 @@ test ! -d tests/Shared && ! git ls-files | grep -E 'TestAgents\.cs|MinimalServer
 - **Each reviewer's brief:** the task text, the spec sections it cites, and the diff. For Phase B, the reviewer also compares test-case counts before and after.
 - **Push after every task**, so a reclaimed container loses nothing.
 - **This plan file** is changed during execution only to tick checkboxes.
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- **Already fixed on master (review item 1).** Uses `A2ABinding.All`, but 09's slice defines `enum A2ABinding` plus `static class A2ABindings { All }`. Plan: docs/superpowers/plans/2026-11-03-sdk-12-testing-quality.md:53, :215. Spec: 12 spec §3. Fix: `A2ABindings.All` throughout; note the spelling vs spec.
+- **Already fixed on master (review item 7).** Task 2 makes waiter timeouts throw `A2ATestAssertException`, but moved slice tests (09 Task 1 `WaitTimesOutWithEventsInMessage`) expect `TimeoutException`. Plan: docs/superpowers/plans/2026-11-03-sdk-12-testing-quality.md:200. Spec: 12 spec §1. Fix: update those tests (and any 05/09 tests catching `TimeoutException`) in the same task.

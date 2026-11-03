@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task by task, with every subagent on model `sonnet` (see "Execution notes" at the end). Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Milestone:** M2.
+
 **Goal:** Give agent authors a small, clear model on top of `IAgentHandler`/`IAgentEventSink`: a richer `AgentRequestContext`, `TaskUpdater`/`ArtifactWriter`, delegate agents, written and tested rules for multi-turn, cancellation, errors and DI scope, a real `A2AExtension` framework, and a new package `Ambinder.A2A.Extensions.AI` that serves an `IChatClient` as an agent and turns a remote agent into an `AIFunction`. Plus the `Ambinder.A2A.Extensions.AI.AgentFramework` bridge (C12).
 
 **Spec (binding):** `docs/superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md` ("the spec"; "§N" below means its Design section N). Work plan: `docs/superpowers/specs/2026-11-03-sdk-00-work-plan.md` (B6, B7, B8, B9, C12). Package map: `docs/superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md` §1.
@@ -116,7 +118,7 @@ This plan was checked against the plans merged after it (03, 05, 06, 07, 09, 10,
 - **More package 02 rules** (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`; 02 may land before or after this plan):
   - **No positional public types.** The only positional public types in the SDK are the six package 05 key structs (owner rule, 2026-11-03). Every new public record here uses `required` / `init` properties. `AgentRegistration` is the agent-model type this package owns and is still a positional record from Phase 1; Task 4 converts it (see there).
   - **`A2AExtension` is a public abstract class**, so its XML docs say how to inherit from it and which members to override (spec 02 §4, "Classes"). Every implementer-facing interface gets `<remarks>` with lifetime and concurrency, and every public enum gets the "More values can be added in later versions; handle unknown values." remark.
-  - **Logging:** `[LoggerMessage]` with fixed `EventId`s. `Ambinder.A2A.Server` uses its plan 02 block (1000–1999). `Ambinder.A2A.Extensions.AI` and `Ambinder.A2A.Extensions.AI.AgentFramework` each take the next free block of 1000 and record it in `docs/policies/versioning.md` (or in the PR if that page does not exist yet).
+  - **Logging:** `[LoggerMessage]` with fixed `EventId`s. `Ambinder.A2A.Server` uses its plan 02 block (1000–1999). `Ambinder.A2A.Extensions.AI` uses 17000–17999 and `Ambinder.A2A.Extensions.AI.AgentFramework` 18000–18999, their fixed blocks in the 02 plan's Task 7.3 table *(cross-plan review)*.
   - **Public surface test:** if `tests/Ambinder.A2A.PublicApi.Tests` exists (02), it passes. Its allow-list lets `Extensions.AI` expose only `Microsoft.Extensions.*` types and `Extensions.AI.AgentFramework` also `Microsoft.Agents.AI`.
   - **Breaking-change records:** the `AgentRequestContext` change to a sealed class (Task 1), the `AgentRegistration` change (Task 4) and the sink changes (Task 2) get "Breaking changes" lines in `CHANGELOG.md` and rows in `docs/migration/phase1-map.csv`.
 - **Dependencies (principle 5):** `Ambinder.A2A.Server` gets no `Microsoft.Extensions.AI*` reference. `Ambinder.A2A.Extensions.AI` references only `Microsoft.Extensions.AI.Abstractions` (never `Microsoft.Extensions.AI`) and no LLM provider.
@@ -543,7 +545,9 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 
 **Files:** Create `src/Ambinder.A2A.Extensions.AI.AgentFramework/` (csproj refs `Ambinder.A2A.Extensions.AI`, package `Microsoft.Agents.AI`), `AgentFrameworkServerBuilderExtensions.cs` (`AddAgentFrameworkAgent(name, card, Func<IServiceProvider, AIAgent>)`), `AgentFrameworkAgentHandler.cs`, `README.md`; `tests/Ambinder.A2A.Extensions.AI.AgentFramework.Tests/`. Modify `Directory.Packages.props`, `eng/package-dependencies.json`.
 
-- [ ] **Step 0: Check the library.** Find the newest `Microsoft.Agents.AI` on nuget.org. Record its version and whether it is GA. Confirm the names `AIAgent`, its streaming run method and the thread type in that version (the spec says the builder verifies them). If not GA: mark the package as preview (pre-release version suffix in the csproj per 01's MinVer setup, "experimental" note in the README) — C12.
+- [ ] **Step 0: Check the library.** Find the newest `Microsoft.Agents.AI` on nuget.org. Record its version and whether it is GA. Confirm the names `AIAgent`, its streaming run method and the thread type in that version (the spec says the builder verifies them). If not GA: mark the package as preview, with an "experimental" note in the README (C12).
+  - **How that one package gets its own version** *(Claude's call; a named exception to 01 Goal 11, "One version for all packages", which C12 allows)*. A stable package cannot depend on a pre-release one (NU5104), and MinVer gives every project the same version. In this csproj only, add a target with `AfterTargets="MinVer"` that sets `PackageVersion` and `Version` to `$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)-preview.$(MinVerHeight)` when `$(A2AAgentFrameworkPreview)` is `true`, keeping any pre-release part the tag already has. Delete the property when `Microsoft.Agents.AI` reaches GA.
+  - **Test:** a pack test in Task 23 runs `dotnet pack` on a tag-like build (`-p:MinVerVersionOverride=1.0.0`), and asserts this `.nupkg`'s version ends in a `-preview.*` part, all other packages are `1.0.0`, and NU5104 does not occur. List the exception in `docs/spec-decisions.md`.
 - [ ] **Step 1: Write failing tests** with a fake `AIAgent` (or one built over the scripted chat client): streaming run output becomes coalesced artifact chunks via the same pump as Task 16; each turn rebuilds the thread from `GetConversationAsync` (no state held between turns); cancel ends `CANCELED`; an exception gives `The model call failed.`.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement, reusing `A2AChatMapper` and the streaming pump. Shipped assemblies may not use `InternalsVisibleTo` with each other (01 rule 6), so move `StreamingArtifactPump` to a linked shared source file under `src/Shared/AI/` (01 rule 10), compiled as internal into both packages.
@@ -575,7 +579,7 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 
 ### Task 22: Line-count and compile checks for the target programs (§9, principle 3)
 
-**Files:** Create `samples/Authoring/Echo/Program.cs`, `samples/Authoring/TaskAgent/ReportAgent.cs` (+ a minimal `Program.cs`), `samples/Authoring/ChatAgent/Program.cs`; test `tests/Ambinder.A2A.Integration.Tests/Samples/TargetProgramTests.cs`.
+**Files:** Create `samples/Authoring/Echo/Program.cs`, `samples/Authoring/TaskAgent/ReportAgent.cs` (+ a minimal `Program.cs`), `samples/Authoring/ChatAgent/Program.cs`; test `TargetProgramTests.cs` in `tests/Ambinder.A2A.Samples.Tests` when that project exists. Otherwise put it in `tests/Ambinder.A2A.Integration.Tests/Samples/`, and 12's Task 16 moves it. (12 spec §7 rule 1 allows a `ProjectReference` to `samples/` only from `Samples.Tests`, and 12's Task 19 enforces it.)
 
 - [ ] **Step 1: Write failing tests:** the three projects build (they are in the solution); counting non-blank, non-comment lines: echo `Program.cs` ≤ 8, the task agent class ≤ 20, chat `Program.cs` ≤ 10; each sample runs on `TestServer` and answers (echo text; task completes with an artifact after an input-required turn; chat agent with the scripted client).
 - [ ] **Step 2:** Run. Expected: FAIL.
@@ -588,6 +592,7 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 **Files:** extend 01's allow-list test or add `tests/Ambinder.A2A.Integration.Tests/Repo/AuthoringDependencyTests.cs`; CI step for the AOT analyzers.
 
 - [ ] **Step 1:** Add tests that fail when `Ambinder.A2A.Server` references any `Microsoft.Extensions.AI*`, when `Ambinder.A2A.Extensions.AI` references `Microsoft.Extensions.AI` (full) or any LLM provider package, and when `Ambinder.A2A.Server` gains an Agent Framework reference.
+- [ ] **Step 1a:** If Task 19 Step 0 marked the Agent Framework package as preview, add its pack test (Task 19 Step 0 gives the assertions).
 - [ ] **Step 2:** Prove each fails with a temporary bad reference, then remove it.
 - [ ] **Step 3:** `dotnet build src/Ambinder.A2A.Extensions.AI -c Release -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true` has zero warnings.
 - [ ] **Step 4:** Commit `ci: dependency and AOT checks for authoring and AI packages`.
@@ -614,6 +619,7 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 | "Writing an extension" | `docs/agents/extensions.md` |
 | "LLM agents with IChatClient" | `docs/agents/llm-agents.md` (+ mapping table §8.1) |
 | "Calling an agent from an LLM" | `docs/agents/call-other-agents.md` (identity B9, id binding, "the result text is untrusted data") |
+| Agent as an AI tool, from the client side (13 spec §1 assigns this page to 11) | `docs/clients/agent-as-ai-tool.md` (short; links to `call-other-agents.md`; replaces 13's stub) |
 | streaming and `ArtifactWriter` | `docs/agents/streaming-and-artifacts.md` |
 
 - [ ] **Step 1:** Write the pages from the spec only. Code samples come from the Task 22 projects.
@@ -665,3 +671,11 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 - **Each reviewer's brief:** the task text, the spec sections the task cites, and the diff. Reviewers check against the spec, not only this plan, and reject tests written after the code.
 - **Push after every task**, so a reclaimed container loses nothing.
 - **This plan file** is changed during execution only to tick checkboxes.
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- Spec 13 gives 11 the code of `samples/GettingStarted.Agent` (§3) and a supervisor-agent sample (§6); the plan touches neither, and new `samples/Authoring/*` READMEs lack the front matter 13's sample-index test needs. Plan: docs/superpowers/plans/2026-11-03-sdk-11-authoring-ai.md:143. Spec: 13 spec §3, §6. Fix: move `GettingStarted.Agent` to the authoring API, add the supervisor sample (chat agent with `RemoteAgents`), add front matter (`title`, `shows`, `packages`, `run`, `needs`, `lines`).
