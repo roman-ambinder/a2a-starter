@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and start the SUT, run the A2A TCK against it, grade the report.
 # Usage: bash tck/run-ci.sh <tck-ref>   (a commit SHA, or "main" for the weekly drift run)
-# Exit code is the checker's exit code. Leaves $RUNNER_TEMP/a2a-tck/reports/ and $RUNNER_TEMP/sut.log.
+# Exit code is the checker's exit code. Leaves $RUNNER_TEMP/a2a-tck/reports-<transport>/ and $RUNNER_TEMP/sut.log.
 set -euo pipefail
 
 tck_ref="${1:?usage: run-ci.sh <tck-ref>}"
@@ -53,10 +53,17 @@ echo "TCK at $(git -C "$tck_dir" rev-parse HEAD)"
 
 cd "$tck_dir"
 uv sync
-# The TCK exits non-zero when tests fail; grading is the checker's job.
-uv run ./run_tck.py --sut-host "http://localhost:${sut_port}" || echo "run_tck.py exited with $?"
+# The TCK exits non-zero when tests fail, and overwrites reports/ on every run: grading is the checker's job.
+report_args=()
+for transport in jsonrpc http_json grpc; do
+  rm -rf reports
+  uv run ./run_tck.py --sut-host "http://localhost:${sut_port}" --transport "$transport" || echo "run_tck.py ($transport) exited with $?"
+  mkdir -p "reports-$transport"
+  cp reports/* "reports-$transport/"
+  report_args+=(--report "$transport=$tck_dir/reports-$transport/compatibility.json")
+done
 
 cd "$repo"
 status=0
-python3 -I tck/check-report.py --report "$tck_dir/reports/compatibility.json" --known-issues tck/known-issues.json || status=$?
+python3 -I tck/check-report.py --known-issues tck/known-issues.json --behaviors tck/sut-behaviors.yaml "${report_args[@]}" || status=$?
 exit "$status"

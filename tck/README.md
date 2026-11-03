@@ -28,7 +28,7 @@ The run fails (exit 1) when:
 
 A requirement whose top-level `status` is `FAIL` also fails, even when its transport entry says `PASS`
 (the TCK lets a later passing test overwrite the transport entry).
-`MAY` failures and skipped `MUST` requirements are printed as warnings only.
+`MAY` failures are printed as warnings only. A skipped requirement is not a problem unless a claimed behaviour lists it.
 
 ## Known issues
 

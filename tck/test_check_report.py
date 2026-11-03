@@ -1,3 +1,5 @@
+import datetime
+import importlib.util
 import json
 import os
 import subprocess
@@ -5,25 +7,40 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "check-report.py")
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCRIPT = os.path.join(HERE, "check-report.py")
+spec = importlib.util.spec_from_file_location("check_report", SCRIPT)
+check_report = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(check_report)
+
 TRANSPORTS = ("jsonrpc", "http_json", "grpc")
+TODAY = datetime.date(2026, 11, 3)
 
 
-def requirement(level, **transport_overrides):
-    transports = {t: "PASS" for t in TRANSPORTS}
-    transports.update(transport_overrides)
-    return {"level": level, "status": "PASS", "transports": transports, "errors": []}
+def req(level, **results):
+    """A requirement: its level and the result per transport (default PASS)."""
+    return level, {t: results.get(t, "PASS") for t in TRANSPORTS}
 
 
-def per_transport(**totals):
-    result = {t: {"total": 5, "passed": 5, "failed": 0, "skipped": 0} for t in TRANSPORTS}
-    for name, total in totals.items():
-        result[name]["total"] = total
+def reports(**requirements):
+    """One report per transport, like three TCK runs: a transport's run skips the other two."""
+    result = {}
+    for t in TRANSPORTS:
+        per_requirement = {}
+        for req_id, (level, outcome) in requirements.items():
+            transports = {x: "SKIPPED" for x in TRANSPORTS}
+            transports[t] = outcome[t]
+            per_requirement[req_id] = {"level": level, "status": outcome[t], "transports": transports, "errors": []}
+        result[t] = {
+            "per_requirement": per_requirement,
+            "per_transport": {x: {"total": 5, "passed": 5, "failed": 0, "skipped": 0} for x in TRANSPORTS},
+        }
     return result
 
 
 def issue(**overrides):
     entry = {
+        "suite": "tck",
         "requirement": "REQ-S",
         "transport": "grpc",
         "level": "SHOULD",
@@ -35,172 +52,307 @@ def issue(**overrides):
     return entry
 
 
-class CheckReportTests(unittest.TestCase):
-    def run_checker(self, report=None, known=None, today="2026-11-03", raw_report=None):
-        with tempfile.TemporaryDirectory() as tmp:
-            report_path = os.path.join(tmp, "report.json")
-            known_path = os.path.join(tmp, "known.json")
-            if raw_report is not None:
-                with open(report_path, "w") as f:
-                    f.write(raw_report)
-            elif report is not None:
-                with open(report_path, "w") as f:
-                    json.dump(report, f)
-            with open(known_path, "w") as f:
-                json.dump(known or [], f)
-            proc = subprocess.run(
-                [sys.executable, "-I", SCRIPT, "--report", report_path,
-                 "--known-issues", known_path, "--today", today],
-                capture_output=True, text=True)
-            return proc.returncode, proc.stdout + proc.stderr
+def must_bug(**overrides):
+    fields = {"requirement": "REQ-M", "level": "MUST", "kind": "tck-bug", "spec": "v1.0.1 error table"}
+    fields.update(overrides)
+    return issue(**fields)
 
-    def base(self, **reqs):
-        return {"per_requirement": reqs, "per_transport": per_transport()}
 
-    def test_all_pass_exits_0(self):
-        code, out = self.run_checker(self.base(**{"REQ-M": requirement("MUST")}))
-        self.assertEqual(code, 0, out)
+def behaviors(*pairs):
+    return {"behaviors": [{"id": i, "requirements": list(r)} for i, r in pairs]}
 
-    def test_missing_report_exits_1(self):
-        code, out = self.run_checker(report=None)
-        self.assertEqual(code, 1, out)
-        self.assertIn("FAIL:", out)
 
-    def test_not_json_exits_1(self):
-        code, out = self.run_checker(raw_report="not json")
-        self.assertEqual(code, 1, out)
+class CheckTests(unittest.TestCase):
+    def run_check(self, reps, entries=(), behaviours=None, today=TODAY):
+        return check_report.check(reps, {"entries": list(entries)}, behaviours or {"behaviors": []}, today)
 
-    def test_missing_transport_exits_1(self):
-        report = self.base()
-        del report["per_transport"]["grpc"]
-        code, out = self.run_checker(report)
-        self.assertEqual(code, 1, out)
-        self.assertIn("grpc", out)
+    def assert_problem(self, problems, *fragments):
+        text = "\n".join(problems)
+        for fragment in fragments:
+            self.assertIn(fragment, text)
 
-    def test_zero_total_transport_exits_1(self):
-        report = {"per_requirement": {}, "per_transport": per_transport(http_json=0)}
-        code, out = self.run_checker(report)
-        self.assertEqual(code, 1, out)
-        self.assertIn("http_json", out)
+    def test_all_pass_has_no_problems(self):
+        problems, warnings = self.run_check(reports(**{"REQ-M": req("MUST")}))
+        self.assertEqual([], problems + warnings)
 
-    def test_must_fail_exits_1_even_if_listed(self):
-        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
-        known = [issue(requirement="REQ-M", level="MUST")]
-        code, out = self.run_checker(report, known)
-        self.assertEqual(code, 1, out)
-        self.assertGreaterEqual(out.count("FAIL:"), 2, out)
-        self.assertIn("REQ-M", out)
-        self.assertIn("tck-bug", out)
+    # Rule 1
+    def test_must_failure_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}))
+        self.assertEqual(1, len(problems), problems)
+        self.assert_problem(problems, "MUST REQ-M failed on grpc")
 
-    def test_should_fail_unlisted_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report)
-        self.assertEqual(code, 1, out)
-        self.assertIn("REQ-S", out)
+    def test_must_failure_on_each_transport_is_reported_once_per_transport(self):
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL", jsonrpc="FAIL")}))
+        self.assertEqual(2, len(problems), problems)
 
-    def test_should_fail_listed_exits_0(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report, [issue()])
-        self.assertEqual(code, 0, out)
+    # Rule 2
+    def test_unlisted_should_failure_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}))
+        self.assert_problem(problems, "SHOULD REQ-S failed on grpc", "not in known issues")
 
-    def test_expired_entry_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report, [issue(expires="2026-11-30")], today="2026-12-01")
-        self.assertEqual(code, 1, out)
-        self.assertIn("expired", out)
+    def test_listed_should_failure_passes(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue()])
+        self.assertEqual([], problems)
 
-    def test_entry_that_passes_now_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD")})
-        code, out = self.run_checker(report, [issue()])
-        self.assertEqual(code, 1, out)
-        self.assertIn("no longer fails", out)
+    def test_entry_for_another_transport_does_not_cover(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue(transport="jsonrpc")])
+        self.assertEqual(2, len(problems), problems)  # unlisted failure, and the jsonrpc entry no longer fails
 
-    def test_malformed_entry_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
+    def test_should_entry_without_level_is_taken_from_the_report(self):
         entry = issue()
-        del entry["expires"]
-        code, out = self.run_checker(report, [entry])
-        self.assertEqual(code, 1, out)
-        self.assertIn("expires", out)
+        del entry["level"]
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [entry])
+        self.assertEqual([], problems)
 
-    def test_non_https_issue_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report, [issue(issue="http://x")])
-        self.assertEqual(code, 1, out)
-        self.assertIn("https", out)
-
-    def test_unparsable_expires_exits_1(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report, [issue(expires="soon")])
-        self.assertEqual(code, 1, out)
-        self.assertIn("expires", out)
-
-    def test_top_level_fail_with_passing_transports_is_a_failure(self):
-        req = requirement("MUST", http_json="PASS")
-        req["status"] = "FAIL"
-        req["transports"] = {"http_json": "PASS"}
-        code, out = self.run_checker(self.base(**{"REQ-M": req}))
-        self.assertEqual(code, 1, out)
-        self.assertIn("REQ-M", out)
-        self.assertIn("http_json", out)
-
+    # Rule 3
     def test_must_tck_bug_entry_covers_failure(self):
-        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
-        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug", spec="v1.0.1 section 5.4")]
-        code, out = self.run_checker(report, known)
-        self.assertEqual(code, 0, out)
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}), [must_bug()])
+        self.assertEqual([], problems)
 
-    def test_must_entry_without_kind_is_invalid(self):
-        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
-        known = [issue(requirement="REQ-M", level="MUST", spec="v1.0.1 section 5.4")]
-        code, out = self.run_checker(report, known)
-        self.assertEqual(code, 1, out)
-        self.assertIn("tck-bug", out)
-        self.assertIn("MUST REQ-M failed", out)
+    def test_must_entry_accepts_a_draft_issue_reference(self):
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}), [must_bug(issue="draft:tck-error-table")])
+        self.assertEqual([], problems)
 
-    def test_must_tck_bug_entry_without_spec_is_invalid(self):
-        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
-        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug")]
-        code, out = self.run_checker(report, known)
-        self.assertEqual(code, 1, out)
-        self.assertIn("spec", out)
+    def test_must_entry_without_kind_is_invalid_and_does_not_cover(self):
+        entry = must_bug()
+        del entry["kind"]
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}), [entry])
+        self.assertEqual(2, len(problems), problems)
+        self.assert_problem(problems, "tck-bug", "MUST REQ-M failed on grpc")
 
-    def test_must_tck_bug_entry_that_passes_now_exits_1(self):
-        report = self.base(**{"REQ-M": requirement("MUST")})
-        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug", spec="v1.0.1 section 5.4")]
-        code, out = self.run_checker(report, known)
-        self.assertEqual(code, 1, out)
-        self.assertIn("no longer fails", out)
+    def test_must_entry_without_spec_is_invalid(self):
+        entry = must_bug()
+        del entry["spec"]
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}), [entry])
+        self.assert_problem(problems, "spec")
+
+    def test_must_entry_with_should_level_is_invalid(self):
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST", grpc="FAIL")}),
+                                     [must_bug(level="SHOULD")])
+        self.assert_problem(problems, "tck-bug", "MUST REQ-M failed on grpc")
+
+    def test_issue_must_be_https_or_draft(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue(issue="http://x")])
+        self.assert_problem(problems, "https://")
+
+    # Rule 4
+    def test_expired_entry_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}),
+                                     [issue(expires="2026-11-02")])
+        self.assert_problem(problems, "expired")
+
+    def test_entry_expiring_today_is_still_valid(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}),
+                                     [issue(expires="2026-11-03")])
+        self.assertEqual([], problems)
+
+    def test_unparsable_expires_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue(expires="soon")])
+        self.assert_problem(problems, "expires")
+
+    # Rule 5
+    def test_entry_that_passes_now_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD")}), [issue()])
+        self.assert_problem(problems, "REQ-S/grpc no longer fails; remove it")
+
+    def test_must_entry_that_passes_now_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-M": req("MUST")}), [must_bug()])
+        self.assert_problem(problems, "no longer fails")
+
+    def test_entry_for_a_transport_without_a_report_is_not_checked(self):
+        reps = reports(**{"REQ-S": req("SHOULD")})
+        del reps["grpc"]
+        problems, _ = self.run_check(reps, [issue()])
+        self.assertEqual([], problems)
+
+    # Rule 6
+    def test_claimed_behaviour_that_is_skipped_fails(self):
+        problems, _ = self.run_check(reports(R9=req("MUST", grpc="SKIPPED")), behaviours=behaviors(("tck-fake", ["R9"])))
+        self.assertEqual(1, len(problems), problems)
+        self.assert_problem(problems, "tck-fake", "R9", "grpc")
+
+    def test_claimed_behaviour_that_is_not_tested_fails(self):
+        problems, _ = self.run_check(reports(R9=req("MUST", jsonrpc="NOT TESTED")), behaviours=behaviors(("tck-fake", ["R9"])))
+        self.assert_problem(problems, "tck-fake", "NOT TESTED")
+
+    def test_claimed_behaviour_missing_from_the_report_fails(self):
+        problems, _ = self.run_check(reports(R1=req("MUST")), behaviours=behaviors(("tck-fake", ["R9"])))
+        self.assert_problem(problems, "tck-fake", "missing from the report")
+
+    def test_claimed_behaviour_that_passes_is_fine(self):
+        problems, _ = self.run_check(reports(R9=req("MUST")), behaviours=behaviors(("tck-ok", ["R9"]), ("tck-none", [])))
+        self.assertEqual([], problems)
+
+    # Rule 7
+    def test_entry_missing_a_field_is_a_problem(self):
+        for field in ("suite", "issue", "reason", "expires", "transport", "requirement"):
+            entry = issue()
+            del entry[field]
+            problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [entry])
+            self.assert_problem(problems, field)
+
+    def test_entry_with_unknown_suite_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD")}), [issue(suite="other")])
+        self.assert_problem(problems, "suite")
+
+    def test_acts_entries_are_ignored_by_the_other_rules(self):
+        acts = issue(suite="acts", expires="2020-01-01", issue="nonsense")
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD")}), [acts])
+        self.assertEqual([], problems)
+
+    def test_acts_entry_still_needs_its_fields(self):
+        acts = issue(suite="acts")
+        del acts["reason"]
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD")}), [acts])
+        self.assert_problem(problems, "reason")
+
+    def test_acts_entry_does_not_cover_a_tck_failure(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue(suite="acts")])
+        self.assert_problem(problems, "SHOULD REQ-S failed on grpc")
+
+    def test_duplicate_entry_is_a_problem(self):
+        problems, _ = self.run_check(reports(**{"REQ-S": req("SHOULD", grpc="FAIL")}), [issue(), issue()])
+        self.assert_problem(problems, "duplicate")
+
+    def test_known_issues_must_be_an_object_with_entries(self):
+        problems, _ = check_report.check(reports(), [], {"behaviors": []}, TODAY)
+        self.assert_problem(problems, "entries")
+
+    # MAY, skips and top-level status
+    def test_may_failure_is_only_a_warning(self):
+        problems, warnings = self.run_check(reports(**{"REQ-Y": req("MAY", grpc="FAIL")}))
+        self.assertEqual([], problems)
+        self.assert_problem(warnings, "MAY REQ-Y failed on grpc")
+
+    def test_unclaimed_skipped_requirement_is_not_a_problem(self):
+        problems, warnings = self.run_check(reports(**{"REQ-M": req("MUST", grpc="SKIPPED")}))
+        self.assertEqual([], problems + warnings)
+
+    def test_top_level_fail_with_a_passing_transport_is_a_problem(self):
+        reps = reports(**{"REQ-M": req("MUST")})
+        reps["http_json"]["per_requirement"]["REQ-M"]["status"] = "FAIL"
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "MUST REQ-M failed on http_json")
+
+    def test_top_level_fail_can_be_covered_by_an_entry_for_that_transport(self):
+        reps = reports(**{"REQ-M": req("MUST")})
+        reps["http_json"]["per_requirement"]["REQ-M"]["status"] = "FAIL"
+        problems, _ = self.run_check(reps, [must_bug(transport="http_json")])
+        self.assertEqual([], problems)
+
+    def test_failure_on_another_transport_in_this_run_is_not_counted(self):
+        reps = reports(**{"REQ-M": req("MUST")})
+        reps["grpc"]["per_requirement"]["REQ-M"]["transports"]["jsonrpc"] = "FAIL"
+        problems, _ = self.run_check(reps)
+        self.assertEqual([], problems)
+
+    def test_agent_card_failure_counts_once_and_can_be_listed(self):
+        reps = reports()
+        for t in TRANSPORTS:
+            reps[t]["per_requirement"]["CARD-1"] = {"level": "SHOULD", "status": "FAIL", "transports": {"agent_card": "FAIL"}}
+        problems, _ = self.run_check(reps)
+        self.assertEqual(1, len(problems), problems)
+        problems, _ = self.run_check(reps, [issue(requirement="CARD-1", transport="agent_card")])
+        self.assertEqual([], problems)
 
     def test_unknown_level_fail_is_reported(self):
-        req = requirement("MUST", grpc="FAIL")
-        del req["level"]
-        code, out = self.run_checker(self.base(**{"REQ-X": req}))
-        self.assertEqual(code, 1, out)
-        self.assertIn("unknown level", out)
+        reps = reports(**{"REQ-X": req("MUST", grpc="FAIL")})
+        del reps["grpc"]["per_requirement"]["REQ-X"]["level"]
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "unknown level")
 
     def test_malformed_requirement_is_reported(self):
-        code, out = self.run_checker(self.base(**{"REQ-X": "oops"}))
-        self.assertEqual(code, 1, out)
-        self.assertIn("REQ-X", out)
+        reps = reports()
+        reps["grpc"]["per_requirement"]["REQ-X"] = "oops"
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "REQ-X")
+
+    def test_transport_with_zero_tests_is_a_problem(self):
+        reps = reports()
+        reps["http_json"]["per_transport"]["http_json"]["total"] = 0
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "http_json ran 0 tests")
+
+    def test_transport_missing_from_its_own_report_is_a_problem(self):
+        reps = reports()
+        del reps["grpc"]["per_transport"]["grpc"]
+        problems, _ = self.run_check(reps)
+        self.assert_problem(problems, "grpc missing")
+
+
+class CommandLineTests(unittest.TestCase):
+    def run_cli(self, reps, known=None, behaviours=None, today="2026-11-03", extra=()):
+        with tempfile.TemporaryDirectory() as tmp:
+            args = [sys.executable, "-I", SCRIPT, "--today", today]
+            for t, report in reps.items():
+                path = os.path.join(tmp, f"{t}.json")
+                with open(path, "w") as f:
+                    f.write(report if isinstance(report, str) else json.dumps(report))
+                args += ["--report", f"{t}={path}"]
+            known_path = os.path.join(tmp, "known.json")
+            with open(known_path, "w") as f:
+                json.dump(known if known is not None else {"entries": []}, f)
+            args += ["--known-issues", known_path]
+            if behaviours is not None:
+                behaviors_path = os.path.join(tmp, "behaviors.yaml")
+                with open(behaviors_path, "w") as f:
+                    json.dump(behaviours, f)
+                args += ["--behaviors", behaviors_path]
+            proc = subprocess.run(args + list(extra), capture_output=True, text=True)
+            return proc.returncode, proc.stdout + proc.stderr
+
+    def test_passing_run_exits_0(self):
+        code, out = self.run_cli(reports(**{"REQ-M": req("MUST")}))
+        self.assertEqual(0, code, out)
+        self.assertIn("0 failure(s)", out)
+
+    def test_failing_run_exits_1_and_prints_a_fail_line(self):
+        code, out = self.run_cli(reports(**{"REQ-M": req("MUST", grpc="FAIL")}))
+        self.assertEqual(1, code, out)
+        self.assertIn("FAIL: MUST REQ-M failed on grpc", out)
+
+    def test_may_failure_prints_a_warning_and_exits_0(self):
+        code, out = self.run_cli(reports(**{"REQ-Y": req("MAY", grpc="FAIL")}))
+        self.assertEqual(0, code, out)
+        self.assertIn("WARN: MAY REQ-Y failed on grpc", out)
+
+    def test_unreadable_report_exits_1(self):
+        reps = reports()
+        reps["grpc"] = "not json"
+        code, out = self.run_cli(reps)
+        self.assertEqual(1, code, out)
+        self.assertIn("FAIL:", out)
         self.assertNotIn("Traceback", out)
 
-    def test_duplicate_entry_is_reported(self):
-        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
-        code, out = self.run_checker(report, [issue(), issue()])
-        self.assertEqual(code, 1, out)
-        self.assertIn("duplicate", out)
+    def test_missing_report_file_exits_1(self):
+        proc = subprocess.run(
+            [sys.executable, "-I", SCRIPT, "--report", "grpc=/nonexistent/r.json", "--known-issues", "/nonexistent/k.json"],
+            capture_output=True, text=True)
+        self.assertEqual(1, proc.returncode, proc.stdout + proc.stderr)
 
-    def test_must_skipped_warns_but_passes(self):
-        report = self.base(**{"REQ-M": requirement("MUST", grpc="SKIPPED")})
-        code, out = self.run_checker(report)
-        self.assertEqual(code, 0, out)
-        self.assertIn("warn:", out)
+    def test_report_argument_needs_a_transport_name(self):
+        proc = subprocess.run(
+            [sys.executable, "-I", SCRIPT, "--report", "r.json", "--known-issues", "k.json"], capture_output=True, text=True)
+        self.assertEqual(2, proc.returncode)
+        self.assertIn("transport=path", proc.stderr)
 
-    def test_may_fail_ignored(self):
-        report = self.base(**{"REQ-Y": requirement("MAY", grpc="FAIL")})
-        code, out = self.run_checker(report)
-        self.assertEqual(code, 0, out)
+    def test_behaviours_file_is_checked(self):
+        code, out = self.run_cli(reports(R9=req("MUST", grpc="SKIPPED")),
+                                 behaviours={"behaviors": [{"id": "tck-fake", "requirements": ["R9"]}]})
+        self.assertEqual(1, code, out)
+        self.assertIn("tck-fake", out)
+
+    def test_the_repository_files_are_well_formed(self):
+        with open(os.path.join(HERE, "known-issues.json")) as f:
+            known = json.load(f)
+        with open(os.path.join(HERE, "sut-behaviors.yaml")) as f:
+            behaviours = json.load(f)
+        problems, _ = check_report.check({}, known, behaviours, TODAY)
+        self.assertEqual([], problems)
+        ids = [b["id"] for b in behaviours["behaviors"]]
+        self.assertEqual(len(ids), len(set(ids)))
+        for b in behaviours["behaviors"]:
+            self.assertEqual({"id", "scenario", "response", "terminalState", "requirements"}, set(b))
 
 
 if __name__ == "__main__":
