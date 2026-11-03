@@ -185,6 +185,7 @@ public interface IA2AClientFactory
 | `Resilience` | see Resilience | |
 | `Limits` | see Bounded reads | |
 | `Card*` | see Card resolver | Resolver options for this client. |
+| `CardReaders` | `[]` | Extra `IAgentCardReader`s, for non-DI callers and per-client additions. *(Added in the plan review, 2026-11-03; Claude's call.)* |
 | `UseExtendedCard` | `Auto` | `Auto`: after the first authenticated call, if `capabilities.extendedAgentCard` is true, fetch the extended card and use it (spec SHOULD). It is cached per credential identity (B11). `Never` or `Always`. |
 
 Behavior:
@@ -291,15 +292,25 @@ public interface IA2AAuthRequiredHandler
     /// Called when a waited task enters AUTH_REQUIRED. Return a continuation to resume the task, or null to stop.
     ValueTask<AuthContinuation?> HandleAsync(AuthRequiredContext context, CancellationToken ct);
 }
-public sealed record AuthRequiredContext(IA2AClient Client, AgentTask Task, Message? StatusMessage);
-public sealed record AuthContinuation(Message Message, A2ARequestOptions? Options); // Options may carry other credentials
+// No positional constructors (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public sealed record AuthRequiredContext
+{
+    public required IA2AClient Client { get; init; }
+    public required AgentTask Task { get; init; }
+    public Message? StatusMessage { get; init; }
+}
+public sealed record AuthContinuation
+{
+    public required Message Message { get; init; }
+    public A2ARequestOptions? Options { get; init; } // may carry other credentials
+}
 ```
 
 - It is used by `SendAndWaitAsync` and `A2AConversation`. It is registered per client (`builder.OnAuthRequired<T>()`) or passed in `A2AWaitOptions`.
 - The SDK sends the continuation message on the same task and context ids, with the given options. That is how a named identity continues the task (package 07's grant rule). After `MaxAuthSteps` (default 3), the wait returns the task in `AUTH_REQUIRED`.
 - After a step-up continuation *(Claude's call, B6)*: the grant holder gets the response of its own continuation call, but cannot Get, List, Subscribe or Cancel the task afterwards (07). So the wait helper stays on the continuation's own stream (or blocking result). If it must resubscribe or poll after that, it uses the original caller's credentials (the client's provider or the original call's options), never the continuation's `Options`.
 - Default (no handler): the wait returns with `State = AuthRequired` and the status message. Credentials stay out of band, as the spec says.
-- `IA2AInputRequiredHandler` has the same shape for `INPUT_REQUIRED`. Default: return to the caller.
+- `IA2AInputRequiredHandler` has the same shape for `INPUT_REQUIRED` (its context and continuation records also use `required` / `init` properties). Default: return to the caller.
 
 ### Resilience
 
@@ -443,7 +454,7 @@ Rules (pain point 8; spec 3.4):
 
 - A URL ending in `.json` is used as is (today's rule, `src/A2A.Client/A2ACardResolver.cs:54-59`). Otherwise the well-known path is appended.
 - The resolver reads at most `MaxCardBytes` (bounded stream), then runs package 04's `IAgentCardVerifier` on the raw bytes, then the card readers.
-- The result type is `ResolvedAgentCard(AgentCard Card, CardVerificationResult Verification, Uri Source, DateTimeOffset FetchedAt, string? ETag)`. `IA2AClient.Card` is the card, and `A2AClient.CardVerification` exposes the verification result (package 04 asked for "the result kept with the card").
+- The result type is `ResolvedAgentCard`, a property record (spec 02 §4; plan review, 2026-11-03) with `Card`, `Verification`, `Source`, `FetchedAt` and `ETag`. `GetAsync` also has an overload taking `A2ACardFetchContext` (the client's `HttpClient`, options and readers), which `A2AClient` uses *(plan review; Claude's call)*. `IA2AClient.Card` is the card, and `A2AClient.CardVerification` exposes the verification result (package 04 asked for "the result kept with the card").
 - Errors: 401 or 403 → `A2AAuthException`. Other non-2xx → `A2ATransportException` with the URL and status. Bad JSON → `InvalidAgentResponse` with the reader's message. Too large → `InvalidAgentResponse` "card larger than 1 MiB; raise A2ACardResolverOptions.MaxCardBytes".
 - The extended card (`UseExtendedCard`) is cached per client and per credential identity, never in the shared cache, because the server filters it by caller *(Claude's call, B11)*. The identity is the client's own provider for calls without per-call credentials, or `A2ARequestOptions.CredentialCacheKey` for calls with them. When a call uses `A2ARequestOptions.Credentials` without a `CredentialCacheKey`, `Auto` does not fetch or use the extended card for that call (it uses the public card) and logs a debug line once.
 - The card ETag the server sends is the same on every pod and after re-signing with the same keys (03 D7, B13), so `If-None-Match` revalidation works behind a load balancer.

@@ -107,15 +107,16 @@ namespace Ambinder.A2A.Server.Security;
 
 public enum CallerKind { Anonymous, Application, User, Other }
 
-public sealed record A2ACaller(
-    string Owner,             // opaque owner key, max 256 chars
-    CallerKind Kind,
-    string? EntraTenantId,    // tid
-    string? AppId,            // azp (v2) or appid (v1); for User, the client app the user signed in through
-    string? UserObjectId,     // oid, only for User
-    ClaimsPrincipal Principal)// a snapshot copy, safe to use after the request ends
+// No positional constructor (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public sealed record A2ACaller
 {
-    public string? AccessToken { get; init; } // only when A2ASecurityOptions.KeepCallerToken is true; never stored or logged
+    public required string Owner { get; init; }          // opaque owner key, max 256 chars
+    public required CallerKind Kind { get; init; }
+    public string? EntraTenantId { get; init; }          // tid
+    public string? AppId { get; init; }                  // azp (v2) or appid (v1); for User, the client app the user signed in through
+    public string? UserObjectId { get; init; }           // oid, only for User
+    public required ClaimsPrincipal Principal { get; init; } // a snapshot copy, safe to use after the request ends
+    public string? AccessToken { get; init; }            // only when A2ASecurityOptions.KeepCallerToken is true; never stored or logged
 }
 ```
 
@@ -174,9 +175,12 @@ Ownership checks stay where they are today: `LoadOwnedAsync` and `LoadForContinu
 ### Continuing an `AUTH_REQUIRED` task
 
 ```csharp
-public sealed record TaskContinuationGrant(
-    IReadOnlyList<OwnerKey> AllowedOwners, // exact match (B7)
-    DateTimeOffset ExpiresAt);
+// No positional constructor (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public sealed record TaskContinuationGrant
+{
+    public required IReadOnlyList<OwnerKey> AllowedOwners { get; init; } // exact match (B7)
+    public required DateTimeOffset ExpiresAt { get; init; }
+}
 
 public interface ITaskContinuationPolicy
 {

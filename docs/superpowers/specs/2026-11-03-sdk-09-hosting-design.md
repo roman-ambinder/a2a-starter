@@ -192,12 +192,16 @@ Cards: one build pipeline, with per-request input. This package does not add a s
 // New AddAgent overload: the card factory gets the request context. The old Func<IServiceProvider, AgentCard> stays.
 a2a.AddAgent<THandler>(name, (IServiceProvider sp, AgentCardRequest req) => AgentCard, o => o.CardVariesBy = CardVariesBy.Host | CardVariesBy.Tenant);
 
-public sealed record AgentCardRequest(
-    string AgentName, AgentCardKind Kind,            // Public | Extended
-    A2ACaller? Caller,                                // package 07; null for anonymous public cards
-    string? Tenant,                                   // from 07's ITenantResolver, when resolved
-    Uri PublicBaseUrl,                                // after PublicUrlMode
-    string Host);
+// No positional constructor (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public sealed record AgentCardRequest
+{
+    public required string AgentName { get; init; }
+    public required AgentCardKind Kind { get; init; }    // Public | Extended
+    public A2ACaller? Caller { get; init; }              // package 07; null for anonymous public cards
+    public string? Tenant { get; init; }                 // from 07's ITenantResolver, when resolved
+    public required Uri PublicBaseUrl { get; init; }     // after PublicUrlMode
+    public required string Host { get; init; }
+}
 
 [Flags] public enum CardVariesBy { None = 0, Host = 1, Tenant = 2, Caller = 4 }
 ```

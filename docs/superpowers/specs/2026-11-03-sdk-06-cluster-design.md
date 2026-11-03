@@ -135,8 +135,17 @@ public interface ITaskRouter
     ValueTask<TaskRoute> RouteAsync(StoredTask task, A2AOperation operation, ClusterCallContext call, CancellationToken ct);
 }
 
-public readonly record struct TaskRoute(TaskRouteKind Kind, PeerInstance? Peer);  // Local | Forward
-public sealed record PeerInstance(string InstanceId, Uri InternalAddress);
+// Owner decision 2026-11-03 (spec 02 §4): no positional constructors, so a new member later is not a breaking change.
+public readonly record struct TaskRoute                  // Local | Forward
+{
+    public required TaskRouteKind Kind { get; init; }
+    public PeerInstance? Peer { get; init; }
+}
+public sealed record PeerInstance
+{
+    public required string InstanceId { get; init; }
+    public required Uri InternalAddress { get; init; }
+}
 
 // Runs an operation on another instance. Only the HTTP backend uses it.
 public interface ITaskForwarder

@@ -55,7 +55,7 @@ This package makes the public surface small, deliberate, documented and tracked.
 ## Constraints
 
 - The first stable version is `1.0.0`; the first preview is `1.0.0-preview.1` (package 01). SemVer 2.0. One version for all packages (package 01).
-- No `InternalsVisibleTo` between shipped assemblies. Allowed only to the matching `*.Tests` assembly and to `Ambinder.A2A.Benchmarks` (package 01, rule 6).
+- No `InternalsVisibleTo` between shipped assemblies. Allowed only to the matching `*.Tests` assembly and to `Ambinder.A2A.Benchmarks` (package 01, rule 6). Also allowed to the repo's `Ambinder.A2A.Integration.Tests` assembly, which is never shipped *(owner decision, 2026-11-03)*.
 - One builder, no fixed dates (owner decision O2). The review gate for API changes is the automated public API diff check in required CI, plus the owner's admin approval for releases. No second human reviewer is required.
 - `TreatWarningsAsErrors` is already on (`Directory.Build.props:6`). Nullable is on. The proto-generated code and `A2AJsonContext` output must not trip the doc analyzer (generated code is `internal` after this work, so CS1591 does not apply to it).
 - Models are the A2A contract (spec v1.0.1, package 03). Their shape is dictated by the spec; this spec only fixes *how* they evolve.

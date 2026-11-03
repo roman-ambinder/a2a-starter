@@ -122,6 +122,8 @@ public interface IA2AVersionDispatcher
 
 `A2AAgentRoute` is the resolved agent (name, registration, card). Exact type name is set by package 02. The core registers no dispatcher. gRPC needs no dispatcher: a 0.3 gRPC service has its own service name and is mapped by package 15. After a dispatcher converts a request, it calls `IA2ARequestHandler`, so the request runs through package 09's middleware pipeline with `ProtocolVersion = "0.3"`.
 
+**Updated 2026-11-03 (owner approval of the 15 plan's D1 and D2).** The shape above is replaced: `HandleAsync(HttpContext http, A2AVersionDispatchContext context, CancellationToken ct)`. `A2AVersionDispatchContext` carries the resolved agent, card, binding, requested version, caller, tenant and REST path. A new public `IA2ACallerResolver` gives the core transports and package 15's gRPC service one way to resolve the caller and tenant. The core calls the dispatcher right after agent and caller resolution, before the JSON-RPC body read and the REST operation resolution. The 03 plan's Task 8 has the code.
+
 API rule (package 02): `IA2AVersionDispatcher` and `IAgentCardContributor` are implementer-facing. After 1.0, a new member gets a default implementation.
 
 Client:
