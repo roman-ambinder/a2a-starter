@@ -65,7 +65,7 @@ Package 12 is M2. Task 0 records which seams exist. **Gate rule (binding):** a t
 
 ### 0.3 Decisions this plan makes (plan-writer's calls)
 
-1. **Promotion keeps the slice's shapes.** If the slice's `TaskEventLog` records `(StoredTask, StreamResponse)` (05's shape) or `TaskEvent(AgentName, TaskId, State, Event, Index)` (09's shape), keep it and add only what spec §4 needs. No type renames.
+1. **Promotion keeps the slice's shapes.** If the slice's `TaskEventLog` records `(StoredTask, StreamResponse)` (05's shape) or `TaskEvent { AgentName, TaskId, State, Event, Index }` (09's shape, a property record), keep it and add only what spec §4 needs. No type renames.
 2. **Conformance dependencies.** Spec §1 lists `Testing` and `xunit.v3.extensibility.core` as the only dependencies of `Ambinder.A2A.Testing.Conformance`. The 05 plan's project also references `xunit.v3.assert`. Task 14 replaces those assert calls with `ConformanceAssert` (which throws `A2ATestAssertException`) and drops `xunit.v3.assert`. If a case cannot be expressed without it, stop and report.
 3. **Leftovers in `tests/Shared`.** Helpers there that the spec does not publish (for example 07's `SecretScrubber.cs`, and 16's linked-source `tests/Shared/WireFixtures/` used by `Protocol.Tests` and `Interop.Tests`) move to a non-packable project `tests/Ambinder.A2A.TestSupport/`, so the rule "no `tests/Shared`" holds. Linked-source consumers switch to a project reference; run both of 16's consumers after the move (review item 11).
 4. **Framework-neutrality proof** (spec principle 2): `Testing.Tests` has a test that runs the 12-line hello-world body through a tiny hand-written runner (a static method that calls the body and reports `A2ATestAssertException`), with no xunit types inside the body.
