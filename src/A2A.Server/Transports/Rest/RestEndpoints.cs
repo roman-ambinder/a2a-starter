@@ -118,7 +118,7 @@ internal static class RestEndpoints
 
         var request = BuildRequest(route, body, http.Request.Query);
         RequestValidation.Validate(request);
-        var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, request);
+        var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, request, A2ATelemetryNames.TransportRest);
         var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
         switch (route.Op)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using A2A.Client;
 using A2A.Client.Auth;
 using A2A.Protocol;
@@ -19,6 +20,8 @@ public sealed partial class FlowRunner : IDisposable
     /// <summary>The flows in the order <see cref="RunAllAsync"/> runs them.</summary>
     public static IReadOnlyList<string> FlowNames { get; } =
         ["discover", "send", "stream", "get", "list", "cancel", "resubscribe", "multi-turn", "push", "auth", "extended-card", "extensions", "errors"];
+
+    private static readonly ActivitySource FlowSource = new(ClientTelemetry.SourceName);
 
     private readonly FlowOptions _options;
     private readonly TextWriter _output;
@@ -104,6 +107,7 @@ public sealed partial class FlowRunner : IDisposable
         _output.WriteLine($"== {name} ==");
         var flow = new Flow(name, _output);
         var passed = true;
+        using var span = FlowSource.StartActivity("flow " + name);
         try
         {
             await body(flow).ConfigureAwait(false);
@@ -115,12 +119,27 @@ public sealed partial class FlowRunner : IDisposable
         catch (Exception e)
         {
             passed = false;
-            flow.Fail(Describe(e));
+            var failure = Describe(e);
+            flow.Fail(failure);
+            if (span is not null)
+            {
+                // Only fixed parts reach the span: the full text may hold agent or server content. It stays in the console output.
+                span.SetStatus(ActivityStatusCode.Error, SpanDescription(e));
+                span.SetTag(A2ATelemetryNames.ErrorType, e is A2AException a ? a.Code.ToString() : e.GetType().FullName);
+            }
         }
         _output.WriteLine(passed ? $"[PASS] {name}" : $"[FAIL] {name}");
         _output.Flush();
         return new FlowResult(name, passed, flow.Steps);
     }
+
+    private static string SpanDescription(Exception e) => e switch
+    {
+        FlowException => "flow check failed",
+        A2AException a => $"A2AException {a.Code}",
+        A2AAuthException a => $"A2AAuthException HTTP {a.HttpStatus}",
+        _ => e.GetType().Name,
+    };
 
     private static string Describe(Exception e) => e switch
     {

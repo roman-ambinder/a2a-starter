@@ -8,6 +8,7 @@ COPY src/A2A.Protocol/A2A.Protocol.csproj src/A2A.Protocol/
 COPY src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj src/A2A.Protocol.Grpc/
 COPY src/A2A.Server/A2A.Server.csproj src/A2A.Server/
 COPY src/A2A.Client/A2A.Client.csproj src/A2A.Client/
+COPY samples/SampleTelemetry/SampleTelemetry.csproj samples/SampleTelemetry/
 COPY samples/MockEntra/MockEntra.csproj samples/MockEntra/
 RUN dotnet restore samples/MockEntra/MockEntra.csproj
 COPY . .

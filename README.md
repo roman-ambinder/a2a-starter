@@ -26,6 +26,28 @@ docker compose run --rm client all      # runs every flow inside the compose net
 docker compose down
 ```
 
+## See traces, metrics and logs
+
+You can watch every flow in a local dashboard. The only prerequisite is the .NET 10 SDK. No Docker, no Aspire CLI, no workload.
+
+```bash
+dotnet run --project samples/AppHost
+```
+
+1. Open the `http://localhost:18888/login?t=...` link that the command prints.
+2. On the Resources page, open the "..." menu of `agentclient` (it shows Not started) and click Start. It runs all 13 flows.
+3. Look at the Traces, Metrics and Structured logs pages.
+
+You see one trace per flow, named `agentclient: flow <name>`. Under Metrics, pick `agentserver` to see `a2a.server.tasks.completed`, `a2a.server.streams.active` and `a2a.server.push.deliveries`. Log lines link to their trace. The `push` trace includes spans from `agentserver` and `webhookreceiver`.
+
+The AppHost runs the apps as normal processes on their usual ports. Your data stays on the machine: the dashboard listens on localhost only and keeps data in memory. Usage telemetry is switched off; see [samples/AppHost](samples/AppHost/README.md) for what that does and does not cover.
+
+The dashboard shows a red banner, "No trusted development certificate". It is harmless here, because the AppHost uses plain HTTP on localhost. `dotnet dev-certs https --trust` removes it if you want (optional).
+
+An AgentClient that you start from a separate terminal does not send to the dashboard. The dashboard needs an API key that only apps started by the AppHost get, and it answers 401 otherwise. Start the client from the dashboard instead.
+
+Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Tests, `run-all` and docker-compose are unchanged. For a real collector, see [docs/production.md](docs/production.md#6-observability-otlp).
+
 ## Repo layout
 
 | Path | What it is |
@@ -38,6 +60,7 @@ docker compose down
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
+| [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
 | [docs/production.md](docs/production.md) | What to change for Phase 2. |
 | [docs/architecture.html](docs/architecture.html) | Architecture overview (open in a browser). |

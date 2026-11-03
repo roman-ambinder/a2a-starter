@@ -4,6 +4,7 @@ using A2A.Protocol;
 using A2A.Server.Agents;
 using A2A.Server.Auth;
 using A2A.Server.Push;
+using A2A.Server.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -300,6 +301,11 @@ public sealed class TaskManager : IA2ARequestHandler
     private async Task RunAsync(AgentRegistration registration, TaskExecution execution, AgentRequestContext context, AgentEventSink sink)
     {
         var ct = execution.Cts.Token;
+        // The parent is Activity.Current, which flows through Task.Run from the operation span.
+        using var span = ServerInstruments.Source.StartActivity("a2a.agent.run");
+        span?.SetTag(A2ATelemetryNames.Agent, execution.AgentName);
+        span?.SetTag(A2ATelemetryNames.TaskId, execution.TaskId);
+        if (!string.IsNullOrEmpty(context.ContextId)) span?.SetTag(A2ATelemetryNames.ContextId, context.ContextId);
         try
         {
             await InvokeHandlerAsync(registration, h => h.ExecuteAsync(context, sink, ct)).ConfigureAwait(false);
@@ -315,6 +321,11 @@ public sealed class TaskManager : IA2ARequestHandler
         }
         catch (Exception ex)
         {
+            if (span is not null)
+            {
+                span.SetStatus(System.Diagnostics.ActivityStatusCode.Error);
+                span.SetTag(A2ATelemetryNames.ErrorType, ex.GetType().FullName);
+            }
             if (sink.Done)
             {
                 _logger.LogWarning(ex, "Agent {Agent} threw after task {TaskId} reached a final state", execution.AgentName, execution.TaskId);

@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
+  <!-- Local-only launcher for the samples with the Aspire dashboard. Uses no containers.
+       No other project references it and no Dockerfile uses it. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AppHost</RootNamespace>
+    <AssemblyName>AppHost</AssemblyName>
+    <!-- Dashboard and orchestrator come from NuGet packages, so only the .NET SDK is needed (no Aspire CLI).
+         ASPIRE010 only says the CLI bundle is off. -->
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../MockEntra/MockEntra.csproj" />
+    <ProjectReference Include="../WebhookReceiver/WebhookReceiver.csproj" />
+    <ProjectReference Include="../AgentServer/AgentServer.csproj" />
+    <ProjectReference Include="../AgentClient/AgentClient.csproj" />
+  </ItemGroup>
+</Project>

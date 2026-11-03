@@ -14,7 +14,7 @@ Config keys can be set in `appsettings.json` or as environment variables (double
 | TLS on HTTP and gRPC | Phase 2 — not implemented |
 | Push signing key from a key store | Phase 2 — not implemented |
 | `PushOptions.AllowPrivateNetworks=false` hardening | Phase 2 — not implemented (the switch exists, the default is already false) |
-| OpenTelemetry / OTLP | Phase 2 — not implemented |
+| OpenTelemetry / OTLP | Built, off by default (see section 6). Pointing it at a real collector on AKS is not verified. |
 | Rate limits, HTTPS redirection, HSTS | Phase 2 — not implemented |
 | Multi-instance support | Phase 2 — not implemented |
 
@@ -90,7 +90,71 @@ Phase 2 — not implemented.
 
 ## 6. Observability (OTLP)
 
-Phase 2 — not implemented. There is no OpenTelemetry code. Add the OpenTelemetry packages for traces, metrics and logs and an OTLP exporter configured by the standard variable `OTEL_EXPORTER_OTLP_ENDPOINT`. Leave it off locally.
+Built, and off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set to a non-empty value. The libraries in `src/` use only `System.Diagnostics` and reference no OpenTelemetry package. The sample hosts add the OpenTelemetry SDK and an OTLP exporter. For a local view, see [samples/AppHost](../samples/AppHost/README.md).
+
+**Source and meter names.**
+
+| Name | Kind | Emitted by |
+|---|---|---|
+| `A2A.Server` | activity source and meter | `A2A.Server` |
+| `A2A.Client` | activity source | `A2A.Client` |
+| `AgentClient` | activity source | the per-flow spans of the AgentClient sample |
+| `Grpc.Net.Client` | activity source | gRPC client calls; AgentClient exports it |
+| `AgentServer.Llm` | activity source | the demo LLM client |
+
+Names are constants in `A2ATelemetryNames` (`src/A2A.Protocol`). If you copy the libraries, add these names to your own exporter.
+
+**Spans.**
+
+- `a2a.server <Method>`: one per A2A operation, the same for JSON-RPC, REST and gRPC. Child of the ASP.NET Core request span. Streaming spans stay open for the whole stream. Attributes: `a2a.method`, `a2a.agent`, `a2a.transport` (`jsonrpc`, `rest`, `grpc`), `a2a.task.id`, `a2a.context.id`, `a2a.tenant` (the last three when known). On errors the status is Error. `error.type` is the A2A error code name, or the exception's full type name for any other exception. A call that the caller cancels is not an error.
+  - Requests that a transport rejects before the handler get no `a2a.server` span. That covers validation errors, an unsupported version or extension, an unknown agent or method, and missing authentication. They show only as the ASP.NET Core request span, with its HTTP status.
+- `a2a.agent.run`: the agent handler's run. It stays in the request's trace even when the run outlives the request. Attributes: `a2a.agent`, `a2a.task.id`, `a2a.context.id`. When the agent throws (and the task was not canceled), the status is Error and `error.type` is the exception's full type name.
+- Event `a2a.task.state` (attribute `a2a.task.state`): one per committed task state change, on the current span.
+- `a2a.push.deliver`: one per webhook delivery, in the trace of the call that queued it. The webhook request carries `traceparent`. Attributes: `a2a.agent`, `a2a.task.id`, `a2a.push.attempt`, `server.address` (host only) and `outcome`. `outcome` is `delivered`, `failed` or `canceled`. `canceled` means shutdown, or the config was deleted during a retry. It is set on the span only; the metric does not count it.
+- `a2a.client <Method>`: one per `IA2AClient` call. Attributes: `a2a.method`, `a2a.agent` (the agent card's name), `a2a.transport`, and `a2a.task.id`, `a2a.context.id` and `a2a.tenant` when known. `error.type` follows the server rule. The HTTP client instrumentation adds the outgoing request span.
+- `flow <name>` (AgentClient sample): one root span per demo flow, so each flow is one trace. The Aspire dashboard shows it as `agentclient: flow <name>`. On failure the status description is only the exception type and the A2A code or HTTP status. The full failure text stays in the console.
+- Demo LLM client spans (`AgentServer.Llm`) come from `UseOpenTelemetry()` in `Microsoft.Extensions.AI`.
+
+**Metrics** (meter `A2A.Server`).
+
+| Name | Type | Tags |
+|---|---|---|
+| `a2a.server.tasks.completed` | counter | `a2a.agent`, `a2a.task.state`. Counts final states only: `completed`, `failed`, `canceled`, `rejected`. Once per task. |
+| `a2a.server.streams.active` | up-down counter | `a2a.agent` |
+| `a2a.server.push.deliveries` | counter | `a2a.agent`, `outcome` (`delivered`, `retried`, `failed`, `dropped`). `dropped` counts once per queued event (the queue was full). The others count per webhook config: `delivered` and `failed` once per delivery, `retried` once per retry. |
+
+The sample hosts also collect the built-in ASP.NET Core and HttpClient meters and the .NET runtime meter (`System.Runtime`). Health check requests (`/health/*`) are left out of traces.
+
+**Logs.** The sample hosts add the OpenTelemetry logging provider with the formatted message and scopes on. Log lines carry the trace ID, so a viewer can link them to a trace. Existing log lines are unchanged.
+
+**Never recorded.** No span name, attribute, event or metric tag holds any of these:
+
+- tokens, API keys, client secrets, credentials and push tokens
+- push signatures and `Authorization` values
+- URL query strings
+- webhook URL paths on the sending side. The push span records the host only. The sample hosts also cut the HttpClient span's `url.full` to `scheme://host[:port]` for webhook requests (requests under an `a2a.push.deliver` span). A receiver that exports its own request spans records its own path; the sample WebhookReceiver does.
+- message, part and artifact content
+- LLM prompts and answers. `EnableSensitiveData` is pinned to `false` in code, even if `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is set.
+
+Tests check this with known secret values.
+
+**Logs show webhook paths.** The `Push to {Url}` log lines print the webhook URL without its query, but with its path. HttpClient's own request logs do the same. With telemetry on, these lines are exported too. Do not put secrets in webhook paths, or treat these logs as secret.
+
+**Logged exceptions are not scrubbed.** When telemetry is on, a logged exception is exported with its message and stack trace. Agent authors must not put secrets or user content in exception messages.
+
+**API notes.**
+
+- `A2AClientFactory.Create` returns a `TracingA2AClient`. Use its `Inner` property to get the transport client. A transport client you construct yourself records no spans.
+- The default `IA2ARequestHandler` from `AddA2AServer` is `TracingRequestHandler`, which wraps `TaskManager`.
+
+**Point it at an OpenTelemetry Collector on AKS.** Set these on each pod (for example in the Deployment env, or from a ConfigMap):
+
+```
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.observability:4317
+OTEL_SERVICE_NAME=agent-server
+```
+
+`OTEL_SERVICE_NAME` is the name shown in the viewer. The defaults are the app names (`agentclient` for the client). Other standard `OTEL_EXPORTER_OTLP_*` variables (protocol, headers) work too. Use a collector address that is reachable only inside the cluster, or add authentication headers. The Aspire AppHost is for local use only; you do not need it on AKS.
 
 ## 7. Limits and hardening
 

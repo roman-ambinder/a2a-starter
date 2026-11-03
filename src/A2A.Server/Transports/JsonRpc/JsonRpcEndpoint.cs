@@ -122,7 +122,7 @@ internal static class JsonRpcEndpoint
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);
             RequestValidation.Validate(parameters);
-            var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, parameters);
+            var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, parameters, A2ATelemetryNames.TransportJsonRpc);
             var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
             if (method.Stream is { } stream)

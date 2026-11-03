@@ -1,6 +1,7 @@
 using A2A.Server.Agents;
 using A2A.Server.Auth;
 using A2A.Server.Push;
+using A2A.Server.Telemetry;
 using A2A.Server.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +15,7 @@ public static class A2AServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, <see cref="TaskManager"/>
-    /// as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/>,
+    /// wrapped in <see cref="TracingRequestHandler"/> as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/>,
     /// <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>) and a startup check
     /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
@@ -50,7 +51,7 @@ public static class A2AServiceCollectionExtensions
             sp.GetRequiredService<IPushConfigStore>(),
             sp.GetRequiredService<IOptions<PushOptions>>().Value,
             sp.GetRequiredService<IOwnerResolver>()));
-        services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<TaskManager>());
+        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
 
         services.AddGrpc();
         services.AddAuthorization();

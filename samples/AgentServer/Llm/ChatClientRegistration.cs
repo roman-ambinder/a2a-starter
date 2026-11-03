@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using SampleTelemetry;
 
 namespace AgentServer.Llm;
 
@@ -11,7 +12,7 @@ public static class ChatClientRegistration
     private static readonly string[] Phase2Providers = ["AzureOpenAI", "OpenAI", "Anthropic", "Ollama"];
 
     /// <summary>
-    /// <c>Fake</c> (default) → singleton <see cref="FakeChatClient"/>. <c>AzureOpenAI</c>, <c>OpenAI</c>, <c>Anthropic</c>, <c>Ollama</c> →
+    /// <c>Fake</c> (default) → singleton <see cref="FakeChatClient"/>, wrapped with OpenTelemetry only when telemetry is on. <c>AzureOpenAI</c>, <c>OpenAI</c>, <c>Anthropic</c>, <c>Ollama</c> →
     /// <see cref="NotSupportedException"/> "planned for Phase 2". Any other name → <see cref="NotSupportedException"/>.
     /// Names are case-insensitive.
     /// </summary>
@@ -22,7 +23,13 @@ public static class ChatClientRegistration
         var provider = configuration[ProviderKey];
         if (string.IsNullOrWhiteSpace(provider) || provider.Equals(FakeProvider, StringComparison.OrdinalIgnoreCase))
         {
-            services.AddSingleton<IChatClient, FakeChatClient>();
+            if (SampleTelemetryExtensions.IsEnabled(configuration))
+                // Pinned to false: the library default can be flipped by OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT,
+                // and prompts and answers must never reach a span.
+                services.AddChatClient(sp => ActivatorUtilities.CreateInstance<FakeChatClient>(sp))
+                    .UseOpenTelemetry(sourceName: SampleTelemetryExtensions.LlmSource, configure: c => c.EnableSensitiveData = false);
+            else
+                services.AddSingleton<IChatClient, FakeChatClient>();
             return services;
         }
 

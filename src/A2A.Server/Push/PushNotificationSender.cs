@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Channels;
 using A2A.Protocol;
 using A2A.Server.Tasks;
+using A2A.Server.Telemetry;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -56,9 +58,13 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
     /// <summary>Queues the event. Never blocks and never throws; if the queue is full the event is dropped and logged.</summary>
     public ValueTask OnTaskEventAsync(StoredTask task, StreamResponse evt, CancellationToken ct)
     {
-        var item = new PushWorkItem(task.AgentName, task.Task.Id, evt, TaskStateRules.IsTerminal(task.Task.Status.State));
+        var item = new PushWorkItem(task.AgentName, task.Task.Id, evt, TaskStateRules.IsTerminal(task.Task.Status.State),
+            Activity.Current?.Context ?? default); // the delivery span joins the trace of whatever committed the event
         if (!_channel.Writer.TryWrite(item))
+        {
             _logger.LogWarning("Push queue is full; dropped an event of task {TaskId}", item.TaskId);
+            CountDelivery(item.AgentName, "dropped");
+        }
         return ValueTask.CompletedTask;
     }
 
@@ -145,11 +151,28 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
     {
         var target = Uri.TryCreate(config.Url, UriKind.Absolute, out var url) ? url : null;
         if (target is null) return;
+
+        // The HttpClient call runs inside this span, so the request carries its traceparent.
+        // Only the host is recorded: the rest of the URL may hold secrets.
+        using var span = ServerInstruments.Source.StartActivity("a2a.push.deliver", ActivityKind.Internal, item.Parent);
+        span?.SetTag(A2ATelemetryNames.Agent, item.AgentName);
+        span?.SetTag(A2ATelemetryNames.TaskId, item.TaskId);
+        span?.SetTag(A2ATelemetryNames.ServerAddress, target.Host);
+        var outcome = await AttemptDeliveryAsync(item, config, target, body, span, ct).ConfigureAwait(false);
+        span?.SetTag(A2ATelemetryNames.Outcome, outcome);
+        if (outcome == "failed") span?.SetStatus(ActivityStatusCode.Error);
+        if (outcome != "canceled") CountDelivery(item.AgentName, outcome);
+    }
+
+    /// <summary>Sends with retries. Returns "delivered", "failed" or "canceled" (shutdown, or the config was deleted); counts each retry.</summary>
+    private async Task<string> AttemptDeliveryAsync(PushWorkItem item, TaskPushNotificationConfig config, Uri target, byte[] body, Activity? span, CancellationToken ct)
+    {
         var where = target.GetLeftPart(UriPartial.Path); // no query string in logs: it may hold secrets
         var attempts = 1 + Math.Max(0, _options.MaxRetries);
 
         for (var attempt = 1; attempt <= attempts; attempt++)
         {
+            span?.SetTag(A2ATelemetryNames.PushAttempt, attempt);
             string failure;
             try
             {
@@ -158,18 +181,18 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
                 timeout.CancelAfter(_options.Timeout);
                 using var response = await _httpClients.CreateClient(HttpClientName)
                     .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode) return;
+                if (response.IsSuccessStatusCode) return "delivered";
                 failure = $"HTTP {(int)response.StatusCode}";
                 var code = (int)response.StatusCode;
                 if (code is >= 400 and < 500 && code is not (408 or 429))
                 {
                     _logger.LogWarning("Push to {Url} for task {TaskId} was rejected ({Failure}); not retrying", where, item.TaskId, failure);
-                    return;
+                    return "failed";
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
-                return;
+                return "canceled";
             }
             catch (Exception ex)
             {
@@ -179,18 +202,25 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
             if (attempt == attempts)
             {
                 _logger.LogWarning("Push to {Url} for task {TaskId} failed after {Attempts} attempts ({Failure}); giving up", where, item.TaskId, attempts, failure);
-                return;
+                return "failed";
             }
 
+            CountDelivery(item.AgentName, "retried");
             var delay = _options.InitialBackoff * Math.Pow(2, attempt - 1);
             _logger.LogInformation("Push to {Url} for task {TaskId} failed ({Failure}); retry {Attempt} of {Retries} in {Delay}", where, item.TaskId, failure, attempt, attempts - 1, delay);
             try { await Task.Delay(delay, _time, ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) { return; }
+            catch (OperationCanceledException) { return "canceled"; }
 
             // Stop retrying a config that was deleted in the meantime.
-            if (await _store.GetAsync(item.AgentName, item.TaskId, config.Id ?? "", ct).ConfigureAwait(false) is null) return;
+            if (await _store.GetAsync(item.AgentName, item.TaskId, config.Id ?? "", ct).ConfigureAwait(false) is null) return "canceled";
         }
+        return "failed"; // not reached: the last attempt returns above
     }
+
+    private static void CountDelivery(string agent, string outcome)
+        => ServerInstruments.PushDeliveries.Add(1,
+            new KeyValuePair<string, object?>(A2ATelemetryNames.Agent, agent),
+            new KeyValuePair<string, object?>(A2ATelemetryNames.Outcome, outcome));
 
     private HttpRequestMessage BuildRequest(PushWorkItem item, TaskPushNotificationConfig config, Uri url, byte[] body)
     {

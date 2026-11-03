@@ -7,6 +7,9 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../SampleTelemetry/SampleTelemetry.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Copied to a subfolder so it does not collide with other samples' appsettings.json in one output folder
          (integration tests). WebhookReceiverApp uses this folder as content root. -->
     <Content Update="appsettings*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"

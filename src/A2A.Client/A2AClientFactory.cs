@@ -13,6 +13,7 @@ public static class A2AClientFactory
     /// preference, or when the card does not offer it, the first interface in card order with a supported binding is used.
     /// Throws <see cref="NotSupportedException"/>, listing the card's bindings, when there is none. The chosen interface's
     /// <c>tenant</c> becomes the client's default tenant (used when a request's tenant is empty).
+    /// The result is a <see cref="TracingA2AClient"/> (one span per call); its <see cref="TracingA2AClient.Inner"/> is the transport client.
     /// </summary>
     public static IA2AClient Create(AgentCard card, A2AClientOptions options)
     {
@@ -37,9 +38,11 @@ public static class A2AClientFactory
             throw new NotSupportedException($"The agent card's {chosen.ProtocolBinding} interface has an invalid URL: '{chosen.Url}'.");
         // The interface's tenant is the default for requests that do not set one.
         var tenant = string.IsNullOrEmpty(chosen.Tenant) ? null : chosen.Tenant;
-        if (Is(chosen, A2AConstants.BindingRest)) return new RestA2AClient(url, card, options, tenant);
-        if (Is(chosen, A2AConstants.BindingGrpc)) return new GrpcA2AClient(url, card, options, tenant);
-        return new JsonRpcA2AClient(url, card, options, tenant);
+        if (Is(chosen, A2AConstants.BindingRest))
+            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportRest, tenant);
+        if (Is(chosen, A2AConstants.BindingGrpc))
+            return new TracingA2AClient(new GrpcA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportGrpc, tenant);
+        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportJsonRpc, tenant);
     }
 
     private static bool Is(AgentInterface i, string binding) => string.Equals(i.ProtocolBinding, binding, StringComparison.OrdinalIgnoreCase);
