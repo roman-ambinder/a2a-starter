@@ -808,7 +808,9 @@ jobs:
       # full job, all categories except Db; plus Db on Sundays or when inputs.db;
       # PerfTool startup, PerfTool size-report (after dotnet pack);
       # download the previous nightly artifact (actions/download-artifact with run-id lookup, or the gh-pages data file);
-      # PerfTool nightly ...; upload BDN JSON + markdown + nightly-summary.* as an artifact, retention-days: 90;
+      # PerfTool nightly ...; upload BDN JSON + markdown as artifact "perf-nightly-results", retention-days: 90;
+      # upload nightly-summary.json + nightly-summary.md as a separate artifact with the fixed name "perf-nightly-summary",
+      #   retention-days: 90 (13's docs publish downloads it by that name; do not rename it without changing 13's Task 15);
       # benchmark-action/github-action-benchmark (tool: benchmarkdotnet) for the chart, auto-push to the data branch,
       #   comment-on-alert: true, alert-threshold: '120%', fail-on-alert: false;
       # on PerfTool exit code 2, comment on the commit with the alert table.
