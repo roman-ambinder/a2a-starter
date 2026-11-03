@@ -136,7 +136,12 @@ public sealed record StoredTask
     public StoredCaller? Caller { get; init; }           // reduced caller for runs on other pods and recovery (07, B8)
 }
 
-public sealed record TaskRunner(string InstanceId, DateTimeOffset ClaimedAt);
+// TaskRunner, TaskWrite, TaskPage, StoredPushConfig and PushConfigPage are property records. Owner decision 2026-11-03 (spec 02 §4): these five records have no positional constructor, so a new member later is not a breaking change.
+public sealed record TaskRunner
+{
+    public required string InstanceId { get; init; }
+    public required DateTimeOffset ClaimedAt { get; init; }
+}
 
 // Reduced caller, persisted with the task (B8). Never holds an access token.
 public sealed record StoredCaller
@@ -194,7 +199,11 @@ public interface ITaskStore
     ValueTask<int> PurgeExpiredAsync(DateTimeOffset now, int max, CancellationToken ct);
 }
 
-public sealed record TaskWrite(StoredTask Task, IReadOnlyList<OutboxEntry> Outbox);
+public sealed record TaskWrite
+{
+    public required StoredTask Task { get; init; }
+    public IReadOnlyList<OutboxEntry> Outbox { get; init; } = [];
+}
 public readonly record struct CreateResult(StoredTask Task, bool Created);
 ```
 
@@ -217,7 +226,12 @@ public sealed record TaskQuery
 
 public readonly record struct TaskCursor(DateTimeOffset StatusTimestamp, string TaskId);
 
-public sealed record TaskPage(IReadOnlyList<AgentTask> Tasks, TaskCursor? Next, int TotalSize);
+public sealed record TaskPage
+{
+    public required IReadOnlyList<AgentTask> Tasks { get; init; }
+    public TaskCursor? Next { get; init; }
+    public required int TotalSize { get; init; }
+}
 ```
 
 Rules every store must follow (all in the conformance suite):
@@ -336,13 +350,20 @@ public interface IPushConfigStore
 }
 
 public readonly record struct TaskRef(TaskKey Key, string Owner);   // from a loaded StoredTask
-public sealed record StoredPushConfig(TaskPushNotificationConfig Config, long CreatedSequence, DateTimeOffset CreatedAt)
+public sealed record StoredPushConfig
 {
+    public required TaskPushNotificationConfig Config { get; init; }
+    public required long CreatedSequence { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
     // Opaque protocol version of the API that created the config ("1.0", or "0.3" from package 15).
     // Package 08 picks the payload formatter by it. Null means "1.0".
     public string? ProtocolVersion { get; init; }
 }
-public sealed record PushConfigPage(IReadOnlyList<StoredPushConfig> Configs, long? NextAfter);
+public sealed record PushConfigPage
+{
+    public required IReadOnlyList<StoredPushConfig> Configs { get; init; }
+    public long? NextAfter { get; init; }
+}
 ```
 
 `UpsertAsync` takes the protocol version as a nullable parameter (`null` means "1.0") and stores it unchanged. The core passes the call's `A2ACallContext.ProtocolVersion`, so a config created through package 15's 0.3 methods is stored with `"0.3"`. *(Reconciled: the text said "optional parameter", which cannot precede `ct`; the code block now shows the parameter.)*
