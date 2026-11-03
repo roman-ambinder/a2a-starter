@@ -67,10 +67,15 @@ internal static class RestEndpoints
         try
         {
             var path = http.Request.RouteValues["path"] as string ?? "";
-            var restPath = path.Length == 0 ? default : new PathString("/" + path);
-            // The path tenant is only known for the 1.0 routes; another version's paths are the dispatcher's to read.
+            // For a version the core does not serve, the paths are the dispatcher's to read. A tenant prefix is taken only in the
+            // form {tenant}/v1/..., so that /v1/tasks/t1 is not read as tenant "v1"; RestPath then excludes the prefix.
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var hasPrefix = segments.Length >= 2 && segments[0] != "v1" && segments[1] == "v1";
+            var prefixTenant = hasPrefix ? segments[0] : null;
+            var dispatchPath = hasPrefix ? string.Join('/', segments[1..]) : path;
+            var restPath = dispatchPath.Length == 0 ? default : new PathString("/" + dispatchPath);
             var (handled, caller) = await TransportRequest.TryDispatchVersionAsync(http, agent, A2AConstants.BindingRest, restPath,
-                supported => supported ? Resolve(http.Request.Method, path, out _)?.Tenant : null).ConfigureAwait(false);
+                supported => supported ? Resolve(http.Request.Method, path, out _)?.Tenant : prefixTenant).ConfigureAwait(false);
             if (handled) return;
             await DispatchAsync(http, agent, caller, options, logger, ct).ConfigureAwait(false);
         }

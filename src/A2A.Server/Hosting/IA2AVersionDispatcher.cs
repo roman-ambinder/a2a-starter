@@ -50,9 +50,15 @@ internal sealed class A2AVersionDispatchContext
     /// <summary>The authenticated caller, with the same owner rules as 1.0 requests.</summary>
     public required DispatchCaller Caller { get; init; }
 
-    /// <summary>The resolved tenant; empty when the agent has none.</summary>
+    /// <summary>
+    /// The resolved tenant; empty when the agent has none. For REST on a version the core does not serve, a tenant prefix is read
+    /// only from a path of the form <c>{tenant}/v1/...</c> (first segment not <c>v1</c>, second segment <c>v1</c>); other paths give an empty tenant.
+    /// </summary>
     public required string Tenant { get; init; }
 
-    /// <summary>For REST, the path after the agent's REST base (for example <c>/v1/tasks/t1</c>); empty for JSON-RPC.</summary>
+    /// <summary>
+    /// For REST, the path after the agent's REST base (for example <c>/v1/tasks/t1</c>), without a tenant prefix of the form
+    /// <c>{tenant}/v1/...</c> (that prefix is in <see cref="Tenant"/>); other paths are unchanged. Empty for JSON-RPC.
+    /// </summary>
     public required PathString RestPath { get; init; }
 }

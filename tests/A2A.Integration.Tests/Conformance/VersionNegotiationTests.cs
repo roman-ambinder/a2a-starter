@@ -221,6 +221,39 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
     }
 
     [Theory]
+    [InlineData("acme/v1/tasks/t1/pushNotificationConfigs", "acme", "/v1/tasks/t1/pushNotificationConfigs")]
+    [InlineData("v1/tasks/t1", "", "/v1/tasks/t1")]
+    public async Task Rest_tenant_prefix_is_read_only_before_v1(string path, string tenant, string restPath)
+    {
+        var dispatcher = new FakeDispatcher();
+        await using var server = await StartExtraServerAsync(services => services.AddSingleton<IA2AVersionDispatcher>(dispatcher));
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{A2ATestHost.AgentServerBaseUrl(ExtraPortBase)}/agents/echo/rest/{path}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        using var response = await host.Http.SendAsync(request, Ct);
+
+        Assert.Equal(DispatcherStatus, (int)response.StatusCode);
+        var context = Assert.Single(dispatcher.Calls).Context;
+        Assert.Equal(tenant, context.Tenant);
+        Assert.Equal(restPath, context.RestPath.Value);
+    }
+
+    [Fact]
+    public async Task Version_1_0_request_to_a_path_1_0_lacks_is_not_dispatched()
+    {
+        var dispatcher = new FakeDispatcher();
+        await using var server = await StartExtraServerAsync(services => services.AddSingleton<IA2AVersionDispatcher>(dispatcher));
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{A2ATestHost.AgentServerBaseUrl(ExtraPortBase)}/agents/echo/rest/v1/tasks/t1/nothing-here");
+        request.Headers.Add(A2AConstants.VersionHeader, "1.0");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        using var response = await host.Http.SendAsync(request, Ct);
+
+        Assert.Contains((int)response.StatusCode, new[] { 404, 405 });
+        Assert.Empty(dispatcher.Calls);
+    }
+
+    [Theory]
     [InlineData("jsonrpc")]
     [InlineData("rest")]
     public async Task Anonymous_request_to_an_agent_requiring_auth_gets_401_and_skips_the_dispatcher(string transport)
