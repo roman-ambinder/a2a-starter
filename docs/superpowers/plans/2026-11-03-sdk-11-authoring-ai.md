@@ -95,6 +95,8 @@ This plan was checked against the plans merged after it (03, 05, 06, 07, 09, 10,
 | 9 | 16's interop SUT agent lives in `tests/Ambinder.A2A.Interop.Tests`, not in `samples/AgentServer` | wording fixed; 16's interop run is still a gate for the rewrite | 20 |
 | 10 | the forwarded-run half of B8 was left to 06, but 06's plan has no such test | added here, run when 06 has landed | 10 |
 | 11 | ordering of the outgoing hook versus 08's push contributor was unstated | the hook runs first, so push payloads carry extension metadata | 12 |
+| 12 | on a continuation forwarded by 06, the owner pod skips slot 400 (B5), and `ClusterCallContext` carries only `RequestedExtensions`, so the agent saw no active extensions and no outgoing hook ran | the core recomputes activation from `RequestedExtensions` on forwarded calls (no required check, no request hook) | 12 |
+| 13 | `ConversationOptions.MaxTasks` had no upper bound, but it becomes 05's `TaskQuery.PageSize` (1..100) | validate 1..100 | 9 |
 
 ---
 
@@ -345,6 +347,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - Continuation: the current task's history comes from `CurrentTask.History`; for a new task the current `Message` is last.
   - De-duplication by `messageId`.
   - `MaxMessages` keeps the newest; `MaxTasks` caps tasks; `IncludeNonText = false` turns a file part into `[file report.csv, text/csv]`.
+  - `MaxTasks` must be 1 to 100, because it becomes 05's `TaskQuery.PageSize`, which allows only 1..100 ("already validated: 1..100"). A value outside that range throws `ArgumentOutOfRangeException` naming `ConversationOptions.MaxTasks` when `GetConversationAsync` is called, and at startup for `ChatAgentOptions.Conversation` (review item 13).
   - The result is cached for the life of the context (the store's `ListAsync` is called once for two calls; use a counting store decorator).
   - A reply (`ReplyAsync`) turn is not visible in the next turn (rule 5).
 - [ ] **Step 2:** Run. Expected: FAIL.
@@ -402,6 +405,10 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - Outgoing hook: `SetMetadata<T>` on a status message, an artifact and a reply merges into `metadata[Uri]` and adds `Uri` to that message's or artifact's `extensions`; hooks run in registration order.
   - `context.Extension<T>()` returns the instance when active, null otherwise; `ActivatedExtensions` lists instances; `ActiveExtensions` (URIs) unchanged.
   - The outgoing hook runs in the sink **before** `TaskWriter.CommitAsync`, so 08's `PushOutboxContributor` (an `ITaskWriteContributor`, run inside the commit) sees the hook's metadata. Test: with push configured, the delivered push payload carries `metadata[Uri]` set by the hook (review item 11). Skip this case if 08 has not landed, and list it.
+  - **Forwarded continuations (06, review item 12).** On the owner pod, B5 runs only tracing and the handler, so slot 400 never runs there, and 06's `ClusterCallContext` carries `RequestedExtensions`, not the activated list. Without a fix, a continuation forwarded to the previous runner gives the agent an empty `ActiveExtensions`, `Extension<T>()` returns null, and no outgoing hook runs. So when `call.IsForwarded` is true, the core computes the active list from `call.RequestedExtensions` with the same activation function the middleware uses: exact URI match against the agent's registered extensions. This runs in `TaskManager` (or the terminal delegate), not in the pipeline.
+    - It does **not** re-run the required check or `OnRequestAsync`. Both ran once on the receiving pod (B5), and any `Replace(message)` is already in the forwarded request.
+    - The echo stays the receiving pod's.
+    - Test, when 06 has landed: with two hosts and `ContinuationAffinity = PreferPreviousRunner`, a continuation forwarded to the previous runner sees `context.Extension<T>()` non-null, and its status message carries `metadata[Uri]` from the outgoing hook. If 06 has not landed, list the test as an M2 follow-up for 06's cluster suite.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement per §0.3 item 1. Typed metadata access uses only `JsonTypeInfo<T>`.
 - [ ] **Step 4:** Run the full suite (03's extension tests must stay green). Expected: PASS.
