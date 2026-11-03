@@ -274,7 +274,7 @@ Provides:
 
 ## Acceptance criteria
 
-- [ ] `tck` CI job runs on every PR, all three transports, in one run with no `--level`; required for merge two weeks after it lands (C13); zero MUST failures and no MUST entry in `tck/known-issues.json`; every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3).
+- [ ] `tck` CI job runs on every PR, all three transports, in one run with no `--level`; required for merge two weeks after it lands (C13); zero MUST failures and a MUST entry in `tck/known-issues.json` only as `kind: "tck-bug"` with a `spec` citation and upstream issue (amended C3); every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3).
 - [ ] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
 - [ ] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
 - [ ] Tests, each on JSON-RPC, REST and gRPC (use `tests/A2A.Integration.Tests/Fixtures/TransportMatrix.cs`):

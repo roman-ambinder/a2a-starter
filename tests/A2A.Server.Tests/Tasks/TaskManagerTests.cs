@@ -449,6 +449,84 @@ public class TaskManagerTests
     }
 
     [Fact]
+    public async Task Cancel_handler_setting_working_on_paused_task_still_cancels()
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = (_, sink, ct) => sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+        A2AException? rejected = null;
+        host.Scripts.Cancel = async (_, sink, ct) =>
+        {
+            try { await sink.UpdateStatusAsync(TaskState.Working, null, ct); }
+            catch (A2AException ex) { rejected = ex; throw; }
+        };
+        var task = (await host.SendAsync(TestHost.Text("go"))).Task!;
+
+        var canceled = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, rejected?.Code);
+        Assert.Equal(TaskState.Canceled, canceled.Status.State);
+        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+    }
+
+    [Theory]
+    [InlineData(TaskState.InputRequired, "completed")]
+    [InlineData(TaskState.AuthRequired, "working")]
+    [InlineData(TaskState.AuthRequired, "reply")]
+    [InlineData(TaskState.InputRequired, "bad-artifact")]
+    public async Task Illegal_cancel_handler_event_on_paused_task_still_cancels(TaskState paused, string illegalEvent)
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = (_, sink, ct) => sink.UpdateStatusAsync(paused, null, ct);
+        A2AException? rejected = null;
+        host.Scripts.Cancel = async (_, sink, ct) =>
+        {
+            try
+            {
+                switch (illegalEvent)
+                {
+                    case "completed": await sink.UpdateStatusAsync(TaskState.Completed, null, ct); break;
+                    case "working": await sink.UpdateStatusAsync(TaskState.Working, null, ct); break;
+                    case "reply": await sink.ReplyAsync(TestHost.AgentText("hi"), ct); break;
+                    default: await sink.AddArtifactAsync(new Artifact(), append: false, lastChunk: true, ct); break;
+                }
+            }
+            catch (A2AException ex) { rejected = ex; }
+        };
+        var task = (await host.SendAsync(TestHost.Text("go"))).Task!;
+
+        var canceled = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, rejected?.Code);
+        Assert.Equal(TaskState.Canceled, canceled.Status.State);
+        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+    }
+
+    [Fact]
+    public async Task Cancel_handler_event_after_it_paused_the_task_still_cancels()
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = async (_, sink, ct) =>
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await Task.Delay(Timeout.Infinite, ct);
+        };
+        A2AException? rejected = null;
+        host.Scripts.Cancel = async (_, sink, ct) =>
+        {
+            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+            try { await sink.UpdateStatusAsync(TaskState.Working, null, ct); }
+            catch (A2AException ex) { rejected = ex; }
+        };
+        var task = (await host.SendAsync(TestHost.Text("go", returnImmediately: true))).Task!;
+
+        var canceled = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, rejected?.Code);
+        Assert.Equal(TaskState.Canceled, canceled.Status.State);
+        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+    }
+
+    [Fact]
     public async Task Event_after_terminal_state_is_rejected_and_task_unchanged()
     {
         var host = new TestHost();

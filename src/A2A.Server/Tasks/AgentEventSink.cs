@@ -152,7 +152,8 @@ internal sealed class AgentEventSink : IAgentEventSink
     /// <summary>
     /// After this execution paused the task, any further event is illegal (D13: only the server leaves an
     /// interrupted state). If the task is still as this execution left it, the task ends FAILED; if a
-    /// continuation moved it on, the event is only rejected so the newer run is not disturbed.
+    /// continuation moved it on, the event is only rejected so the newer run is not disturbed. The cancel
+    /// sink never fails an interrupted task (see <see cref="FailLockedAsync"/>).
     /// </summary>
     private async ValueTask ThrowIfPausedLockedAsync(string message)
     {
@@ -202,6 +203,8 @@ internal sealed class AgentEventSink : IAgentEventSink
             if (stored is not null) _done = true;
             return;
         }
+        // D13: a cancel request ends an interrupted task as CANCELED, so the cancel sink only rejects the event.
+        if (_execution is null && TaskStateRules.IsInterrupted(stored.Task.Status.State)) return;
         stored = await _writer.CommitStatusAsync(stored, TaskState.Failed, TaskWriter.AgentMessage(text, _taskId, _contextId)).ConfigureAwait(false);
         AfterEventLocked(stored);
     }

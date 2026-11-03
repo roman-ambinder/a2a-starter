@@ -30,13 +30,13 @@ public static class ServiceParameters
 
     /// <summary>
     /// Throws <see cref="A2AErrorCode.VersionNotSupported"/> (data <c>{"supportedVersions":["1.0"]}</c>) unless the version's
-    /// <c>Major.Minor</c> is "1.0". A patch part (<c>1.0.1</c>) is ignored (spec 3.6). An empty value means A2A 0.3 (spec 3.6.2),
+    /// <c>Major.Minor</c> is "1.0". A patch part (<c>1.0.1</c>) is ignored (spec 3.6). An empty or whitespace value means A2A 0.3 (spec 3.6.2),
     /// which this server does not serve.
     /// </summary>
     public static void EnsureSupportedVersion(string? version)
     {
         if (IsSupportedVersion(version)) return;
-        var message = string.IsNullOrEmpty(version)
+        var message = string.IsNullOrWhiteSpace(version)
             ? $"No {A2AConstants.VersionHeader} header was sent, so the request is treated as A2A 0.3. This agent supports " +
               $"{A2AConstants.ProtocolVersion}. Send the header '{A2AConstants.VersionHeader}: {A2AConstants.ProtocolVersion}'."
             : $"A2A version '{version}' is not supported. Supported: {A2AConstants.ProtocolVersion}. " +

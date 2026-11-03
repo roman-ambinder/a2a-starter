@@ -14,6 +14,11 @@ namespace A2A.Server.Hosting;
 /// <c>capabilities.extensions</c>; new keys in <c>securitySchemes</c>; and <c>securityRequirements</c> (on the card or a skill)
 /// where none is set. It must not change or remove anything already there. Debug builds assert this after each contributor.
 /// The extended card that JSON-RPC and REST serve carries every added member; gRPC carries only what its card message can hold.
+/// <para>
+/// Contributors are resolved once from the root provider, so they must be singleton-safe, not scoped. <see cref="Contribute"/> may
+/// run concurrently on two threads, so it must be thread-safe. A contributor that adds a member of the wrong type makes the card
+/// endpoint fail (500).
+/// </para>
 /// </remarks>
 public interface IAgentCardContributor
 {
