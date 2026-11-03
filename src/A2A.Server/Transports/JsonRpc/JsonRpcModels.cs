@@ -27,31 +27,31 @@ internal static class JsonRpcMessages
         error = null;
         if (root.ValueKind == JsonValueKind.Array)
         {
-            error = new A2AException(A2AErrorCode.InvalidRequest, "Batch requests are not supported.");
+            error = new A2AException(A2AErrorCode.InvalidRequest, "Batch requests are not supported. Send one request per HTTP call.");
             return false;
         }
         if (root.ValueKind != JsonValueKind.Object)
         {
-            error = new A2AException(A2AErrorCode.InvalidRequest, "The request must be a JSON object.");
+            error = new A2AException(A2AErrorCode.InvalidRequest, "The request must be a JSON object. Send one JSON-RPC request object.");
             return false;
         }
         if (root.TryGetProperty("id", out var idElement))
         {
             if (idElement.ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.Null))
             {
-                error = new A2AException(A2AErrorCode.InvalidRequest, "id must be a string, a number or null.");
+                error = new A2AException(A2AErrorCode.InvalidRequest, "id must be a string, a number or null. Change the id.");
                 return false;
             }
             id = idElement.Clone();
         }
         if (!root.TryGetProperty("jsonrpc", out var v) || v.ValueKind != JsonValueKind.String || v.GetString() != Version)
         {
-            error = new A2AException(A2AErrorCode.InvalidRequest, "jsonrpc must be \"2.0\".");
+            error = new A2AException(A2AErrorCode.InvalidRequest, "jsonrpc must be \"2.0\". Set \"jsonrpc\": \"2.0\".");
             return false;
         }
         if (!root.TryGetProperty("method", out var m) || m.ValueKind != JsonValueKind.String || m.GetString() is not { Length: > 0 } method)
         {
-            error = new A2AException(A2AErrorCode.InvalidRequest, "method must be a non-empty string.");
+            error = new A2AException(A2AErrorCode.InvalidRequest, "method must be a non-empty string. Send the method name, for example SendMessage.");
             return false;
         }
         var parameters = root.TryGetProperty("params", out var p) ? p.Clone() : default;

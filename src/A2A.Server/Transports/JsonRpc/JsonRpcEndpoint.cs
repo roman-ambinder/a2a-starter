@@ -82,7 +82,7 @@ internal static class JsonRpcEndpoint
             }
             catch (JsonException)
             {
-                await WriteJsonAsync(http, JsonRpcMessages.Error(default, new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON."))).ConfigureAwait(false);
+                await WriteJsonAsync(http, JsonRpcMessages.Error(default, new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON. Send one JSON-RPC request object."))).ConfigureAwait(false);
                 return;
             }
 
@@ -118,7 +118,7 @@ internal static class JsonRpcEndpoint
             var (version, extensions) = ServiceParameters.Read(http);
             TransportRequest.EnsureVersion(version);
             if (!Methods.TryGetValue(request.Method, out method!))
-                throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
+                throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist. Use a method from the A2A specification.");
             if (method.IsExtendedCard)
             {
                 TransportRequest.AuthorizeExtendedCard(agent, caller);

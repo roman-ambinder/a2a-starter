@@ -137,7 +137,7 @@ internal static class ClientSupport
         message ??= "";
         if (data is { } d && FindErrorInfo(d) is { } found)
             return new A2AException(found.Code, message, found.Metadata);
-        var raw = data is { ValueKind: JsonValueKind.Array } ? null : data;
+        var raw = data is { ValueKind: JsonValueKind.Array } arr ? FindMetadata(arr) : data;
         if (Enum.IsDefined(typeof(A2AErrorCode), code))
             return new A2AException((A2AErrorCode)code, message, raw);
         return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", raw);
@@ -163,6 +163,26 @@ internal static class ClientSupport
                     .Where(p => p.Value.ValueKind == JsonValueKind.String)
                     .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
             return (code, metadata);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The string metadata of the first google.rpc.ErrorInfo in a detail array, whatever its reason (null when empty or none).
+    /// For errors without a catalog reason, such as the trace id on an internal error.
+    /// </summary>
+    public static JsonElement? FindMetadata(JsonElement details)
+    {
+        if (details.ValueKind != JsonValueKind.Array) return null;
+        foreach (var detail in details.EnumerateArray())
+        {
+            if (detail.ValueKind != JsonValueKind.Object) continue;
+            if (!detail.TryGetProperty("@type", out var type) || type.ValueKind != JsonValueKind.String || type.GetString() != ErrorInfoType) continue;
+            if (detail.TryGetProperty("metadata", out var md) && md.ValueKind == JsonValueKind.Object)
+                return MetadataToData(md.EnumerateObject()
+                    .Where(p => p.Value.ValueKind == JsonValueKind.String)
+                    .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
+            return null;
         }
         return null;
     }

@@ -8,7 +8,7 @@ internal static class RequestValidator
     public static void ValidateHistoryLength(int? historyLength)
     {
         if (historyLength is < 0)
-            throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative. Send 0 or more, or omit it.");
     }
 
     /// <summary>Longest client <c>contextId</c> accepted (spec 3.4.1 lets the server reject ids it cannot accept).</summary>
@@ -33,17 +33,17 @@ internal static class RequestValidator
     {
         var message = request.Message;
         if (string.IsNullOrEmpty(message.MessageId))
-            throw new A2AException(A2AErrorCode.InvalidParams, "message.messageId is required.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "message.messageId is required. Send a unique id for each message.");
         if (message.Role == Role.Unspecified)
             throw new A2AException(A2AErrorCode.InvalidParams, "message.role is missing or has an unknown value; use ROLE_USER.");
         if (message.Role != Role.User)
-            throw new A2AException(A2AErrorCode.InvalidParams, "message.role must be ROLE_USER.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "message.role must be ROLE_USER. Clients send user messages only.");
         if (message.Parts.Count == 0)
-            throw new A2AException(A2AErrorCode.InvalidParams, "message.parts must not be empty.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "message.parts must not be empty. Send at least one part.");
         for (var i = 0; i < message.Parts.Count; i++)
         {
             if (!message.Parts[i].IsValid)
-                throw new A2AException(A2AErrorCode.InvalidParams, $"message.parts[{i}] must set exactly one of text, raw, url or data.");
+                throw new A2AException(A2AErrorCode.InvalidParams, $"message.parts[{i}] must set exactly one of text, raw, url or data. Remove the extra fields.");
         }
         ValidateContextId(message.ContextId);
         ValidateHistoryLength(request.Configuration?.HistoryLength);
@@ -54,7 +54,7 @@ internal static class RequestValidator
         {
             var mediaType = part.EffectiveMediaType;
             if (!modes.Any(mode => MediaTypeMatches(mode, mediaType)))
-                throw new A2AException(A2AErrorCode.ContentTypeNotSupported, $"Media type '{mediaType}' is not supported by this agent.");
+                throw new A2AException(A2AErrorCode.ContentTypeNotSupported, $"Media type '{mediaType}' is not supported by this agent. Send a type from the card's defaultInputModes.");
         }
     }
 
@@ -64,7 +64,7 @@ internal static class RequestValidator
         var declared = card.Capabilities.Extensions;
         var missing = declared.Where(e => e.Required && e.Uri is { Length: > 0 } && !requested.Contains(e.Uri)).Select(e => e.Uri).ToList();
         if (missing.Count > 0)
-            throw new A2AException(A2AErrorCode.ExtensionSupportRequired, $"Required extension(s) not requested: {string.Join(", ", missing)}.");
+            throw new A2AException(A2AErrorCode.ExtensionSupportRequired, $"Required extension(s) not requested: {string.Join(", ", missing)}. Send them in the A2A-Extensions header.");
 
         return ActiveExtensions(card, requested);
     }

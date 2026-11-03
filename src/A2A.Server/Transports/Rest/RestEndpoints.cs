@@ -107,7 +107,7 @@ internal static class RestEndpoints
                     $"Method {http.Request.Method} is not allowed here.").ConfigureAwait(false);
                 return;
             }
-            throw new A2AException(A2AErrorCode.MethodNotFound, $"No operation at '/{path}'.");
+            throw new A2AException(A2AErrorCode.MethodNotFound, $"No operation at '/{path}'. Use a path from the A2A HTTP+JSON binding.");
         }
 
         var (version, extensions) = ServiceParameters.Read(http);
@@ -237,7 +237,7 @@ internal static class RestEndpoints
     {
         if (bytes.Length == 0 || bytes.All(b => b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n'))
         {
-            if (required) throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: a JSON body is required.");
+            if (required) throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: a JSON body is required. Send a JSON object.");
             return null;
         }
         JsonNode? node;
@@ -247,9 +247,9 @@ internal static class RestEndpoints
         }
         catch (JsonException)
         {
-            throw new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON.");
+            throw new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON. Send a JSON object.");
         }
-        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body must be a JSON object.");
+        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body must be a JSON object. Send a JSON object.");
     }
 
     private static object BuildRequest(Route route, JsonObject? body, IQueryCollection query)

@@ -1,13 +1,15 @@
 using System.Text;
 using System.Text.Json;
 using A2A.Protocol;
+using System.Diagnostics;
+using A2A.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace A2A.Server.Transports;
 
 /// <summary>Exception → A2A error translation and shared HTTP error bodies. Used by every transport.</summary>
-internal static class TransportErrors
+internal static partial class TransportErrors
 {
     /// <summary>
     /// <see cref="A2AException"/> as is; anything else → logged, <see cref="A2AErrorCode.InternalError"/> with a generic
@@ -23,7 +25,7 @@ internal static class TransportErrors
         try
         {
             return JsonSerializer.Deserialize(element, A2AJson.Options.GetTypeInfo(type))
-                   ?? throw new A2AException(onError, "The request payload must be a JSON object.");
+                   ?? throw new A2AException(onError, "The request payload must be a JSON object. Send a JSON object.");
         }
         catch (Exception ex) when (ex is JsonException or FormatException or NotSupportedException or InvalidOperationException)
         {
@@ -67,17 +69,18 @@ internal static class TransportErrors
     /// ErrorInfo <c>metadata</c> (a string map) from <see cref="A2AException.Data"/>: the members of a JSON object, strings as is,
     /// arrays joined with <c>,</c>, anything else as raw JSON. Not an object → nothing. Used by REST and gRPC alike.
     /// </summary>
-    public static IEnumerable<KeyValuePair<string, string>> ErrorMetadata(JsonElement? data)
-    {
-        if (data is not { ValueKind: JsonValueKind.Object } obj) yield break;
-        foreach (var p in obj.EnumerateObject())
-            yield return KeyValuePair.Create(p.Name, p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString()! : Flatten(p.Value));
-    }
+    public static IEnumerable<KeyValuePair<string, string>> ErrorMetadata(JsonElement? data) => ErrorDetailsFlattener.Flatten(data);
 
-    private static string Flatten(JsonElement value)
-        => value.ValueKind == JsonValueKind.Array
-            ? string.Join(",", value.EnumerateArray().Select(v => v.ValueKind == JsonValueKind.String ? v.GetString() : v.GetRawText()))
-            : value.GetRawText();
+    /// <summary>ErrorInfo reason for <see cref="A2AErrorCode.InternalError"/>, which has no catalog reason. Only sent with a trace id.</summary>
+    public const string InternalReason = "INTERNAL_ERROR";
+
+    /// <summary>
+    /// The ErrorInfo reason to send for <paramref name="error"/>: the catalog reason, or <see cref="InternalReason"/> for an
+    /// internal error that carries data (the trace id). Null when the error gets no ErrorInfo.
+    /// </summary>
+    public static string? ReasonFor(A2AException error)
+        => A2AError.Get(error.Code).Reason
+           ?? (error.Code == A2AErrorCode.InternalError && error.Details.Count > 0 ? InternalReason : null);
 
     /// <summary>The <c>@type</c> of a google.rpc.ErrorInfo detail in ProtoJSON <c>Any</c> form.</summary>
     public const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
@@ -90,12 +93,12 @@ internal static class TransportErrors
     /// </summary>
     public static void WriteDetails(Utf8JsonWriter w, string propertyName, A2AException error)
     {
-        var info = A2AError.Get(error.Code);
-        if (info.Reason is null) return;
+        var reason = ReasonFor(error);
+        if (reason is null) return;
         w.WriteStartArray(propertyName);
         w.WriteStartObject();
         w.WriteString("@type", ErrorInfoType);
-        w.WriteString("reason", info.Reason);
+        w.WriteString("reason", reason);
         w.WriteString("domain", A2AError.Domain);
         if (error.Data is { ValueKind: JsonValueKind.Object })
         {
@@ -114,7 +117,13 @@ internal static class TransportErrors
 
     private static A2AException Internal(Exception ex, ILogger logger)
     {
-        logger.LogError(ex, "Unhandled error in A2A request.");
-        return new A2AException(A2AErrorCode.InternalError, "Internal error.");
+        var traceId = Activity.Current?.TraceId.ToHexString() ?? ActivityTraceId.CreateRandom().ToHexString();
+        LogUnhandled(logger, ex, traceId);
+        return new A2AException(A2AErrorCode.InternalError,
+            $"Internal error. Quote trace id {traceId} when you report it.",
+            JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["traceId"] = traceId }));
     }
+
+    [LoggerMessage(EventId = 3001, Level = LogLevel.Error, Message = "Unhandled error in A2A request. Trace id {TraceId}.")]
+    private static partial void LogUnhandled(ILogger logger, Exception exception, string traceId);
 }

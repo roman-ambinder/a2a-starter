@@ -266,8 +266,9 @@ public sealed class RestA2AClient : IA2AClient
         int? status = response is not null ? (int)response.StatusCode
             : error.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.Number && c.TryGetInt32(out var n) ? n : null;
         var fallback = ClientSupport.CodeForStatusWithoutReason(status);
+        var metadata = error.TryGetProperty("details", out var d) ? ClientSupport.FindMetadata(d) : null;
         if (response is null)
-            return new A2AException(fallback, string.IsNullOrEmpty(message) ? "The agent reported an error." : message);
-        return new A2AException(fallback, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})");
+            return new A2AException(fallback, string.IsNullOrEmpty(message) ? "The agent reported an error." : message, metadata);
+        return new A2AException(fallback, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})", metadata);
     }
 }

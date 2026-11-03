@@ -12,6 +12,9 @@
     <ProjectReference Include="../A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="A2A.Server.Tests" />
     <InternalsVisibleTo Include="A2A.Integration.Tests" />
   </ItemGroup>

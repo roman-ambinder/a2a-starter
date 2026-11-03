@@ -45,7 +45,7 @@ public sealed class TaskEventBroker
         {
             if (!sub.Channel.Writer.TryWrite(evt))
             {
-                Drop(sub, new A2AException(A2AErrorCode.InternalError, "The subscriber fell behind and was disconnected."));
+                Drop(sub, new A2AException(A2AErrorCode.InternalError, "The subscriber fell behind and was disconnected. Call SubscribeToTask again to resume."));
                 continue;
             }
             if (endsAll || (final && !sub.UntilTerminal)) Drop(sub, null);

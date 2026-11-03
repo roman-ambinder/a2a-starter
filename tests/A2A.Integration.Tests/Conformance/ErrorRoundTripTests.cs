@@ -44,7 +44,31 @@ public sealed class ErrorRoundTripTests(A2ATestHost host)
             var error = await Assert.ThrowsAsync<A2AException>(() => client.GetTaskAsync(new GetTaskRequest { Id = code.ToString() }, Ct));
             Assert.Equal(code, error.Code);
             Assert.Contains("thrown for the test", error.Message, StringComparison.Ordinal);
+            Assert.Equal("v", error.Details["k"]);
+            Assert.Equal("1,2", error.Details["list"]);
         }
+    }
+
+    [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Unknown_exception_becomes_internal_error_with_trace_id(string binding)
+    {
+        await using var server = await A2ATestHost.StartAgentServerAsync(ExtraPortBase + 10, A2ATestHost.MockEntraBaseUrl,
+            b => b.Host.ConfigureServices((_, services) => services.AddSingleton<IA2ARequestHandler>(sp => new ThrowingHandler(sp))));
+        var card = await host.Cards.GetAgentCardAsync(new Uri($"{A2ATestHost.AgentServerBaseUrl(ExtraPortBase + 10)}/agents/echo"), Ct);
+        await using var client = A2AClientFactory.Create(card, new A2AClientOptions
+        {
+            HttpClient = host.Http,
+            Credentials = host.Credentials(TestAuth.Client, card),
+            PreferredBinding = binding,
+        });
+
+        var error = await Assert.ThrowsAsync<A2AException>(() => client.GetTaskAsync(new GetTaskRequest { Id = ThrowingHandler.CrashId }, Ct));
+
+        Assert.Equal(A2AErrorCode.InternalError, error.Code);
+        var traceId = error.Details["traceId"];
+        Assert.Matches("^[0-9a-f]{32}$", traceId);
+        Assert.StartsWith($"Internal error. Quote trace id {traceId} when you report it.", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret detail", error.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Delegates everything to the real handler except GetTask, which throws the code its id names.</summary>
@@ -52,8 +76,13 @@ public sealed class ErrorRoundTripTests(A2ATestHost host)
     {
         private readonly TaskManager _inner = services.GetRequiredService<TaskManager>();
 
+        public const string CrashId = "crash";
+
         public Task<AgentTask> GetTaskAsync(A2ACallContext call, GetTaskRequest request, CancellationToken ct)
-            => throw new A2AException(Enum.Parse<A2AErrorCode>(request.Id), "thrown for the test");
+            => request.Id == CrashId
+                ? throw new InvalidOperationException("secret detail")
+                : throw new A2AException(Enum.Parse<A2AErrorCode>(request.Id), "thrown for the test",
+                    System.Text.Json.JsonSerializer.SerializeToElement(new { k = "v", list = new[] { 1, 2 } }));
 
         public Task<SendMessageResponse> SendMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
             => _inner.SendMessageAsync(call, request, ct);
