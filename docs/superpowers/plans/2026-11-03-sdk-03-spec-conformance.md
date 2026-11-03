@@ -158,10 +158,10 @@ Read `README.md`, `run_tck.py`, `scenarios/*.feature`, `tests/compatibility/conf
 }
 ```
 
-Entry shape (document it in `tck/README.md`; do not add an entry now):
+Entry shape (document it in `tck/README.md`; do not add an entry now). `suite` is required: `"tck"` for this package's TCK run, `"acts"` for the ACTS run in package 16. Package 16 plan Task 24 copies any ACTS exclusions from the kit into this file with `"suite": "acts"`. The `tck` checker below reads only `"tck"` entries; package 16's `itk/check-acts.py` reads only `"acts"` entries. Both apply the same rules (no MUST entry, expiry, "still fails"):
 
 ```json
-{ "requirement": "CORE-XXX-001", "transport": "grpc", "issue": "https://github.com/a2aproject/a2a-tck/issues/NNN", "reason": "One line: why this is a TCK bug.", "expires": "2027-01-31" }
+{ "suite": "tck", "requirement": "CORE-XXX-001", "transport": "grpc", "issue": "https://github.com/a2aproject/a2a-tck/issues/NNN", "reason": "One line: why this is a TCK bug.", "expires": "2027-01-31" }
 ```
 
 - [ ] **Step 4: Write `tck/sut-behaviors.yaml`.** It is YAML in JSON syntax (YAML 1.2 is a superset of JSON), so the checker reads it with `json` and needs no extra package. List one entry per scenario in the TCK's `scenarios/*.feature` that the SUT implements. For `requirements`, find the TCK requirement ids whose tests send that prefix (`grep -rn "<prefix>" tests/compatibility tck` in the TCK checkout). Example shape:
@@ -194,12 +194,14 @@ git commit -m "test(tck): pin the TCK and add known-issues and claimed-behaviour
 The checker gets one `compatibility.json` per transport. It fails (exit 1) and prints one line per problem when:
 
 1. any requirement with level `MUST` has status `FAIL` on that transport;
-2. any `SHOULD` requirement has `FAIL` and is not in `known-issues.json` for that transport;
+2. any `SHOULD` requirement has `FAIL` and is not in `known-issues.json` (with `"suite": "tck"`) for that transport;
 3. a known-issues entry is for a `MUST` requirement;
 4. a known-issues entry has expired (`expires` is before today, UTC);
 5. a known-issues entry no longer fails (status `PASS`): "remove it";
 6. a requirement listed under a claimed behaviour is `SKIPPED`, `NOT TESTED`, or missing from the report on that transport ("listed but not implemented fails, never skips", spec D1);
-7. a known-issues entry is missing `issue`, `reason` or `expires`.
+7. a known-issues entry is missing `suite`, `issue`, `reason` or `expires`, or its `suite` is not `"tck"` or `"acts"`.
+
+Rules 3–5 apply only to entries with `"suite": "tck"`; entries with `"suite": "acts"` are skipped here (package 16 checks them). Rule 7 applies to every entry.
 
 `MAY` failures are printed as warnings and do not fail the job.
 
@@ -229,7 +231,8 @@ class CheckReportTests(unittest.TestCase):
         problems, _ = self.run_check({"grpc": report({"R9": {"level": "MUST", "status": "SKIPPED", "transports": {"grpc": "SKIPPED"}}})}, behaviors=behaviors)
         self.assertIn("tck-fake", problems[0])
 
-    # ...one test per rule 2-7, and one that a MAY failure is only a warning
+    # ...one test per rule 2-7, one that a MAY failure is only a warning,
+    # and one that an entry with "suite": "acts" is ignored by rules 2-5
 ```
 
 The `test_claimed_behaviour_skipped_fails` test is the acceptance check "a fake listed-but-missing behaviour shows the run fails, not skips".
