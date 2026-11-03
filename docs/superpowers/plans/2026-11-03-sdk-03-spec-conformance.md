@@ -286,7 +286,7 @@ dotnet test Ambinder.A2A.slnx --filter-class "*TckSutTests"
 
 - [ ] **Step 4: Turn capabilities on** (spec D1: "streaming, push notifications and the extended card turned on").
   - Push: `Capabilities.PushNotifications = true`. Register push with `PushOptions.AllowPrivateNetworks = true`, because the TCK webhook listens on `localhost`. This is a SUT-only setting. Find the push registration call with `git grep -n "AllowPrivateNetworks" -- src samples`.
-  - Extended card: the TCK cannot send credentials (Task 1 Step 2). The library always requires authentication for `GetExtendedAgentCard`. So turning the capability on makes the TCK's extended-card tests fail with 401 on every transport. **Do not turn it on.** Leave `ExtendedAgentCard` unset, so the TCK skips those tests as "capability not declared". Write this down in `tck/README.md`, and in `docs/spec-decisions.md` in Task 18. This differs from spec D1 (see the differences list, item 2), and the owner decides.
+  - Extended card: the TCK cannot send credentials (Task 1 Step 2). The library always requires authentication for `GetExtendedAgentCard`. So turning the capability on makes the TCK's extended-card tests fail with 401 on every transport. **Do not turn it on.** Leave `ExtendedAgentCard` unset, so the TCK skips those tests as "capability not declared". Write this down in `tck/README.md`, and in `docs/spec-decisions.md` in Task 18. This differs from spec D1 (see the differences list, item 2); the owner approved it on 2026-11-03.
 
 - [ ] **Step 5: Add any behaviour from the pinned TCK's `scenarios/` that the SUT lacks**, one `case` per scenario, matching the scenario text exactly. Add each one to `tck/sut-behaviors.yaml`. In particular, check for a long-running, cancelable behaviour: if the scenarios define one, implement it with `Task.Delay(..., ct)` so cancellation ends it.
 
@@ -636,7 +636,7 @@ public interface IAgentCardContributor
   4. ETag input: the result with the `signatures` member removed, serialized, then `"\n"`, then the `kid`s of all signatures, sorted ordinally and joined with `","`. Read `kid` from the base64url-decoded `protected` header JSON, else from `header.kid`. ETag = `"` + base64url(first 16 bytes of SHA-256(input)) + `"`.
   5. Package 04 later replaces the serializer output in step 4 with its RFC 8785 canonical form (section 0.3). Leave a one-line comment that says so.
 
-  Contributors run only for the public card endpoints. The extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC), so JSON contributions cannot reach it the same way on every transport. `IsExtended` is therefore always `false` in this package. Raise this with the owner (differences list, item 5).
+  Contributors run only for the public card endpoints. The extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC), so JSON contributions cannot reach it the same way on every transport. `IsExtended` is therefore always `false` in this package (differences list, item 5; approved by the owner on 2026-11-03).
 
 - [ ] **Step 4: Extended card on JSON-RPC.** Set `Cache-Control: private, no-store` on the JSON-RPC response for `GetExtendedAgentCard`, as REST does.
 
@@ -652,7 +652,7 @@ git commit -am "feat: card ETag over the unsigned card and key ids; IAgentCardCo
 - Modify: `src/Ambinder.A2A.AspNetCore/Hosting/A2AServerOptions.cs` (or wherever the options live after 01), `.../AgentCardInterfaces.cs`, `.../Transports/TransportRequest.cs`, the gRPC call-context path
 - Create: `tests/Ambinder.A2A.Integration.Tests/Conformance/TenantTests.cs`
 
-Today the server never writes a `tenant` on its interfaces, so there is nothing to match against. The spec does not say how a server declares an interface tenant. This plan proposes one option, and it is the owner's call (differences list, item 4):
+Today the server never writes a `tenant` on its interfaces, so there is nothing to match against. The spec does not say how a server declares an interface tenant. The owner approved this option on 2026-11-03 (differences list, item 4):
 
 `A2AServerOptions.InterfaceTenants`: `IDictionary<string, string>` from agent name to tenant. When an agent has an entry, every interface `AgentCardInterfaces.For` writes for it gets that `Tenant`.
 
@@ -830,7 +830,7 @@ git commit -am "feat(server): task state transition table from spec 03 D13"
   - The extension check runs on every operation except card fetch (already there; check the wording).
   - Task state transition table (link to spec 03 D13); cancel of a `CANCELED` task returns the task.
   - Extended card: `Cache-Control: private, no-store` on JSON-RPC and REST.
-  - TCK SUT: the extended card is not declared, because the TCK cannot send credentials (Task 3), if the owner keeps that.
+  - TCK SUT: the extended card is not declared, because the TCK cannot send credentials (Task 3).
   - TCK run: no `--level` flag (it would skip MUST tests).
 - [ ] **Step 3: Run the docs tests and commit.**
 
@@ -873,7 +873,7 @@ Expected: no output.
 - **Branch:** one feature branch for the whole package (for example `feat/sdk-03-conformance`), created from `master` after package 01 merges. One commit per task, as written in each task.
 - **TDD:** every task writes the failing test first. If a "failing" test passes at once, say so in the task report. It means PR #6 already covers it; keep the test and move on.
 - **Fix the library, not the SUT:** a TCK failure is fixed in `src/`, with a regression test, never with a special case in `tests/Ambinder.A2A.Tck.Sut`.
-- **Stop and ask the owner** when: package 01 has not landed (Task 0); a fact in Task 1 Step 2 is false; a MUST failure cannot be fixed without changing spec behaviour; a decision in section 3 is still open when its task starts. Until the owner answers, use the plan's proposal, and mark it in the PR.
+- **Stop and ask the owner** when: package 01 has not landed (Task 0); a fact in Task 1 Step 2 is false; a MUST failure cannot be fixed without changing spec behaviour. The five decisions in section 3 are settled (owner approved, 2026-11-03); do not reopen them.
 - **No fixed ports or sleeps** in new tests (B2). The CI SUT uses fixed ports because it runs alone in its job.
 - **Sources:** the TCK facts in this plan were read from `a2aproject/a2a-tck` at commit `d4d6fae7887f88ef607fb461c13e3b0e1802f19b` (`README.md`, `run_tck.py`, `tests/compatibility/conftest.py`, `tck/reporting/`). Check them again at the commit you pin.
 
@@ -881,13 +881,13 @@ Expected: no output.
 
 ## 3. PR #6 compared with the final spec: for the owner
 
-These are the places where PR #6, or the spec itself, differs from what spec 03 now says. Items 1–5 need an owner decision. The plan's proposal is in brackets.
+These are the places where PR #6, or the spec itself, differs from what spec 03 now says. The plan's proposal for each item is in brackets. **Items 1–5 were owner decisions: on 2026-11-03 the owner approved all five proposals as written.**
 
 1. **The spec's TCK command skips every MUST test.** Spec D1 step 3 runs `run_tck.py ... --level should`. In the TCK, `--level should` passes `-m should` to pytest, so only SHOULD tests run. [Plan: run without `--level`; the checker fails on MUST and on unlisted SHOULD failures. This meets the spec's intent.]
 2. **The extended card cannot be turned on in the SUT.** Spec D1 wants it on, and says the SUT accepts a static bearer token "if the TCK can send one". The TCK has no credentials option, and the library always requires auth for `GetExtendedAgentCard`. [Plan: leave it off, so the TCK skips those tests as "not declared". Record it in `docs/spec-decisions.md`. Revisit when the TCK can send credentials.]
 3. **Empty `protocolVersion` on a card interface.** PR #6's client treats it as `1.0`. The spec only says "whose protocolVersion Major.Minor is supported". PR #6 records this in `docs/spec-decisions.md`. [Plan: keep it.]
 4. **How a server declares an interface tenant.** D8 says the server rejects a tenant that does not match "the interface it arrived on", but today's server never writes a tenant on its interfaces, and the spec does not say where it comes from. [Plan: `A2AServerOptions.InterfaceTenants` (agent name → tenant). Package 07 may replace it.]
-5. **`IAgentCardContributor` and the extended card.** Contributors edit card JSON, but the extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC). JSON edits cannot reach it the same way on every transport. [Plan: contributors run on the public card endpoints only; `AgentCardContext.IsExtended` is always false for now. Packages 07 and 15 need an answer before they rely on it.]
+5. **`IAgentCardContributor` and the extended card.** Contributors edit card JSON, but the extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC). JSON edits cannot reach it the same way on every transport. [Plan: contributors run on the public card endpoints only; `AgentCardContext.IsExtended` is always false for now. Packages 07 and 15 must not expect contributors to change the extended card.]
 6. **ETag input.** PR #6 hashes the whole serialized card, signatures included. B13 says: the unsigned canonical payload plus sorted key ids. [Plan: Task 13. JCS waits for package 04.]
 7. **Error metadata name.** PR #6 keeps ErrorInfo metadata in `A2AException.Data` (a `JsonElement`). The spec names it `A2AException.Details` (read-only string map). [Plan: add `Details`, keep `Data`; package 02 picks the final names.]
 8. **`ProtoEnumConverter<T>` is public** in PR #6. The spec says internal. [Plan: Task 9 makes it internal.]
