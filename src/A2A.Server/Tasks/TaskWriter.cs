@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using A2A.Protocol;
+using A2A.Server.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace A2A.Server.Tasks;
@@ -33,6 +35,7 @@ internal sealed class TaskWriter(
     public async ValueTask CommitAsync(StoredTask task, StreamResponse evt)
     {
         await store.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
+        RecordState(task, evt);
         broker.Publish(task.AgentName, task.Task.Id, evt);
         foreach (var observer in observers)
         {
@@ -45,6 +48,20 @@ internal sealed class TaskWriter(
                 logger.LogError(ex, "Task event observer {Observer} failed for task {TaskId}", observer.GetType().Name, task.Task.Id);
             }
         }
+    }
+
+    /// <summary>Adds a state event to the current span. A terminal state also counts once in the completed-task metric.</summary>
+    private static void RecordState(StoredTask task, StreamResponse evt)
+    {
+        var state = evt.StatusUpdate?.Status.State ?? evt.Task?.Status.State;
+        if (state is null) return;
+        var value = A2ATelemetryNames.StateValue(state.Value);
+        Activity.Current?.AddEvent(new ActivityEvent(A2ATelemetryNames.TaskStateEvent,
+            tags: new ActivityTagsCollection { { A2ATelemetryNames.TaskState, value } }));
+        if (TaskStateRules.IsTerminal(state.Value))
+            ServerInstruments.TasksCompleted.Add(1,
+                new KeyValuePair<string, object?>(A2ATelemetryNames.Agent, task.AgentName),
+                new KeyValuePair<string, object?>(A2ATelemetryNames.TaskState, value));
     }
 
     /// <summary>Applies a status change (timestamp, message → history) and commits a status update event.</summary>
