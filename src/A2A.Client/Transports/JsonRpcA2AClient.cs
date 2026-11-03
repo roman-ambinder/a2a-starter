@@ -85,7 +85,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
 
     private async Task<JsonElement> CallAsync<TRequest>(string method, TRequest request, CancellationToken ct)
     {
-        using var response = await SendAsync(method, request, A2AConstants.ContentType, ct).ConfigureAwait(false);
+        using var response = await SendAsync(method, request, A2AConstants.JsonRpcContentType, ct).ConfigureAwait(false);
         var body = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
         return ReadEnvelope(response, body);
     }
@@ -125,7 +125,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
         {
             Content = new ByteArrayContent(BuildBody(method, request)),
         };
-        message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(A2AConstants.ContentType);
+        message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(A2AConstants.JsonRpcContentType);
         await ClientSupport.ApplyHeadersAsync(message, _options, _card, accept, ct).ConfigureAwait(false);
 
         var response = await _http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
