@@ -6,6 +6,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <!-- 'dotnet pack' on the solution visits samples and tests; they are not packages, so do not warn about them. -->
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     <!-- Repository root with a trailing slash, for files that every Directory.Build.props below needs. -->
     <A2ARepoRoot>$(MSBuildThisFileDirectory)</A2ARepoRoot>
   </PropertyGroup>

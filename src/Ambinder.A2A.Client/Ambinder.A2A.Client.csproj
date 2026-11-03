@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>A2A v1.0 client for .NET: one IA2AClient over JSON-RPC and REST, agent card resolver, credential providers and a transport seam for other bindings.</Description>
+    <PackageTags>$(PackageTags);client;rest;sse;oauth2</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

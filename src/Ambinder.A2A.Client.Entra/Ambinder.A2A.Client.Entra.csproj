@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Azure.Identity (Microsoft Entra ID) credential provider for the Ambinder.A2A client.</Description>
+    <PackageTags>$(PackageTags);client;azure;entra;azure-identity</PackageTags>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Identity" />
   </ItemGroup>

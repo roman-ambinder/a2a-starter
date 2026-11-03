@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>A2A v1.0 protocol models, JSON rules, error codes and telemetry names for .NET. No package dependencies; shared by the Ambinder.A2A server and client packages.</Description>
+    <PackageTags>$(PackageTags);protocol;models;json;source-generator</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

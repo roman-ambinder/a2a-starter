@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>gRPC transport for the Ambinder.A2A client. Opt-in: pass GrpcClientTransport.Instance in A2AClientOptions.Transports.</Description>
+    <PackageTags>$(PackageTags);client;grpc;protobuf</PackageTags>
     <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
     <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
   </PropertyGroup>

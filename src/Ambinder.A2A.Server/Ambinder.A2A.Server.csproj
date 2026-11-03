@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>Host-neutral A2A v1.0 server core for .NET: agent handlers, task manager, event streaming, push notifications and store and authorization extension points. No ASP.NET Core dependency.</Description>
+    <PackageTags>$(PackageTags);server;task-manager;push-notifications</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

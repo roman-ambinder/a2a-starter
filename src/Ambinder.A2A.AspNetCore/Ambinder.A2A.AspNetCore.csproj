@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>ASP.NET Core hosting for the Ambinder.A2A server: JSON-RPC, REST and SSE endpoints, agent card endpoints, MapA2A and AddA2AServer.</Description>
+    <PackageTags>$(PackageTags);server;rest;sse;minimal-api</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

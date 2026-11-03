@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <Description>gRPC endpoint for the Ambinder.A2A ASP.NET Core server. Opt-in: AddA2AGrpc and MapA2AGrpc.</Description>
+    <PackageTags>$(PackageTags);server;grpc;protobuf</PackageTags>
     <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
     <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
   </PropertyGroup>

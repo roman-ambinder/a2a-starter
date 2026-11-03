@@ -1,28 +1,23 @@
 # Ambinder.A2A.Protocol
 
-The A2A v1.0 data model for .NET: records for every message type, the JSON rules of the protocol and the error codes. It has no ASP.NET Core dependency, so both a server and a client can use it.
+The A2A v1.0 data model for .NET: records for every protocol message, the JSON rules of the protocol (proto3 canonical JSON, source generated), the error codes and the telemetry names. It has no package dependencies and no ASP.NET Core dependency, so a server and a client can both use it.
 
-## What to copy
+```
+dotnet add package Ambinder.A2A.Protocol
+```
 
-Reference or copy the whole project. Everything else in this repo builds on it.
+## What is in it
 
-| Area | Where |
+| Area | Types |
 |---|---|
-| Models (`AgentCard`, `AgentTask`, `Message`, `Part`, `Artifact`, request and response records) | `Models/` |
-| JSON options (camelCase, proto enum names, base64 bytes, UTC timestamps, no `kind` field) | `Json/A2AJson.cs` |
-| Errors (`A2AException`, `A2AErrorCode`, `A2AAuthException`) | `Errors/` |
-| Header names, binding names, version | `A2AConstants.cs` |
-| Names of the spans, attributes, metrics and event that the libraries emit (`System.Diagnostics`, no OpenTelemetry package) | `A2ATelemetryNames.cs` |
+| Models | `AgentCard`, `AgentTask`, `Message`, `Part`, `Artifact`, request and response records. Init-only records; build them with object initializers. |
+| JSON | `A2AJson.Options` (camelCase, proto enum names, base64 bytes, UTC timestamps, no `kind` field, empty lists omitted). `A2AJsonContext` is the source-generated context. |
+| Errors | `A2AException`, `A2AErrorCode`, `A2AAuthException`. Throw `new A2AException(A2AErrorCode.X, "message")` from agent code to return a protocol error. |
+| Constants | Header names, binding names and the protocol version (`A2AConstants`); span, metric and attribute names (`A2ATelemetryNames`). |
 
-C# name rule: the proto `TaskStatus` is `AgentTaskStatus` here, to avoid a clash with `System.Threading.Tasks.TaskStatus`.
-Models are init-only records. Build them with object initializers.
+C# name rule: the proto `TaskStatus` is `AgentTaskStatus`, to avoid a clash with `System.Threading.Tasks.TaskStatus`. Use `A2AJson.Options` whenever you serialize or parse a model, so the wire format stays correct.
 
-## Extension points
-
-None to implement. Use `A2AJson.Options` whenever you serialize or parse a model, so the wire format stays correct.
-Throw `A2AException(A2AErrorCode.X, "message")` from agent code to return a protocol error.
-
-## Minimal use
+## Example
 
 ```csharp
 using System.Text.Json;
@@ -35,3 +30,5 @@ var request = new SendMessageRequest
 string json = JsonSerializer.Serialize(request, A2AJson.Options);
 var back = JsonSerializer.Deserialize<SendMessageRequest>(json, A2AJson.Options);
 ```
+
+Part of [Ambinder.A2A](https://github.com/roman-ambinder/a2a-starter#readme): see the repository for the server and client packages, samples and guides.
