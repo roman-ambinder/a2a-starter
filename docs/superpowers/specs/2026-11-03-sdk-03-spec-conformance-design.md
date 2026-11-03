@@ -80,16 +80,17 @@ Most of the work is in the existing core assemblies (after package 01 they are `
 ### D1. TCK in CI
 
 - New project `tests/Ambinder.A2A.Tck.Sut` (not packable). It is a small ASP.NET Core app that uses only public SDK APIs. Its root card advertises all three interfaces, with streaming, push notifications and the extended card turned on, so the TCK tests every MUST that depends on a capability. Its agent supports the behaviors the TCK scenarios need (complete at once, ask for input, long-running and cancelable, emit artifacts). The builder reads the TCK `scenarios/` folder to choose the exact behaviors.
-- Auth: the SUT turns anonymous access on explicitly (it is off by default per the work plan) for the public operations. The extended card needs auth by spec. The TCK sends no auth token, so the SUT keeps the extended card off. *(Claude's call, plan 2026-11-03)*
+- Auth: the SUT turns anonymous access on explicitly (it is off by default per the work plan) for the public operations. The extended card needs auth by spec, so the SUT also accepts one static test bearer token, if the TCK can send one. *(writer's call)*
 - gRPC: the SUT must work with today's port-per-agent routing (R21, `src/A2A.Server/Transports/Grpc/A2AGrpcService.cs:130-132`). One agent is enough. Package 09 changes routing later; the SUT must keep passing.
 - New workflow job `tck` in `.github/workflows/ci.yml`:
   1. Build and start the SUT on fixed local ports.
   2. Check out `a2aproject/a2a-tck` at a commit SHA stored in `tck/TCK_VERSION`. *(writer's call: SHA, since there are no releases.)*
-  3. One run: `./run_tck.py --sut-host http://localhost:<port>`, with no `--level` and no `--transport`. In the pinned TCK, `--level should` runs only SHOULD tests, so a single run without a level covers MUST, SHOULD and MAY on every interface in the card. The checker grades each requirement by its own level. *(Claude's call, plan 2026-11-03)*
+  3. For each transport: `./run_tck.py --sut-host http://localhost:<port> --transport <t> --level should`.
   4. A small script (`tck/check-report.py`, run with `python -I`) reads `reports/compatibility.json`. It fails on any MUST failure, and on any SHOULD xfail that is not listed in `tck/known-issues.json`.
   5. Upload the HTML and JUnit reports as artifacts.
-- `tck/known-issues.json`: each entry is keyed by `requirement` (the TCK requirement id) and `transport`, because the report groups results by `per_requirement[<id>].transports[<transport>]`. It also has `level`, an upstream issue URL, a one-line reason, and an `expires` date. A MUST entry is allowed only with `"kind": "tck-bug"`, a `"spec"` field that cites the A2A v1.0.1 section the TCK contradicts, and an upstream issue URL. *(Claude's call, plan 2026-11-03, amends C3)* The script fails when an entry has expired or no longer fails (so the list shrinks). *(writer's call)*
-- Only SHOULD failures caused by a TCK bug may go on the list. Each entry is reviewed in its PR and needs an upstream issue link and an expiry date. A MUST failure may go on the list only as the `tck-bug` case above. *(Claude's call, C3, amended 2026-11-03)*
+- `tck/known-issues.json`: each entry has the TCK test id, transport, upstream issue URL, a one-line reason, and an `expires` date. The script fails when an entry has expired or no longer fails (so the list shrinks). *(writer's call)*
+- *(owner decision 2026-11-03)* A MUST entry is allowed only for a proven TCK bug. It cites the spec text, has an upstream issue link and an expiry date. Until an issue is posted, `issue` holds a `draft:` reference and the expiry is short. Our own MUST failures may never go on the list.
+- Only SHOULD failures caused by a TCK bug may go on the list. Each entry is reviewed in its PR and needs an upstream issue link and an expiry date. A MUST failure may never go on the list. *(Claude's call, C3)*
 - The `tck` job is advisory for the first two weeks after it lands, then it is a required check *(Claude's call, C13; package 12 owns the gate list)*.
 - A weekly scheduled job runs the same steps against TCK `main` HEAD and opens an issue on new failures. It never blocks PRs. *(writer's call)*
 - **Claimed behaviours** *(Claude's call, borrowed from ACTS §11.1 and the official .NET SDK's `acts/sut-behaviors.yaml`)*: `tck/sut-behaviors.yaml` lists every scenario behaviour the SUT implements (for example `tck-complete-task`, `tck-input-required`, `tck-cancel`, `tck-stream-chunked`), with its expected response type and terminal state. The SUT does not restate the names; the runner checks the claim by running the tests. A behaviour listed but not implemented fails, never skips, so lagging support stays visible. Adding a behaviour means a branch in the SUT dispatcher and an entry in the file.
@@ -172,7 +173,7 @@ Tested end to end on all transports with the in-memory store. Current behavior i
 
 - On `GET /.well-known/agent-card.json` and the per-agent card route (`src/A2A.Server/Hosting/AgentCardEndpoints.cs:30-41`):
   - Serialize the card once per card version and keep the bytes.
-  - `ETag`: strong, `"` + base64url of the first 16 bytes of SHA-256 over the unsigned canonical card payload (JCS, after contributors run, without `signatures`) plus the sorted signing key ids (`kid`) + `"`. So the ETag is the same on every pod and does not change when the card is re-signed with the same keys. *(Claude's call, B13; packages 04, 09 and 10 use this rule)* **Pending package 04:** card signing does not exist yet, so today the ETag is a hash of the final card bytes. It meets every other part of D7. The B13 rule arrives with package 04. *(Claude's call, plan 2026-11-03)*
+  - `ETag`: strong, `"` + base64url of the first 16 bytes of SHA-256 over the unsigned canonical card payload (JCS, after contributors run, without `signatures`) plus the sorted signing key ids (`kid`) + `"`. So the ETag is the same on every pod and does not change when the card is re-signed with the same keys. *(Claude's call, B13; packages 04, 09 and 10 use this rule)*
   - `Cache-Control: public, max-age=300` by default. Option `A2AServerOptions.CardCacheMaxAge` (TimeSpan, default 5 minutes; `TimeSpan.Zero` sends `no-cache`). *(writer's call)*
   - `Vary: A2A-Version`, always, so a CDN never serves a 0.3-shaped card to a 1.0 client (pain point 3).
   - `If-None-Match` that matches: 304 with no body.
@@ -194,7 +195,7 @@ public interface IAgentCardContributor
 ### D8. Tenant
 
 - Client: every request gets `tenant` set to the selected interface's tenant. Today a request tenant wins when set (`src/A2A.Client/Transports/ClientSupport.cs:45-62`). New rule: if the interface has a tenant and the request sets a different one, throw `ArgumentException` ("This client talks to tenant 'X' (from the agent card); create a client for the other interface instead"). If the interface has no tenant, the request value is sent as given.
-- Server: the interface a request arrived on is known (route, REST tenant prefix `RestEndpoints.cs:178`, gRPC port). If that interface declares a tenant and the request `tenant` is set and different, return `InvalidParams` ("tenant 'Y' does not match this interface"). An empty request tenant is filled from the interface. *(writer's call on the error code; the spec text only says "must match".)* **Deferred:** no server interface declares a tenant today (`AgentCardInterfaces.For`), so the rule has nothing to check. It returns when packages 07 and 09 add interface tenants. *(Claude's call, plan 2026-11-03)*
+- Server: the interface a request arrived on is known (route, REST tenant prefix `RestEndpoints.cs:178`, gRPC port). If that interface declares a tenant and the request `tenant` is set and different, return `InvalidParams` ("tenant 'Y' does not match this interface"). An empty request tenant is filled from the interface. *(writer's call on the error code; the spec text only says "must match".)*
 - Which tenant the server trusts for isolation is package 07 and 05 work.
 
 ### D9. contextId and taskId rules (spec 3.4)
@@ -242,7 +243,7 @@ This package owns `TaskStateRules` (internal, shared as linked source, B12) and 
 Rules:
 
 - The agent can never set `UNSPECIFIED` or `SUBMITTED`. The server sets `SUBMITTED`.
-- A move that is not in the table throws `A2AException(InvalidAgentResponse)` and the task ends `FAILED` (package 11 describes the agent side).
+- A move that is not in the table throws `A2AException(InvalidAgentResponse)` and the task ends `FAILED` (package 11 describes the agent side). *(owner decision 2026-11-03)* One exception: a cancel handler that makes an illegal move on a paused (`INPUT_REQUIRED`, `AUTH_REQUIRED`) task does not end it `FAILED`. The event is rejected and the cancel request ends the task `CANCELED`.
 - Recovery (package 09) is the only path that moves a `WORKING` or `SUBMITTED` task to `FAILED` without an agent event, unless `Restart(1)` is chosen.
 - An unknown `TaskState` from a remote agent reads as `Unspecified` (D3) and is never checked against this table.
 - Tests: one case for every row, including every illegal pair, on the in-memory and the EF Core stores.
@@ -276,25 +277,25 @@ Provides:
 
 ## Acceptance criteria
 
-- [ ] `tck` CI job runs on every PR, all three transports, in one run with no `--level`; required for merge two weeks after it lands (C13); zero MUST failures and a MUST entry in `tck/known-issues.json` only as `kind: "tck-bug"` with a `spec` citation and upstream issue (amended C3); every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3). (job runs and is advisory; zero MUST failures not met until the 11 TCK-bug entries have upstream issues)
-- [x] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
-- [x] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
+- [ ] `tck` CI job runs on every PR, all three transports, `--level should`; required for merge two weeks after it lands (C13); zero MUST failures and a MUST entry in `tck/known-issues.json` only for a proven TCK bug, with the spec text, an upstream issue link (or a `draft:` reference until posted) and an expiry date *(owner decision 2026-11-03)*; every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3).
+- [ ] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
+- [ ] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
 - [ ] Tests, each on JSON-RPC, REST and gRPC (use `tests/A2A.Integration.Tests/Fixtures/TransportMatrix.cs`):
-  - [x] missing version gives `VersionNotSupported` with the 0.3 message and `supportedVersions` metadata
-  - [x] `2.0` and `abc` give `VersionNotSupported`; `1.0.1` is accepted
-  - [x] a registered fake `IA2AVersionDispatcher` receives empty-version requests
-  - [x] unknown `TaskState` and `Role` strings read as `Unspecified`; integers read; output always names
-  - [x] every A2A error carries ErrorInfo; the client maps each catalog error back to the same `A2AErrorCode`
-  - [x] JSON-RPC `error.data` contains the ErrorInfo detail
-  - [x] activated extensions echoed; missing required extension gives `ExtensionSupportRequired` on GetTask, ListTasks and SendMessage
-  - [x] ListTasks: empty `nextPageToken` on last page, order, artifacts absent, scoping
-  - [x] each D9 rule
-  - [ ] client tenant always equals the interface tenant; server rejects a mismatched tenant (server part waits for package 09)
-- [ ] Card endpoint tests: `ETag` (same value from two server instances and after re-signing with the same keys, B13), `Cache-Control`, `Vary: A2A-Version`, 304 on `If-None-Match`, extended card `no-store`. (B13 part waits for package 04)
-- [x] OAuth implicit and password flows round-trip in JSON and proto.
-- [x] Client interface selection tests: version match, patch ignored, 0.3-only card gives the "add Compat" message.
-- [x] `docs/spec-decisions.md` exists with every wire-level writer's call from this spec.
-- [x] `README.md` "Optional conformance" section replaced by a short "Conformance" section that links the CI job.
+  - [ ] missing version gives `VersionNotSupported` with the 0.3 message and `supportedVersions` metadata
+  - [ ] `2.0` and `abc` give `VersionNotSupported`; `1.0.1` is accepted
+  - [ ] a registered fake `IA2AVersionDispatcher` receives empty-version requests
+  - [ ] unknown `TaskState` and `Role` strings read as `Unspecified`; integers read; output always names
+  - [ ] every A2A error carries ErrorInfo; the client maps each catalog error back to the same `A2AErrorCode`
+  - [ ] JSON-RPC `error.data` contains the ErrorInfo detail
+  - [ ] activated extensions echoed; missing required extension gives `ExtensionSupportRequired` on GetTask, ListTasks and SendMessage
+  - [ ] ListTasks: empty `nextPageToken` on last page, order, artifacts absent, scoping
+  - [ ] each D9 rule
+  - [ ] client tenant always equals the interface tenant; server rejects a mismatched tenant
+- [ ] Card endpoint tests: `ETag` (same value from two server instances and after re-signing with the same keys, B13), `Cache-Control`, `Vary: A2A-Version`, 304 on `If-None-Match`, extended card `no-store`.
+- [ ] OAuth implicit and password flows round-trip in JSON and proto.
+- [ ] Client interface selection tests: version match, patch ignored, 0.3-only card gives the "add Compat" message.
+- [ ] `docs/spec-decisions.md` exists with every wire-level writer's call from this spec.
+- [ ] `README.md` "Optional conformance" section replaced by a short "Conformance" section that links the CI job.
 
 ## Left to the builder
 
