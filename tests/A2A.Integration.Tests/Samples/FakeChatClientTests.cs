@@ -37,6 +37,20 @@ public sealed class FakeChatClientTests
         Assert.IsType<FakeChatClient>(services.GetRequiredService<IChatClient>());
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("http://127.0.0.1:4317")]
+    public void A_chat_client_registered_before_is_kept(string? otlpEndpoint)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpEndpoint,
+        }).Build();
+        using var mine = new FakeChatClient();
+        using var services = new ServiceCollection().AddSingleton<IChatClient>(mine).AddDemoChatClient(config).BuildServiceProvider();
+        Assert.Same(mine, services.GetRequiredService<IChatClient>());
+    }
+
     [Fact]
     public void Unknown_provider_name_is_rejected()
     {
