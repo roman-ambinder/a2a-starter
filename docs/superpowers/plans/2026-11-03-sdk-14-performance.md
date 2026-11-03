@@ -70,6 +70,19 @@ Task 0 accepts either name. If 01 has already used `perf` or `perf.yml`, keep th
 | 12 | removal of `tests/Shared` | Task 2 | Do not reference `tests/Shared` from new projects. |
 | 13 | docs page "Performance and sizing" | Task 30 | 14 provides the JSON and the generator. 13 places the page. |
 
+### Changes after the cross-plan review (2026-11-03, second pass)
+
+This plan was checked again against the 05, 06, 09, 11, 12 and 13 plans on `master`. These edits came out of that review. Each is marked in its task:
+
+| # | Gap | Fix | Task |
+|---|---|---|---|
+| A | 05's plan (Task 30) creates `Store/InMemoryStoreBenchmarks.cs`, `SqliteStoreBenchmarks.cs`, `ChunkWriteBenchmarks.cs` and `DbStoreBenchmarks.cs` (and this project, if missing) | whichever lands second extends the other's classes; one class per store kind | 8 |
+| B | 09's plan (Task 12) fixed the heartbeat frame as `: keep-alive\n\n` and added `SseWriter.WriteCommentAsync` and `StartAsync(..., A2AResponseMetadata?)` (which calls `A2AResponseMetadata.MarkCommitted()`); Task 18 still used `:\n\n` | use 09's text and keep 09's members and tests | 18 |
+| C | 11's plan (Task 24) adds an `Authoring` category | listed in `Categories.cs` from the start | 1 |
+| D | 06's plan (Task 23) adds `Pipeline/ClusterForwardBenchmarks.cs` | mapped in the seam coverage for `ITaskRouter`/`ITaskForwarder` | 31 |
+| E | 13's plan (Task 15) also builds a performance-page generator over the same JSON | one generator: this plan's `PerfTool docs-page`; 13's `DocsLint generate` calls it | 30 |
+| F | 12's plan calls this package's CI job `bench`; the job is `perf` in `perf.yml` | 12's plan fixed in the same PR | 14 (no change here) |
+
 ---
 
 ## Global constraints (every task)
@@ -193,6 +206,7 @@ internal static class Categories
     public const string Store = "Store";
     public const string Db = "Db";       // needs Docker; nightly weekly and on request
     public const string Push = "Push";
+    public const string Authoring = "Authoring"; // package 11 scenarios (11 plan Task 24); review item C
     public const string Client = "Client";
 }
 ```
@@ -508,7 +522,9 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 
 **Files:**
 - Create: `benchmarks/Ambinder.A2A.Benchmarks/Store/InMemoryStoreBenchmarks.cs`
-- Create (when package 05 has landed): `benchmarks/Ambinder.A2A.Benchmarks/Store/EfSqliteStoreBenchmarks.cs`, `Store/DbStoreBenchmarks.cs` (`[BenchmarkCategory(Categories.Store, Categories.Db)]`)
+- Create (when package 05 has landed): `benchmarks/Ambinder.A2A.Benchmarks/Store/SqliteStoreBenchmarks.cs`, `Store/ChunkWriteBenchmarks.cs`, `Store/DbStoreBenchmarks.cs` (`[BenchmarkCategory(Categories.Store, Categories.Db)]`)
+
+**Shared with 05 (review item A).** 05's plan (Task 30) creates the same four files, and creates this project if it does not exist yet. Before Step 1, check `ls benchmarks/Ambinder.A2A.Benchmarks/Store/`. If 05's files are there, keep its class names and add only the operations listed below that are missing; do not create a parallel class. If this task lands first, use 05's file names, so 05 extends them later. The SQLite class is `SqliteStoreBenchmarks` (05's name), not `EfSqliteStoreBenchmarks`.
 
 - [ ] **Step 1: In-memory** (spec §1, PD6). Benchmark: save a new task; save an update (history +1) at history 0, 20 and 200; get; list a page of 50 out of 10,000. Use the public store interface (`ITaskStore`, or the 05 contract), so a replacement store can run the same class (spec principle 5).
 - [ ] **Step 2: When package 05 has landed:**
@@ -1075,6 +1091,8 @@ Today each event goes through a `Func<StreamResponse, byte[]>`, which gives a `b
 - Flush once when the next event is not ready yet.
 - Provide a heartbeat write for package 09.
 
+**If 09's Task 12 has landed (review item B):** it already defines the heartbeat frame as `: keep-alive\n\n`, adds `SseWriter.WriteCommentAsync(HttpResponse, ReadOnlyMemory<byte>, CancellationToken)`, `StartAsync(..., A2AResponseMetadata?)` (it writes the metadata headers before the first flush, then calls `A2AResponseMetadata.MarkCommitted()`, 09 plan Task 5), and owns a single-writer loop with a commit timer. Keep those members and behaviors on the new `PipeWriter` path. Keep 09's tests green (`ErrorAfterCommitBecomesErrorFrame`, `HeartbeatDisabled`, `BothClientsIgnoreHeartbeats`). Add a heartbeat frame to the characterization tests in Step 3, with 09's frame text (the code below already uses it).
+
 - [ ] **Step 1: Public surface.** If Task 0 found `SseWriter` still public, keep `SseWriter.StartAsync` and `SseWriter.WriteEventAsync(HttpResponse, ReadOnlyMemory<byte>, CancellationToken)` with today's behavior, because package 02 owns the public API. The SDK's own streaming stops calling `WriteEventAsync`. If `SseWriter` is already internal, you may change it freely.
 - [ ] **Step 2: Record "before"** for `Stream` (`SseWriteFrame` micro, and 1,000 chunks end to end per transport).
 - [ ] **Step 3: Characterization tests (they must pass on the old code).** Over `TestServer`, stream 3 and 50 events, with an error after event 2, for both JSON-RPC and REST. Assert:
@@ -1104,7 +1122,7 @@ internal sealed class SseFrameWriter
 {
     private static ReadOnlySpan<byte> Prefix => "data: "u8;
     private static ReadOnlySpan<byte> Suffix => "\n\n"u8;
-    private static ReadOnlySpan<byte> Heartbeat => ":\n\n"u8;   // SSE comment; package 09 decides the exact text and the timer
+    private static ReadOnlySpan<byte> Heartbeat => ": keep-alive\n\n"u8;   // SSE comment; text fixed by 09 plan Task 12 (review item B); 09 owns the timer
     private const int FlushThresholdBytes = 16 * 1024;          // plan writer's call: never hold more than this unflushed
 
     private readonly PipeWriter _out;
@@ -1401,13 +1419,14 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
   - a fixed "these are not promises" sentence (spec Non-goals)
 
   Package 13 decides where it lives and runs it in its docs build. Test it with a fixture.
+  - **One generator (review item E).** 13's plan (Task 15) planned its own `PerformanceGenerator` in `eng/DocsLint` over the same `nightly-summary.json`. That plan now calls this command from `DocsLint generate` instead. If 13's generator already exists when this task runs, make it a thin wrapper that runs `PerfTool docs-page`, and move its fixture test here.
 - [ ] **Step 2: Commit** `feat(perf): docs page generator from nightly JSON`.
 
 ## Task 31: Seam coverage and closure of the other packages' debts
 
 **Files:** `perf/seams.json`, `tests/Ambinder.A2A.PerfTool.Tests/SeamCoverageTests.cs`
 
-- [ ] **Step 1: Seam coverage.** List every public seam that has a default implementation, from package 02's public API files and the architecture doc: the store contracts, `ITaskEventBus`, push sender and outbox, card resolver, credential providers, middleware pipeline, client interceptors, and the others. Map each one to a benchmark `FullName`. A test checks that every mapped benchmark exists in the suite. For a seam with no scenario, add the scenario (spec principle 5, M2 acceptance).
+- [ ] **Step 1: Seam coverage.** List every public seam that has a default implementation, from package 02's public API files and the architecture doc: the store contracts, `ITaskEventBus`, push sender and outbox, card resolver, credential providers, middleware pipeline, client interceptors, and the others. Map each one to a benchmark `FullName`. A test checks that every mapped benchmark exists in the suite. For a seam with no scenario, add the scenario (spec principle 5, M2 acceptance). Map `ITaskRouter`/`ITaskForwarder` to 06's `Pipeline/ClusterForwardBenchmarks.cs` (06 plan Task 23), and the authoring helpers to 11's `Authoring/*Benchmarks.cs` (11 plan Task 24) (review item D).
 - [ ] **Step 2: Debt closure.** Check that PD3 (10), PD6 (05), PD7 (08) and PD8 (05) each closed with the `Stream`, `Store` and `Push` numbers in their PRs. After 05 lands, add the PD8 allocation test ("100,000 distinct tasks leave no residue") and the PD6 store allocation test if 05 did not add them. Report any missing item to the owner, because they are not 14's code to fix.
 - [ ] **Step 3: Switch the event bus.** If 06 has landed, move the `Pipeline` event-bus scenarios to `ITaskEventBus`.
 - [ ] **Step 4: Commit** `test(perf): seam coverage map`.
