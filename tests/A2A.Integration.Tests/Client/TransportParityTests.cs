@@ -41,7 +41,7 @@ public sealed class TransportParityTests(MinimalServer server)
             "HTTP+JSON" => typeof(RestA2AClient),
             _ => typeof(GrpcA2AClient),
         };
-        Assert.IsType(expected, client);
+        Assert.IsType(expected, ((TracingA2AClient)client).Inner);
         return client;
     }
 
@@ -263,15 +263,15 @@ public sealed class TransportParityTests(MinimalServer server)
             ],
         };
 
-        Assert.IsType<RestA2AClient>(A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "HTTP+JSON" }));
-        Assert.IsType<JsonRpcA2AClient>(A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "jsonrpc" }));
-        Assert.IsType<GrpcA2AClient>(A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC" }));
+        Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "HTTP+JSON" })).Inner);
+        Assert.IsType<JsonRpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "jsonrpc" })).Inner);
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC" })).Inner);
         // No preference, or a preference the card does not offer → first interface in card order.
-        Assert.IsType<GrpcA2AClient>(A2AClientFactory.Create(card, new A2AClientOptions()));
-        Assert.IsType<GrpcA2AClient>(A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON" }));
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions())).Inner);
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON" })).Inner);
 
         var restOnly = card with { SupportedInterfaces = [card.SupportedInterfaces[1]] };
-        Assert.IsType<RestA2AClient>(A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC" }));
+        Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC" })).Inner);
     }
 
     [Fact]

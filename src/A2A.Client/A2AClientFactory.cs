@@ -37,9 +37,11 @@ public static class A2AClientFactory
             throw new NotSupportedException($"The agent card's {chosen.ProtocolBinding} interface has an invalid URL: '{chosen.Url}'.");
         // The interface's tenant is the default for requests that do not set one.
         var tenant = string.IsNullOrEmpty(chosen.Tenant) ? null : chosen.Tenant;
-        if (Is(chosen, A2AConstants.BindingRest)) return new RestA2AClient(url, card, options, tenant);
-        if (Is(chosen, A2AConstants.BindingGrpc)) return new GrpcA2AClient(url, card, options, tenant);
-        return new JsonRpcA2AClient(url, card, options, tenant);
+        if (Is(chosen, A2AConstants.BindingRest))
+            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant), A2ATelemetryNames.TransportRest, tenant);
+        if (Is(chosen, A2AConstants.BindingGrpc))
+            return new TracingA2AClient(new GrpcA2AClient(url, card, options, tenant), A2ATelemetryNames.TransportGrpc, tenant);
+        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant), A2ATelemetryNames.TransportJsonRpc, tenant);
     }
 
     private static bool Is(AgentInterface i, string binding) => string.Equals(i.ProtocolBinding, binding, StringComparison.OrdinalIgnoreCase);
