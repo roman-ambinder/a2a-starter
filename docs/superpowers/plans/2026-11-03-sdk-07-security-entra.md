@@ -263,6 +263,10 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 - [ ] **Step 3: Implement.**
   - `A2ASecurityOptions` (bound from `A2A:Security`; *placement next to `A2AServerOptions` is the builder's choice per spec*): `KeepCallerToken` (false), `Tenants` (per agent: `Dictionary<string, string[]>`), `TenantBindings` (`Dictionary<string, string[]>`), `FilterExtendedCardSkills` (true). XML docs from the spec bullets.
   - `A2ACallContext`: make it a property record (`required` / `init` properties, no positional constructor; spec 02 §4). Replace `User` and `Owner` with `A2ACaller Caller`; make `Tenant` a non-null `string` (`""` = no tenant, 05 §"`TaskManager` builds keys from `A2ACallContext.Tenant` (now required, `""` when none")). Keep `ProtocolVersion`, `RequestedExtensions`, `Transport`, and whatever 09 added (`IsForwarded`). Remove the "Phase 1 does not isolate by it" comment.
+  - **Cross-plan note (package 15, owner decision D1).** The 15 plan asks for this logic to become a public seam, `IA2ACallerResolver.ResolveAsync(HttpContext http, string agentName, string? requestTenant, CancellationToken ct) → (A2ACaller Caller, string Tenant)` in `Ambinder.A2A.AspNetCore`. Then 0.3 compat (its gRPC service and its version dispatcher) uses the same caller and tenant rules as the 1.0 transports, and that seam has to merge before the `1.0.0-rc.1` freeze.
+    - Write `ResolveCallerAsync` as a separate internal class with that signature, not as a static helper on `TransportRequest`. Then exposing it is a visibility change only.
+    - If the owner has approved D1 when this task runs, make it public here as `IA2ACallerResolver`, with a default implementation registered by `AddA2AServer`, and add it to `PublicAPI.Unshipped.txt`.
+    - Otherwise keep it internal, and list D1 as open in the PR body. *(cross-plan review)*
   - `TransportRequest.AuthorizeAsync` → `ResolveCallerAsync(HttpContext, AgentRegistration) → (A2ACaller Caller, string Tenant)`; for this task the tenant is still the raw request tenant or `""` (Task 9 adds the resolver). It must not call `IAgentAuthorizer` any more for card requirements (authorization moves to Task 11), but keeps the existing `AuthorizationPolicy` call until Task 12 replaces it. When `KeepCallerToken` is on, read the bearer from `Authorization` (`Bearer ` prefix) and set `AccessToken` with `with { AccessToken = … }`.
   - gRPC: same through `ServerCallContext.GetHttpContext()`.
   - `TaskManager`: every `call.Owner` → `call.Caller.Owner`.
@@ -414,7 +418,7 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 
 **Files:**
 - Create: `Security/ISecurityRequirementEvaluator.cs`, `Security/OpenIdConnectRequirementEvaluator.cs`, `Security/RequirementSet.cs` (internal), `Security/SecurityMiddleware.cs` (internal)
-- Modify: server registration (register the middleware in 09's built-in step 3)
+- Modify: server registration (register the middleware in 09's built-in step 3 through `A2AServerBuilder.UseAuthorizationMiddleware<SecurityMiddleware>()`, the slot-300 hook the 09 plan adds for this package, Task 3, "for package 07; one only". If 09 landed with a different name for the hook, use 09's name and do not add a second way in) *(cross-plan review)*
 - Test: `tests/Ambinder.A2A.Server.Tests/Security/RequirementSetTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Security/CardRequirementTests.cs`
 
 - [ ] **Step 1: Write failing tests** (spec acceptance "Requirement tests: OR and AND semantics").
@@ -487,7 +491,11 @@ XML docs state the format is part of the public contract and frozen at 1.0.
   - When the app already set a default authenticate scheme, `AddEntraAuthentication` does not override it; otherwise `A2AEntra` becomes default authenticate and challenge scheme.
   - Binding from `IConfiguration` (`A2A:Entra` section) gives the same result as the `Action` overload.
 - [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec "Server Entra building blocks": both overloads on `A2AServerBuilder` (namespace `Microsoft.Extensions.DependencyInjection`); options table with the spec defaults; JwtBearer with `MapInboundClaims = false`, `RoleClaimType = "roles"`, `NameClaimType = "azp"`, valid audiences, `ValidAlgorithms = [RS256]`, issuer validation per mode, `ClockSkew`. Move the outage logic (`IsMetadataUnavailable`, `OnAuthenticationFailed`) from `samples/AgentServer/Auth/AuthSetup.cs` into `EntraMetadataOutage` (internal) using `LoggerMessage` source generation.
+- [ ] **Step 3: Implement** per spec "Server Entra building blocks": both overloads on `A2AServerBuilder` (namespace `Microsoft.Extensions.DependencyInjection`); options table with the spec defaults; JwtBearer, registered under the scheme name `A2AEntra`, with `MapInboundClaims = false`, `RoleClaimType = "roles"`, `NameClaimType = "azp"`, valid audiences, `ValidAlgorithms = [RS256]`, issuer validation per mode, `ClockSkew`. Move the outage logic (`IsMetadataUnavailable`, `OnAuthenticationFailed`) from `samples/AgentServer/Auth/AuthSetup.cs` into `EntraMetadataOutage` (internal) using `LoggerMessage` source generation.
+  - **The scheme name `A2AEntra` is a contract** *(cross-plan review)*. Package 06's `Ambinder.A2A.Cluster.Entra` validates pod tokens with `context.AuthenticateAsync("A2AEntra")` (06 plan Task 15), and package 12's test-scheme rule checks whether a default scheme exists.
+    - Say the name in the XML docs of both `AddEntraAuthentication` overloads.
+    - Add a test `Scheme_name_is_A2AEntra` that reads `IAuthenticationSchemeProvider` after `AddEntraAuthentication` and finds `A2AEntra`, so a rename fails here and not in 06's cluster tests.
+    - Add no new public constant for it: spec 07 lists none.
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(entra): AddEntraAuthentication with single and multi-tenant validation`.
 
