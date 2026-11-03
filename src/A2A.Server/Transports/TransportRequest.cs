@@ -45,8 +45,8 @@ internal static class TransportRequest
     }
 
     public static A2ACallContext CreateCallContext(HttpContext http, AgentRegistration agent, string owner, string? version,
-        IReadOnlyList<string> extensions, object request)
-        => new(agent.Name, http.User, owner, TenantOf(request), version, extensions);
+        IReadOnlyList<string> extensions, object request, string transport)
+        => new(agent.Name, http.User, owner, TenantOf(request), version, extensions) { Transport = transport };
 
     /// <summary>The <c>tenant</c> field of a request record, or null.</summary>
     public static string? TenantOf(object request) => request switch

@@ -1,6 +1,7 @@
 using A2A.Server.Agents;
 using A2A.Server.Auth;
 using A2A.Server.Push;
+using A2A.Server.Telemetry;
 using A2A.Server.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +51,7 @@ public static class A2AServiceCollectionExtensions
             sp.GetRequiredService<IPushConfigStore>(),
             sp.GetRequiredService<IOptions<PushOptions>>().Value,
             sp.GetRequiredService<IOwnerResolver>()));
-        services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<TaskManager>());
+        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
 
         services.AddGrpc();
         services.AddAuthorization();

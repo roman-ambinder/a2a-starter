@@ -17,4 +17,8 @@ public sealed record A2ACallContext(
     string Owner,
     string? Tenant,
     string? ProtocolVersion,
-    IReadOnlyList<string> RequestedExtensions);
+    IReadOnlyList<string> RequestedExtensions)
+{
+    /// <summary>The transport that carried the call: <c>jsonrpc</c>, <c>rest</c> or <c>grpc</c>. Null when called in process.</summary>
+    public string? Transport { get; init; }
+}

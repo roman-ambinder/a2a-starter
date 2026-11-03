@@ -122,7 +122,7 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
 
         var model = (TModel)ProtoMapper.FromProtoObject(request);
         RequestValidation.Validate(model);
-        return (model, TransportRequest.CreateCallContext(http, agent, owner, version, extensions, model));
+        return (model, TransportRequest.CreateCallContext(http, agent, owner, version, extensions, model, A2ATelemetryNames.TransportGrpc));
     }
 
     private AgentRegistration ResolveAgent(HttpContext http)

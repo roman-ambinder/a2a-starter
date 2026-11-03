@@ -4,6 +4,7 @@ using A2A.Server.Agents;
 using A2A.Server.Hosting;
 using A2A.Server.Push;
 using A2A.Server.Tasks;
+using A2A.Server.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -31,12 +32,12 @@ public sealed class HostingWiringTests(MinimalServer server)
         var sender = Services.GetRequiredService<PushNotificationSender>();
         Assert.Contains(sender, Services.GetServices<ITaskEventObserver>());
         Assert.Contains(sender, Services.GetServices<IHostedService>().OfType<PushNotificationSender>());
-        // The fixture wraps the handler in a recorder; the AddA2AServer default is TaskManager itself.
+        // The fixture wraps the handler in a recorder; the AddA2AServer default is the tracing wrapper.
         Assert.IsType<RecordingHandler>(Services.GetRequiredService<IA2ARequestHandler>());
         var plain = new ServiceCollection().AddLogging();
         plain.AddA2AServer(o => o.PublicBaseUrl = "http://localhost:1");
         using var provider = plain.BuildServiceProvider();
-        Assert.Same(provider.GetRequiredService<TaskManager>(), provider.GetRequiredService<IA2ARequestHandler>());
+        Assert.IsType<TracingRequestHandler>(provider.GetRequiredService<IA2ARequestHandler>());
     }
 
     [Fact]
