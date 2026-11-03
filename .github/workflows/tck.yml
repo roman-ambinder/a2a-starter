@@ -1,0 +1,48 @@
+name: tck
+on:
+  workflow_call:
+    inputs:
+      tck-ref:
+        description: TCK git ref to test against; empty means the pinned commit in tck/TCK_VERSION
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  tck:
+    # Not continue-on-error. Whether the check blocks a merge is set in branch protection (package 12).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: astral-sh/setup-uv@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Report checker unit tests
+        run: python3 -I tck/test_check_report.py -v
+
+      # One implementation for CI and local runs: builds and starts the SUT, checks out the TCK,
+      # runs it once per transport (jsonrpc, http_json, grpc), copies each report to tck-reports/<transport>/,
+      # and runs the checker. The TCK's own exit code is ignored on purpose: the checker grades MUST and SHOULD.
+      - name: Run the TCK on all three transports and check the reports
+        env:
+          TCK_REF: ${{ inputs.tck-ref }}
+        run: bash tck/run-ci.sh "$TCK_REF"
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: tck-reports
+          path: |
+            tck-reports/
+            ${{ runner.temp }}/sut.log
+          if-no-files-found: warn

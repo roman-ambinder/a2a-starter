@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # Build and start the SUT, run the A2A TCK against it, grade the report.
-# Usage: bash tck/run-ci.sh <tck-ref>   (a commit SHA, or "main" for the weekly drift run)
-# Exit code is the checker's exit code. Leaves $RUNNER_TEMP/a2a-tck/reports-<transport>/ and $RUNNER_TEMP/sut.log.
+# Usage: bash tck/run-ci.sh [tck-ref]   (a commit SHA or "main"; empty or missing means the pin in tck/TCK_VERSION)
+# Exit code is the checker's exit code.
+# Leaves tck-reports/<transport>/ and tck-reports/checker-output.txt in the repo (override with TCK_REPORTS_DIR),
+# and $RUNNER_TEMP/sut.log.
 set -euo pipefail
 
-tck_ref="${1:?usage: run-ci.sh <tck-ref>}"
 sut_port="${SUT_PORT:-9999}"
 grpc_port="${SUT_GRPC_PORT:-$((sut_port + 1))}"
 temp="${RUNNER_TEMP:?RUNNER_TEMP must be set}"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tck_ref="${1:-}"
+[ -n "$tck_ref" ] || tck_ref="$(cat "$repo/tck/TCK_VERSION")"
+reports_dir="${TCK_REPORTS_DIR:-$repo/tck-reports}"
+tck_ref="${1:-}"
+[ -n "$tck_ref" ] || tck_ref="$(cat "$repo/tck/TCK_VERSION")"
+reports_dir="${TCK_REPORTS_DIR:-$repo/tck-reports}"
 sut_log="$temp/sut.log"
 tck_dir="$temp/a2a-tck"
 sut_pid=""
@@ -54,16 +61,21 @@ echo "TCK at $(git -C "$tck_dir" rev-parse HEAD)"
 cd "$tck_dir"
 uv sync
 # The TCK exits non-zero when tests fail, and overwrites reports/ on every run: grading is the checker's job.
+rm -rf "$reports_dir"
+mkdir -p "$reports_dir"
+rm -rf "$reports_dir"
+mkdir -p "$reports_dir"
 report_args=()
 for transport in jsonrpc http_json grpc; do
   rm -rf reports
   uv run ./run_tck.py --sut-host "http://localhost:${sut_port}" --transport "$transport" || echo "run_tck.py ($transport) exited with $?"
-  mkdir -p "reports-$transport"
-  cp reports/* "reports-$transport/"
-  report_args+=(--report "$transport=$tck_dir/reports-$transport/compatibility.json")
+  mkdir -p "$reports_dir/$transport"
+  cp -r reports/. "$reports_dir/$transport/"
+  report_args+=(--report "$transport=$reports_dir/$transport/compatibility.json")
 done
 
 cd "$repo"
-status=0
-python3 -I tck/check-report.py --known-issues tck/known-issues.json --behaviors tck/sut-behaviors.yaml "${report_args[@]}" || status=$?
-exit "$status"
+set +e
+python3 -I tck/check-report.py --known-issues tck/known-issues.json --behaviors tck/sut-behaviors.yaml "${report_args[@]}" \
+  2>&1 | tee "$reports_dir/checker-output.txt"
+exit "${PIPESTATUS[0]}"

@@ -9,3 +9,4 @@ obj/
 # graphify knowledge graph output
 graphify-out/
 __pycache__/
+/tck-reports/

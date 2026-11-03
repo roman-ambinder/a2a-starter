@@ -52,32 +52,4 @@ jobs:
           test "$expected" = "$actual" || { echo "proto/README.md hash $expected does not match $actual"; exit 1; }
 
   tck:
-    # advisory until 2026-11-17, then required (C13)
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
-
-      - uses: astral-sh/setup-uv@v6
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Run the A2A TCK
-        run: bash tck/run-ci.sh "$(cat tck/TCK_VERSION)"
-
-      - name: Upload TCK reports
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: tck-reports
-          path: |
-            ${{ runner.temp }}/a2a-tck/reports/
-            ${{ runner.temp }}/sut.log
-          if-no-files-found: warn
+    uses: ./.github/workflows/tck.yml
