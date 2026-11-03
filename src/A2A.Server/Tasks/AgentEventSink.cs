@@ -14,6 +14,7 @@ internal sealed class AgentEventSink : IAgentEventSink
 
     private readonly TaskWriter _writer;
     private readonly TaskExecution? _execution;
+    private readonly TransitionSource _source; // Agent for a run; CancelRequest for the sink given to IAgentHandler.CancelAsync
     private readonly string _agent;
     private readonly string _taskId;
     private readonly string _contextId;
@@ -34,6 +35,7 @@ internal sealed class AgentEventSink : IAgentEventSink
     {
         _writer = writer;
         _execution = execution;
+        _source = execution is null ? TransitionSource.CancelRequest : TransitionSource.Agent;
         _agent = agent;
         _taskId = taskId;
         _contextId = contextId;
@@ -87,12 +89,10 @@ internal sealed class AgentEventSink : IAgentEventSink
         {
             var stored = await BeginEventLockedAsync($"Illegal task state transition {_paused?.State} -> {state}.").ConfigureAwait(false);
             var from = stored.Task.Status.State;
-            // D13: a cancel request (the sink without an execution) may also end an interrupted task as CANCELED.
-            var cancelOfPaused = _execution is null && state == TaskState.Canceled && TaskStateRules.IsInterrupted(from);
-            if (!TaskStateRules.CanAgentTransition(from, state) && !cancelOfPaused)
+            if (!Allows(from, state))
             {
                 await FailLockedAsync(InvalidResponseText, create: false).ConfigureAwait(false);
-                throw Invalid($"Illegal task state transition {from} -> {state}.");
+                throw Invalid(IllegalMessage(from, state));
             }
             stored = await _writer.CommitStatusAsync(stored, state, message is null ? null : Normalize(message)).ConfigureAwait(false);
             AfterEventLocked(stored);
@@ -204,7 +204,7 @@ internal sealed class AgentEventSink : IAgentEventSink
             return;
         }
         // D13: a cancel request ends an interrupted task as CANCELED, so the cancel sink only rejects the event.
-        if (_execution is null && TaskStateRules.IsInterrupted(stored.Task.Status.State)) return;
+        if (_source == TransitionSource.CancelRequest && TaskStateRules.IsInterrupted(stored.Task.Status.State)) return;
         stored = await _writer.CommitStatusAsync(stored, TaskState.Failed, TaskWriter.AgentMessage(text, _taskId, _contextId)).ConfigureAwait(false);
         AfterEventLocked(stored);
     }
@@ -227,6 +227,21 @@ internal sealed class AgentEventSink : IAgentEventSink
         await _writer.CommitAsync(created, new StreamResponse { Task = created.Task }).ConfigureAwait(false);
         _taskExists = true;
         return created;
+    }
+
+    // A cancel handler is still agent code, so it may make the agent's moves too. From a paused task
+    // only CANCELED is open to it (the cancel request's own move).
+    private bool Allows(TaskState from, TaskState to)
+        => TaskStateRules.CanTransition(from, to, _source)
+           || (_source == TransitionSource.CancelRequest && TaskStateRules.CanTransition(from, to, TransitionSource.Agent));
+
+    private string IllegalMessage(TaskState from, TaskState to)
+    {
+        var allowed = Enum.GetValues<TaskState>().Where(t => Allows(from, t)).ToList();
+        var next = allowed.Count == 0
+            ? $"From {from} the agent may not move the task; only the server (a continuation message) or a cancel request can."
+            : $"From {from} the agent may move to: {string.Join(", ", allowed)}.";
+        return $"Illegal task state transition {from} -> {to}. {next} See docs/spec-decisions.md.";
     }
 
     private Message Normalize(Message message) => message with

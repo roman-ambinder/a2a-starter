@@ -3,32 +3,41 @@ using A2A.Server.Tasks;
 
 namespace A2A.Server.Tests.Tasks;
 
-/// <summary>The agent rows of the spec D13 transition table, every (from, to) pair.</summary>
+/// <summary>The spec D13 transition table: every (from, to, source) combination.</summary>
 public class TaskStateRulesTests
 {
     private static readonly TaskState Undefined = (TaskState)99;
 
-    // D13: only SUBMITTED and WORKING have agent moves. Everything else (interrupted, terminal,
-    // UNSPECIFIED, undefined) allows none; the server alone leaves an interrupted state.
-    private static readonly TaskState[] FromRunning =
-    [
-        TaskState.Working, TaskState.InputRequired, TaskState.AuthRequired,
-        TaskState.Completed, TaskState.Failed, TaskState.Rejected, TaskState.Canceled,
-    ];
+    // D13, copied by hand from the spec table. From null = a new task.
+    private static readonly HashSet<(TaskState? From, TaskState To, TransitionSource By)> Allowed = Build();
 
-    private static readonly Dictionary<TaskState, TaskState[]> AgentMoves = new()
+    private static HashSet<(TaskState?, TaskState, TransitionSource)> Build()
     {
-        [TaskState.Submitted] = FromRunning,
-        [TaskState.Working] = FromRunning,
-    };
+        var s = new HashSet<(TaskState?, TaskState, TransitionSource)> { (null, TaskState.Submitted, TransitionSource.Server) };
+        foreach (var from in new[] { TaskState.Submitted, TaskState.Working })
+        {
+            foreach (var to in new[] { TaskState.Working, TaskState.InputRequired, TaskState.AuthRequired, TaskState.Completed, TaskState.Failed, TaskState.Rejected, TaskState.Canceled })
+                s.Add((from, to, TransitionSource.Agent));
+            s.Add((from, TaskState.Canceled, TransitionSource.CancelRequest));
+            s.Add((from, TaskState.Failed, TransitionSource.Recovery));
+        }
+        foreach (var from in new[] { TaskState.InputRequired, TaskState.AuthRequired })
+        {
+            s.Add((from, TaskState.Submitted, TransitionSource.Server));
+            s.Add((from, TaskState.Working, TransitionSource.Server));
+            s.Add((from, TaskState.Canceled, TransitionSource.CancelRequest));
+        }
+        return s;
+    }
 
-    public static TheoryData<TaskState, TaskState, bool> AllPairs()
+    public static TheoryData<TaskState?, TaskState, int> AllCombinations()
     {
-        var states = Enum.GetValues<TaskState>().Append(Undefined).ToArray();
-        var data = new TheoryData<TaskState, TaskState, bool>();
-        foreach (var from in states)
-            foreach (var to in states)
-                data.Add(from, to, AgentMoves.TryGetValue(from, out var allowed) && allowed.Contains(to));
+        var data = new TheoryData<TaskState?, TaskState, int>();
+        TaskState?[] froms = [null, .. Enum.GetValues<TaskState>().Append(Undefined).Cast<TaskState?>()];
+        foreach (var from in froms)
+            foreach (var to in Enum.GetValues<TaskState>().Append(Undefined))
+                foreach (var by in Enum.GetValues<TransitionSource>())
+                    data.Add(from, to, (int)by);
         return data;
     }
 
@@ -41,7 +50,20 @@ public class TaskStateRulesTests
         Assert.False(TaskStateRules.IsInterrupted(state));
     }
 
-    [Theory, MemberData(nameof(AllPairs))]
-    public void CanAgentTransition_follows_the_D13_table(TaskState from, TaskState to, bool expected)
-        => Assert.Equal(expected, TaskStateRules.CanAgentTransition(from, to));
+    [Theory, MemberData(nameof(AllCombinations))]
+    public void Transition_matches_the_spec_table(TaskState? from, TaskState to, int source)
+    {
+        // TransitionSource is internal, so xUnit gets it as an int.
+        var by = (TransitionSource)source;
+        Assert.Equal(Allowed.Contains((from, to, by)), TaskStateRules.CanTransition(from, to, by));
+    }
+
+    [Fact]
+    public void Allowed_targets_list_the_agent_moves()
+    {
+        Assert.Empty(TaskStateRules.AllowedTargets(TaskState.InputRequired, TransitionSource.Agent));
+        TaskState[] expected =
+            [TaskState.Working, TaskState.Completed, TaskState.Canceled, TaskState.Failed, TaskState.Rejected, TaskState.InputRequired, TaskState.AuthRequired];
+        Assert.Equal(expected.Order(), TaskStateRules.AllowedTargets(TaskState.Submitted, TransitionSource.Agent).Order());
+    }
 }

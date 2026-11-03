@@ -391,6 +391,27 @@ public class TaskManagerTests
     }
 
     [Fact]
+    public async Task Illegal_transition_message_names_the_moves_that_are_open()
+    {
+        var host = new TestHost();
+        var rejected = new Signal();
+        A2AException? error = null;
+        host.Scripts.Execute = async (_, sink, ct) =>
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            error = await Assert.ThrowsAsync<A2AException>(() => sink.UpdateStatusAsync(TaskState.Submitted, null, ct).AsTask());
+            rejected.Set();
+        };
+
+        await host.SendAsync(TestHost.Text("go"));
+        await rejected.WaitAsync();
+
+        Assert.StartsWith("Illegal task state transition Working -> Submitted. From Working the agent may move to: ", error!.Message);
+        Assert.Contains("Completed", error.Message);
+        Assert.EndsWith("See docs/spec-decisions.md.", error.Message);
+    }
+
+    [Fact]
     public async Task Late_event_from_a_paused_run_does_not_touch_the_continued_task()
     {
         var host = new TestHost();

@@ -145,7 +145,11 @@ public sealed class TaskManager : IA2ARequestHandler
             {
                 stored = await _writer.Store.GetAsync(call.AgentName, request.Id, CancellationToken.None).ConfigureAwait(false) ?? stored;
                 if (!TaskStateRules.IsTerminal(stored.Task.Status.State))
+                {
+                    if (!TaskStateRules.CanTransition(stored.Task.Status.State, TaskState.Canceled, TransitionSource.CancelRequest))
+                        throw new InvalidOperationException($"Server bug: a cancel request cannot move task '{request.Id}' from {stored.Task.Status.State} to Canceled.");
                     stored = await _writer.CommitStatusAsync(stored, TaskState.Canceled, null).ConfigureAwait(false);
+                }
                 if (running is not null) running.FinalTask ??= stored.Task;
                 _cancelling.TryRemove(key, out _);
             }
@@ -265,6 +269,9 @@ public sealed class TaskManager : IA2ARequestHandler
                     throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is being canceled. Call GetTask to see when it ends.");
                 if (!string.IsNullOrEmpty(message.ContextId) && message.ContextId != stored.Task.ContextId)
                     throw new A2AException(A2AErrorCode.InvalidParams, "message.contextId does not match the task's contextId. Send the task's contextId, or omit it.");
+
+                if (!TaskStateRules.CanTransition(state, TaskState.Submitted, TransitionSource.Server))
+                    throw new InvalidOperationException($"Server bug: a continuation cannot move task '{taskId}' from {state} to Submitted.");
 
                 var userMessage = message with { TaskId = taskId, ContextId = stored.Task.ContextId };
                 stored = stored with
