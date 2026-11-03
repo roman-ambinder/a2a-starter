@@ -64,7 +64,7 @@ These were checked in the repo when this plan was written. They drive several st
 - **Branch:** create `feat/sdk-02-public-api` from `master` before Task 0. One PR for the whole plan, or one PR per task group if the owner prefers; each commit must build and pass all tests on its own.
 - **No behavior change on the wire.** The golden JSON tests and proto round-trip tests stay byte-for-byte the same. Telemetry names, config keys, header names, error codes and REST paths do not change.
 - **No `[EditorBrowsable(Never)]` and no `.Internal` namespace** as a stand-in for `internal` (spec anti-goal).
-- **No `InternalsVisibleTo` between shipped assemblies.** `InternalsVisibleTo` only to test assemblies and to `Ambinder.A2A.Benchmarks`. See the decision on the integration test assembly in Task 3, step 3.1.
+- **No `InternalsVisibleTo` between shipped assemblies.** `InternalsVisibleTo` only to test assemblies and to `Ambinder.A2A.Benchmarks`. The one exception is `Ambinder.A2A.Integration.Tests`, allowed by owner decision on 2026-11-03 (Task 3, step 3.1).
 - **Never regenerate an API file wholesale.** Add lines with the analyzer fix, read the diff, commit.
 - **Build rules stay:** `TreatWarningsAsErrors`, nullable on, central package management. Every new package version goes into `Directory.Packages.props`.
 - **Docs style:** short, plain sentences, no jargon (the repo style). This applies to XML docs too.
@@ -256,7 +256,7 @@ public sealed class PublicSurfaceTests
         "InMemoryTaskStore", "InMemoryPushConfigStore", "DefaultOwnerResolver", "AgentAuthorizer",
     ];
 
-    /// <summary>Allowed InternalsVisibleTo targets besides "&lt;assembly&gt;.Tests". See Task 3, step 3.1.</summary>
+    /// <summary>Allowed InternalsVisibleTo targets besides "&lt;assembly&gt;.Tests". Integration.Tests: owner decision 2026-11-03 (Task 3, step 3.1).</summary>
     private static readonly string[] ExtraFriendAssemblies = ["Ambinder.A2A.Benchmarks", "Ambinder.A2A.Integration.Tests"];
 
     public static IEnumerable<object[]> Assemblies() => ShippedAssemblies.ProjectNames.Select(n => new object[] { n });
@@ -329,7 +329,7 @@ public sealed class PublicSurfaceTests
 Notes for the implementer:
 - `Microsoft.Extensions.` is allowed as a prefix for every non-Protocol package. Spec 02 says "`Microsoft.Extensions.*` abstractions". If the walk finds a non-abstractions `Microsoft.Extensions.*` assembly in a Server or Client signature, list it in the PR and ask the owner whether to narrow the prefix.
 - The gRPC rows: spec 02 allows `Grpc.Net.Client` / `Grpc.AspNetCore` types "only on their own `Add...` options". `MapA2AGrpc` returns `GrpcServiceEndpointConventionBuilder` (from `Grpc.AspNetCore.Server`; Phase 1 `src/A2A.Server/Hosting/GrpcHostingExtensions.cs:43`). Treat the entry-point extension class as allowed and add a second assertion in the gRPC theory: any `Grpc.*` type in a gRPC package's public signature must be on a member of a static class whose name ends in `Extensions` or on a type whose name ends in `Options`. Write that check in the same file.
-- `Ambinder.A2A.Integration.Tests` in `ExtraFriendAssemblies` is the decision in Task 3, step 3.1. Remove it if the owner rejects that decision.
+- `Ambinder.A2A.Integration.Tests` in `ExtraFriendAssemblies` is the owner's decision of 2026-11-03 (Task 3, step 3.1).
 
 - [ ] **1.5** Write `PublicSignatures.cs` in the same project: the signature walker.
 
@@ -489,7 +489,7 @@ Each type below is found by name (`git grep -nE "public (sealed |static |partial
 
 Types that stay public in this task (owned by 05, 07, 08, 11; spec 02 section 3): `IAgentHandler`, `IAgentEventSink`, `AgentRequestContext`, `AgentRegistration`, `AgentCatalog`, `A2AServerBuilder`, `A2AServerOptions`, `PushOptions`, `ITaskStore`, `IPushConfigStore`, `StoredTask`, `IOwnerResolver`, `CallerIdentity`, `IAgentAuthorizer`, `ITaskEventObserver`, `IA2ARequestHandler`, `A2ACallContext`, and the extension classes.
 
-- [ ] **3.1** **Decision: `InternalsVisibleTo` to the integration test assembly.** Spec 02 (Constraints) allows `InternalsVisibleTo` "only to the matching `*.Tests` assembly and to `Ambinder.A2A.Benchmarks`". Phase 1 already gives the client's internals to `A2A.Integration.Tests` (`src/A2A.Client/A2A.Client.csproj:12`), and the integration tests use about a dozen of the types made internal here (see Facts). Rewriting those tests against public API is the work of packages 10 (client) and 12 (test migration, C13). **This plan's default:** also allow `Ambinder.A2A.Integration.Tests`, which is a test assembly and is never shipped, so the rule's purpose (no `InternalsVisibleTo` between shipped assemblies, spec 01 rule 6) still holds. `PublicSurfaceTests` lists it in `ExtraFriendAssemblies`, so it is visible and easy to remove later. Write this in the PR description under "Decisions for the owner". If the owner rejects it, the fallback is: move each affected test into the matching `Ambinder.A2A.<Package>.Tests` project, or rewrite it against public API; that is a separate task list the owner must approve first.
+- [ ] **3.1** **Owner decision (2026-11-03): `InternalsVisibleTo` to `Ambinder.A2A.Integration.Tests` is allowed.** Spec 02 (Constraints) allows `InternalsVisibleTo` "only to the matching `*.Tests` assembly and to `Ambinder.A2A.Benchmarks`". The owner added this one exception. Reason: Phase 1 already gives the client's internals to `A2A.Integration.Tests` (`src/A2A.Client/A2A.Client.csproj:12`), the integration tests use about a dozen of the types made internal here (see Facts), and the assembly is a test assembly that is never shipped, so the rule's purpose (no `InternalsVisibleTo` between shipped assemblies, spec 01 rule 6) still holds. Rewriting those tests against public API stays with packages 10 (client) and 12 (test migration, C13). `PublicSurfaceTests` lists it in `ExtraFriendAssemblies`. Add the `InternalsVisibleTo` item for it to each shipped project whose internals the integration tests use, and to no other assembly. Record the exception in `CONTRIBUTING.md` (Task 13.3) next to the `InternalsVisibleTo` rule.
 - [ ] **3.2** Change the declarations in the table to `internal`. For a type in `src/Shared` or `src/Grpc.Shared`, first check (A4, A5) whether 01 already did it.
 - [ ] **3.3** Add `InternalsVisibleTo` items only where a test needs them, using the item form in the `.csproj`:
 
@@ -827,7 +827,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - the `#pragma warning disable RS0030` sites from Task 8;
   - analyzer suppressions for public names from Task 7;
   - any public type 01 needed in `Client.Grpc` (Task 4.3);
-  - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` decision (Task 3.1);
+  - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
   - no new static singletons in public API (spec 02, "How it meets the six principles", item 6).
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
 
@@ -870,6 +870,7 @@ Spec 02 "How it meets the six principles", item 3: each options validation failu
   - previews keep every line in `Unshipped`; a removal or change during previews needs a "Breaking changes" line in `CHANGELOG.md`;
   - the evolution rules in one short list, with a link to the policy page;
   - XML doc rules (Task 10), the banned-API list (`eng/BannedSymbols.txt`), and the EventId blocks.
+  - `InternalsVisibleTo`: only to the matching `*.Tests` assembly, `Ambinder.A2A.Benchmarks`, and `Ambinder.A2A.Integration.Tests` (owner decision 2026-11-03); never between shipped assemblies.
 - [ ] **13.4** Check `CHANGELOG.md`: the unreleased/preview section lists every "Breaking changes" line from Tasks 2 to 6 and "Added" lines for `A2AJson.TypeInfoResolver`, the typed accessors, and the API tracking.
 - [ ] **13.5** If 01 has a docs test (Phase 1 had `tests/A2A.Integration.Tests/Repo/DocsTests.cs`), extend it: the README and CONTRIBUTING link to `docs/policies/versioning.md`, and the link resolves.
 - [ ] **13.6** Commit: `docs: versioning policy and public API contributor guide`.
@@ -924,7 +925,7 @@ Match the `actions/checkout` version to the one in `ci.yml` at execution time (P
 
 - [ ] **15.1** Clean build and full test run: `git clean -xdf -e .vs -e .idea && dotnet build Ambinder.A2A.slnx -c Release && dotnet test Ambinder.A2A.slnx -c Release`. Zero warnings. Test count is at least the Task 0 count plus the new tests.
 - [ ] **15.2** Go through the M1 rows of the coverage table below. For each, write in the PR description where it is proven (test name, command output or file).
-- [ ] **15.3** The PR description has: "Package 01 facts" (Task 0), "Decisions for the owner" (Task 3.1 and any stop-and-ask items), the API gate proof (Task 9.8), the per-package public type counts (Task 9.5), and the owner actions (making `public-api-diff` a required check).
+- [ ] **15.3** The PR description has: "Package 01 facts" (Task 0), "Decisions for the owner" (any stop-and-ask items; Task 3.1 is already decided), the API gate proof (Task 9.8), the per-package public type counts (Task 9.5), and the owner actions (making `public-api-diff` a required check).
 
 ---
 
@@ -968,6 +969,6 @@ These are spec 02 steps for later milestones. They are listed so the plan covers
 - **Model:** every subagent (implementers and reviewers) runs on model **`sonnet`**. Planning was done on Opus; execution is on Sonnet (owner rule).
 - **Order:** Task 0 first, alone. Then Tasks 1 → 2 → 3 → 4 → 5 in order (each depends on the one before). Tasks 6, 7 and 8 come next, in that order; they touch different files but all change the build, so run them one at a time. Task 9 must come after Tasks 2 to 8 (the API files are generated once, after the surface and analyzer fixes are done). Task 10 comes after 9; its three parts (10a, 10b, 10c) can run as parallel subagents because they touch different packages, followed by one build of the whole solution. Then 11, 12, 13, 14, 15 in order.
 - **What each subagent gets:** this plan's header (Precondition table, Facts, Global constraints, Review focus), its own task section, and the "Package 01 facts" notes from Task 0. Point it at spec 02 for the rule text; do not paste the whole spec.
-- **Stop points that need the owner:** Task 0.4 (an assumption about 01 is false), Task 2.5 (an internal converter breaks a consumer context), Task 3.1 (if the owner rejects the integration-test `InternalsVisibleTo`), Task 9.4 (no command fills the API files). A subagent that hits one stops and reports; it does not work around it.
+- **Stop points that need the owner:** Task 0.4 (an assumption about 01 is false), Task 2.5 (an internal converter breaks a consumer context), Task 9.4 (no command fills the API files). A subagent that hits one stops and reports; it does not work around it.
 - **Review of each task:** the reviewer checks the Review focus items that apply, that the build has zero warnings, that all tests pass, that no wire-format test changed, and that the CHANGELOG and migration-map records were added.
 - **Deferred tasks D1 to D5 are not part of this execution.**
