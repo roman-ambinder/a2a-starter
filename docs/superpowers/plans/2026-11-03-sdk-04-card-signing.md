@@ -1179,6 +1179,7 @@ internal static class AgentCardETag
     - A `signatures` member already in the input is replaced, not appended to.
     - ETag = `AgentCardETag.Compute(payload, kids)`.
     - Signing the same card twice with the same keys returns the cached entry (the source and `SignAsync` are not called again; count calls on a fake key). After a key change, the card is signed again and the ETag changes.
+    - **Cache key and bound** *(cross-plan review)*: the signer's cache is keyed by (SHA-256 of the canonical signing payload, `KeySetId`), never by agent name, because package 09 builds one card per variant (host, tenant or caller) and signs each one (09 plan Task 10, step 6). Two cards that differ only in a host-specific URL get two entries and two ETags. Two identical payloads share one. The cache is a bounded LRU of 1,000 entries, the same bound as 09's variant cache, so per-host variants cannot grow memory without limit. Test: 1,001 distinct payloads leave at most 1,000 entries (internal count, read through `InternalsVisibleTo` to `Ambinder.A2A.Server.Tests`).
     - No usable key and `FailWhenNoKey = false`: an unsigned result, an error log ("Card signing is configured but no usable key is available ... the card is served unsigned"), and ETag = `Compute(payload, [])`.
     - With `FailWhenNoKey = true`: an `InvalidOperationException`.
   - Registration:
@@ -1315,6 +1316,7 @@ Signing happens once per card variant and key set. The payload is computed on ea
 - Right after the contributors run, call `IAgentCardSigner.SignAsync(cardJson)` if one is registered (`RequestServices.GetService<IAgentCardSigner>()`). Cache `SignedAgentCard.Json` and `SignedAgentCard.ETag` in place of 03's bytes and ETag, and rebuild the entry when `GetKeySetIdAsync` no longer equals `SignedAgentCard.KeySetId`.
 - 03's ETag code must use `AgentCardETag.Compute(payload, kids)` (the linked `src/Shared` helper from Task 7), which is the B13 rule 03 defines. If 03 computed its own hash, replace it with `AgentCardETag`, so there is one implementation.
 - The extended card goes through the same path, with its own cache entry.
+- **If package 09's per-request card pipeline has landed** (09 plan Task 10, `AgentCardBuilderPipeline` and `AgentCardVariantCache`), it replaced 03's single cached card. Call `IAgentCardSigner.SignAsync` at its step 6 ("Sign, once per variant"), after the contributors, and store `SignedAgentCard.Json` and `ETag` in 09's variant cache entry. Do not add a second card cache here. *(cross-plan review)*
 
 **Branch B: 03's pipeline is not there.**
 
