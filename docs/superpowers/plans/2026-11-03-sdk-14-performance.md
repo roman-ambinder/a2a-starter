@@ -281,7 +281,10 @@ Expected: the build is clean and the list shows the smoke benchmark.
 - Create: `tests/Ambinder.A2A.Perf.Testing/Ambinder.A2A.Perf.Testing.csproj` (library, `IsPackable=false`)
 - Create: `tests/Ambinder.A2A.Perf.Testing/AllocationBudgetAttribute.cs`
 - Create: `tests/Ambinder.A2A.Perf.Testing/Allocations.cs`
-- Create: `tests/Ambinder.A2A.Perf.Tests/Ambinder.A2A.Perf.Tests.csproj` (xUnit v3, references Perf.Testing and the `src/` projects, with `InternalsVisibleTo` from the `src/` projects as in Task 1)
+- Create: `tests/Ambinder.A2A.Perf.Tests/Ambinder.A2A.Perf.Tests.csproj` (xUnit v3, references Perf.Testing and the `src/` projects; public API only)
+  - **No `InternalsVisibleTo` to `Perf.Tests`** *(cross-plan review)*. 01 rule 6 allows it only to the matching test project and to `Ambinder.A2A.Benchmarks`. The package 02 plan's `InternalsVisibleTo_only_to_tests_and_benchmarks` test fails on any other friend, except `Ambinder.A2A.Integration.Tests` (owner decision). This is the same rule the package 12 plan applies to `Stress.Tests`.
+  - An allocation test that needs an internal type goes in the matching test project instead. For example, a test that calls `SseWriter` directly goes to `tests/Ambinder.A2A.AspNetCore.Tests/Perf/`. That project references `Perf.Testing`. The `Perf.Tests` path named in a later task then moves there.
+  - `GC.GetTotalAllocatedBytes` counts every thread, so a moved test needs the same isolation as `Perf.Tests`. Put it in an xUnit collection declared with `[CollectionDefinition(DisableParallelization = true)]`, which runs after the parallel tests.
 - Create: `tests/Ambinder.A2A.Perf.Tests/AssemblyInfo.cs`
 - Create: `tests/Ambinder.A2A.Perf.Testing.Tests/AllocationsTests.cs` (tests the helper itself; may live in `Ambinder.A2A.Perf.Tests` under `Helper/`, which is the writer's call)
 - Modify: `Ambinder.A2A.slnx`
@@ -808,7 +811,9 @@ jobs:
       # full job, all categories except Db; plus Db on Sundays or when inputs.db;
       # PerfTool startup, PerfTool size-report (after dotnet pack);
       # download the previous nightly artifact (actions/download-artifact with run-id lookup, or the gh-pages data file);
-      # PerfTool nightly ...; upload BDN JSON + markdown + nightly-summary.* as an artifact, retention-days: 90;
+      # PerfTool nightly ...; upload BDN JSON + markdown as artifact "perf-nightly-results", retention-days: 90;
+      # upload nightly-summary.json + nightly-summary.md as a separate artifact with the fixed name "perf-nightly-summary",
+      #   retention-days: 90 (13's docs publish downloads it by that name; do not rename it without changing 13's Task 15);
       # benchmark-action/github-action-benchmark (tool: benchmarkdotnet) for the chart, auto-push to the data branch,
       #   comment-on-alert: true, alert-threshold: '120%', fail-on-alert: false;
       # on PerfTool exit code 2, comment on the commit with the alert table.
