@@ -147,7 +147,7 @@ public sealed class GrpcTransportTests : IDisposable
         Assert.Equal("echo", card.Name);
         Assert.Equal("Extended echo card", card.Description);
 
-        // protected port: the protected agent. Its policy turns anonymous callers away and it has no extended card.
+        // protected port: the protected agent. Its policy turns anonymous callers away and it does not offer an extended card.
         var protectedClient = Client(MinimalServer.ProtectedGrpcPort);
         var anonymous = await Assert.ThrowsAsync<RpcException>(async () =>
             await protectedClient.SendMessageAsync(Send("hi"), Headers(), cancellationToken: Ct));
@@ -156,7 +156,7 @@ public sealed class GrpcTransportTests : IDisposable
         var noCard = await Assert.ThrowsAsync<RpcException>(async () =>
             await protectedClient.GetExtendedAgentCardAsync(new Proto.GetExtendedAgentCardRequest(), Headers("rita", MinimalServer.InvokerRole), cancellationToken: Ct));
         Assert.Equal(StatusCode.FailedPrecondition, noCard.StatusCode);
-        Assert.Equal("EXTENDED_AGENT_CARD_NOT_CONFIGURED", ErrorInfoOf(noCard).Reason);
+        Assert.Equal("UNSUPPORTED_OPERATION", ErrorInfoOf(noCard).Reason); // capability not declared (spec 3.3.4)
 
         var allowed = await protectedClient.SendMessageAsync(Send("hi"), Headers("rita", MinimalServer.InvokerRole), cancellationToken: Ct);
         Assert.Equal(Proto.TaskState.Completed, allowed.Task.Status.State);
@@ -178,7 +178,7 @@ public sealed class GrpcTransportTests : IDisposable
         var card = System.Text.Json.Nodes.JsonNode.Parse(await http.GetStringAsync("agents/echo/.well-known/agent-card.json", Ct))!;
         var grpc = card["supportedInterfaces"]!.AsArray().Single(i => i!["protocolBinding"]!.GetValue<string>() == "GRPC")!;
 
-        Assert.Equal($"http://127.0.0.1:{MinimalServer.EchoGrpcPort}", grpc["url"]!.GetValue<string>());
+        Assert.Equal($"127.0.0.1:{MinimalServer.EchoGrpcPort}", grpc["url"]!.GetValue<string>());
         var reply = await Client(MinimalServer.EchoGrpcPort).SendMessageAsync(Send("via card url"), Headers(), cancellationToken: Ct);
         Assert.Equal(Proto.TaskState.Completed, reply.Task.Status.State);
     }

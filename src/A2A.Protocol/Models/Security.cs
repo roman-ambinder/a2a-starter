@@ -53,12 +53,35 @@ public sealed record MutualTlsSecurityScheme
     public string? Description { get; init; }
 }
 
-/// <summary>OAuth flows; exactly one member is set. Deprecated implicit and password flows are not modeled.</summary>
+/// <summary>
+/// OAuth flows; exactly one member is set. <see cref="Implicit"/> and <see cref="Password"/> are deprecated in the spec
+/// (removed from OAuth 2.1). They are modeled only so cards that use them round-trip; the client never uses them to get tokens.
+/// </summary>
 public sealed record OAuthFlows
 {
     public AuthorizationCodeOAuthFlow? AuthorizationCode { get; init; }
     public ClientCredentialsOAuthFlow? ClientCredentials { get; init; }
+    /// <summary>Deprecated: use authorization code with PKCE, or device code.</summary>
+    public ImplicitOAuthFlow? Implicit { get; init; }
+    /// <summary>Deprecated: use authorization code with PKCE, or device code.</summary>
+    public PasswordOAuthFlow? Password { get; init; }
     public DeviceCodeOAuthFlow? DeviceCode { get; init; }
+}
+
+/// <summary>Deprecated OAuth implicit flow (proto <c>ImplicitOAuthFlow</c>). Kept so cards round-trip.</summary>
+public sealed record ImplicitOAuthFlow
+{
+    public string AuthorizationUrl { get => field ?? ""; init; }
+    public string? RefreshUrl { get; init; }
+    public IReadOnlyDictionary<string, string> Scopes { get => field ?? new Dictionary<string, string>(); init; }
+}
+
+/// <summary>Deprecated OAuth resource owner password flow (proto <c>PasswordOAuthFlow</c>). Kept so cards round-trip.</summary>
+public sealed record PasswordOAuthFlow
+{
+    public string TokenUrl { get => field ?? ""; init; }
+    public string? RefreshUrl { get; init; }
+    public IReadOnlyDictionary<string, string> Scopes { get => field ?? new Dictionary<string, string>(); init; }
 }
 
 public sealed record AuthorizationCodeOAuthFlow

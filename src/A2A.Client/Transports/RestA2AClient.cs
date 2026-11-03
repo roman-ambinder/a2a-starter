@@ -14,7 +14,6 @@ namespace A2A.Client.Transports;
 /// </summary>
 public sealed class RestA2AClient : IA2AClient
 {
-    private const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
 
     private readonly string _baseUrl;
     private readonly AgentCard _card;
@@ -112,10 +111,10 @@ public sealed class RestA2AClient : IA2AClient
 
     private static string Seg(string? value) => Uri.EscapeDataString(value ?? "");
 
-    /// <summary><c>/{tenant}</c> for the request's tenant, else the default tenant; empty when there is none.</summary>
+    /// <summary><c>/{tenant}</c> for the effective tenant (<see cref="ClientSupport.EffectiveTenant"/>); empty when there is none.</summary>
     private string Prefix(string? tenant)
     {
-        var t = string.IsNullOrEmpty(tenant) ? _defaultTenant : tenant;
+        var t = ClientSupport.EffectiveTenant(tenant, _defaultTenant);
         return t is null ? "" : "/" + Seg(t);
     }
 
@@ -256,23 +255,8 @@ public sealed class RestA2AClient : IA2AClient
     {
         var message = error.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
 
-        if (error.TryGetProperty("details", out var details) && details.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var detail in details.EnumerateArray())
-            {
-                if (detail.ValueKind != JsonValueKind.Object) continue;
-                if (!detail.TryGetProperty("@type", out var type) || type.GetString() != ErrorInfoType) continue;
-                if (!detail.TryGetProperty("reason", out var r) || r.ValueKind != JsonValueKind.String) continue;
-                if (A2AError.FromReason(r.GetString()!) is not { } code) continue;
-
-                JsonElement? data = null;
-                if (detail.TryGetProperty("metadata", out var md) && md.ValueKind == JsonValueKind.Object)
-                    data = ClientSupport.MetadataToData(md.EnumerateObject()
-                        .Where(p => p.Value.ValueKind == JsonValueKind.String)
-                        .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
-                return new A2AException(code, message ?? "", data);
-            }
-        }
+        if (error.TryGetProperty("details", out var details) && ClientSupport.FindErrorInfo(details) is { } found)
+            return new A2AException(found.Code, message ?? "", found.Metadata);
 
         // In-stream error frame: the HTTP status (200) says nothing, the body's code does.
         int? status = response is not null ? (int)response.StatusCode

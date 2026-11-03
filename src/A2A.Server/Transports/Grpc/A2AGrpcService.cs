@@ -119,6 +119,9 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
         ServiceParameters.EnsureSupportedVersion(string.IsNullOrEmpty(version) ? null : version);
         if (requireAuthenticated)
             await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+        var active = ServiceParameters.ActivateExtensions(agent.PublicCard, extensions);
+        if (active.Count > 0)
+            await context.WriteResponseHeadersAsync(new Metadata { { A2AConstants.GrpcExtensionsKey, string.Join(',', active) } }).ConfigureAwait(false);
 
         var model = (TModel)ProtoMapper.FromProtoObject(request);
         RequestValidation.Validate(model);

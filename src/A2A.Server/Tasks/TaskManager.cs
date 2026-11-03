@@ -209,8 +209,13 @@ public sealed class TaskManager : IA2ARequestHandler
     public Task<AgentCard> GetExtendedAgentCardAsync(A2ACallContext call, GetExtendedAgentCardRequest request, CancellationToken ct)
     {
         var registration = GetAgent(call);
-        if (registration.PublicCard.Capabilities.ExtendedAgentCard != true || registration.ExtendedCard is null)
-            throw new A2AException(A2AErrorCode.ExtendedAgentCardNotConfigured, "This agent has no extended agent card.");
+        // Spec 3.3.4: capability not declared → UnsupportedOperation; declared but no card → ExtendedAgentCardNotConfigured.
+        if (registration.PublicCard.Capabilities.ExtendedAgentCard != true)
+            throw new A2AException(A2AErrorCode.UnsupportedOperation,
+                "This agent does not offer an extended agent card (capabilities.extendedAgentCard is not true). Use the public card.");
+        if (registration.ExtendedCard is null)
+            throw new A2AException(A2AErrorCode.ExtendedAgentCardNotConfigured,
+                "This agent declares an extended agent card but none is configured. Use the public card.");
         return Task.FromResult(registration.ExtendedCard);
     }
 

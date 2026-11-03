@@ -8,8 +8,6 @@ namespace A2A.Server.Transports.Rest;
 /// <summary>Writes A2A errors for the HTTP+JSON binding in the google.rpc.Status JSON form.</summary>
 public static class RestErrorWriter
 {
-    private const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
-
     /// <summary>Sends the catalog's HTTP status and the body from <see cref="ToJson"/>. No-op body if the response has started.</summary>
     public static async Task Write(HttpContext http, A2AException error)
     {
@@ -36,23 +34,7 @@ public static class RestErrorWriter
             w.WriteNumber("code", info.HttpStatus);
             w.WriteString("status", TransportErrors.StatusName(info.GrpcStatus));
             w.WriteString("message", error.Message);
-            if (info.Reason is not null)
-            {
-                w.WriteStartArray("details");
-                w.WriteStartObject();
-                w.WriteString("@type", ErrorInfoType);
-                w.WriteString("reason", info.Reason);
-                w.WriteString("domain", A2AError.Domain);
-                if (error.Data is { ValueKind: JsonValueKind.Object })
-                {
-                    w.WriteStartObject("metadata");
-                    foreach (var (name, value) in TransportErrors.ErrorMetadata(error.Data))
-                        w.WriteString(name, value);
-                    w.WriteEndObject();
-                }
-                w.WriteEndObject();
-                w.WriteEndArray();
-            }
+            TransportErrors.WriteDetails(w, "details", error);
             w.WriteEndObject();
             w.WriteEndObject();
         }

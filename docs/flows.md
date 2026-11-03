@@ -212,12 +212,12 @@ sequenceDiagram
     C->>S: GetExtendedAgentCard (token or API key)
     S-->>C: AgentCard with extra skill report-archive
     C->>S: GetExtendedAgentCard on echo agent
-    S-->>C: error ExtendedAgentCardNotConfigured
+    S-->>C: error UnsupportedOperation (echo does not declare an extended card)
 ```
 
 - Code: `samples/AgentServer/Cards/AgentCards.cs` (`HasExtendedCard`), `src/A2A.Server/Hosting/AgentCardEndpoints.cs`
 - Command: `extended-card`
-- Tests: `DiscoveryAndAuthTests.Extended_card_requires_auth_and_adds_skills`, `Echo_extended_card_not_configured`
+- Tests: `DiscoveryAndAuthTests.Extended_card_requires_auth_and_adds_skills`, `Echo_extended_card_not_offered_is_unsupported_operation`
 
 ## 11. Extensions
 
@@ -258,7 +258,7 @@ sequenceDiagram
     C->>S: secure agent without audit extension
     S-->>C: ExtensionSupportRequired (-32008)
     C->>S: GetExtendedAgentCard on echo
-    S-->>C: ExtendedAgentCardNotConfigured (-32007)
+    S-->>C: UnsupportedOperation (-32004)
 ```
 
 The same error maps to a JSON-RPC code, an HTTP status and a gRPC status with `ErrorInfo` (domain `a2a-protocol.org`). Auth failures are not A2A errors: they are HTTP 401 or 403 (gRPC `UNAUTHENTICATED` or `PERMISSION_DENIED`). The client throws `A2AException` for protocol errors and `A2AAuthException` for 401 and 403.

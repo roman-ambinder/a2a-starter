@@ -214,6 +214,19 @@ public sealed class JsonRpcClientTests(MinimalServer server)
     }
 
     [Fact]
+    public async Task Error_info_in_data_selects_the_code_and_becomes_data()
+    {
+        const string body =
+            """{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"old","data":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"VERSION_NOT_SUPPORTED","domain":"a2a-protocol.org","metadata":{"supportedVersions":"1.0"}}]}}""";
+        await using var client = Stubbed(new StubHandler((_, _) => Reply(body)));
+
+        var ex = await Assert.ThrowsAsync<A2AException>(() => client.GetTaskAsync(new GetTaskRequest { Id = "t" }, Ct));
+
+        Assert.Equal(A2AErrorCode.VersionNotSupported, ex.Code);
+        Assert.Equal("1.0", ex.Data!.Value.GetProperty("supportedVersions").GetString());
+    }
+
+    [Fact]
     public async Task Error_mapping_for_unknown_codes_and_plain_http_failures()
     {
         await using var unknown = Stubbed(new StubHandler((_, _) =>

@@ -28,7 +28,7 @@ internal static class RestQuery
                 Kind.Bool => raw switch { "true" => JsonValue.Create(true), "false" => JsonValue.Create(false), _ => throw Bad(name, "true or false") },
                 Kind.Timestamp => DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out _)
                     ? JsonValue.Create(raw) : throw Bad(name, "an ISO 8601 timestamp"),
-                _ => JsonValue.Create(raw), // String; Enum is validated by the strict enum converter
+                _ => JsonValue.Create(raw), // String; Enum: an unknown name reads as UNSPECIFIED (ProtoEnumConverter)
             };
         }
         foreach (var (name, value) in pathValues) obj[name] = value;

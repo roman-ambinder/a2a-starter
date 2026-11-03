@@ -22,6 +22,12 @@ public sealed class A2AClientOptions
     /// <summary>Preferred binding (<c>JSONRPC</c>, <c>HTTP+JSON</c>, <c>GRPC</c>) for the client factory.</summary>
     public string? PreferredBinding { get; init; }
 
+    /// <summary>
+    /// TLS for a gRPC interface whose card URL is a bare <c>host:port</c> (the spec's gRPC address form). Null (default): plain
+    /// text (h2c) for loopback hosts, TLS for any other host. A card URL with <c>http://</c> or <c>https://</c> decides by itself.
+    /// </summary>
+    public bool? GrpcUseTls { get; init; }
+
     /// <summary>Client certificate for mutual TLS. Used only when the client creates its own HttpClient.</summary>
     public X509Certificate2? ClientCertificate { get; init; }
 }

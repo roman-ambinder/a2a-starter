@@ -118,6 +118,7 @@ internal static class JsonRpcEndpoint
                 throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
             if (method.RequiresAuthentication)
                 await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+            ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);

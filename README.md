@@ -187,14 +187,6 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 
 Everything to change for Phase 2 is in [docs/production.md](docs/production.md).
 
-## Optional conformance
+## Conformance
 
-The official A2A TCK (technology compatibility kit) can check this server. It is not part of `dotnet test`; run it in CI as a separate job:
-
-1. Start the stack (`./run-all.sh` or `docker compose up -d --wait`).
-2. Check out the TCK from the A2A project and point its system-under-test URL at `http://localhost:5200` (the root card is the `report` agent). The `report` agent needs credentials, so give the TCK the header `X-API-Key: dev-api-key` or a MockEntra token. The open `echo` agent is at `http://localhost:5200/agents/echo`.
-3. Run the TCK as described in its own README, and fail the CI job on any failure.
-
-The CI workflow in this repo does not run the TCK.
-
-The exact TCK command and setting names depend on the TCK version, so they are not copied here.
+The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). That page also shows how to run the official A2A TCK against `tests/A2A.Tck.Sut`, a small server that serves all three transports. CI checks that `proto/a2a.proto` equals the `v1.0.1` release file; it does not run the TCK yet.

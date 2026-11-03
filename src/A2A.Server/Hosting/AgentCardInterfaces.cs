@@ -9,7 +9,11 @@ public static class AgentCardInterfaces
     public static AgentCard Apply(AgentCard card, string agentName, A2AServerOptions options)
         => card with { SupportedInterfaces = For(agentName, options) };
 
-    /// <summary>JSON-RPC <c>{base}/agents/{name}/jsonrpc</c>, REST <c>{base}/agents/{name}/rest</c>, gRPC <c>{scheme}://{host}:{port}</c> (scheme of PublicBaseUrl) when a port is configured.</summary>
+    /// <summary>
+    /// JSON-RPC <c>{base}/agents/{name}/jsonrpc</c>, REST <c>{base}/agents/{name}/rest</c>, and, when a port is configured, gRPC
+    /// <c>{host}:{port}</c> (the gRPC address form the spec gives for <c>AgentInterface.url</c>; gRPC clients use it as the channel
+    /// target). Whether the gRPC listener uses TLS follows the scheme of PublicBaseUrl.
+    /// </summary>
     public static IReadOnlyList<AgentInterface> For(string agentName, A2AServerOptions options)
     {
         var baseUrl = options.BaseUrl;
@@ -22,8 +26,7 @@ public static class AgentCardInterfaces
         {
             var uri = new Uri(baseUrl);
             var host = uri.Host; // IPv6 literals keep their brackets
-            // Same scheme as PublicBaseUrl: https there means TLS on the gRPC listener too (http = h2c).
-            list.Add(new() { Url = $"{uri.Scheme}://{host}:{port}", ProtocolBinding = A2AConstants.BindingGrpc, ProtocolVersion = A2AConstants.ProtocolVersion });
+            list.Add(new() { Url = $"{host}:{port}", ProtocolBinding = A2AConstants.BindingGrpc, ProtocolVersion = A2AConstants.ProtocolVersion });
         }
         return list;
     }

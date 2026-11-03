@@ -14,8 +14,11 @@ public static partial class ProtoMapper
 
     private static List<T> L<T>(IEnumerable<T> items) => [.. items];
 
+    /// <summary>Maps by member name. A value the target does not define (a newer peer's number) becomes the zero value (UNSPECIFIED), as in JSON.</summary>
     private static TTo EnumByName<TFrom, TTo>(TFrom value) where TFrom : struct, System.Enum where TTo : struct, System.Enum
-        => System.Enum.Parse<TTo>(value.ToString(), ignoreCase: false);
+        => System.Enum.IsDefined(value) && System.Enum.TryParse<TTo>(value.ToString(), ignoreCase: false, out var mapped) && System.Enum.IsDefined(mapped)
+            ? mapped
+            : default;
 
     internal static Proto.TaskState ToProto(TaskState value) => EnumByName<TaskState, Proto.TaskState>(value);
 

@@ -11,11 +11,31 @@ internal static class RequestValidator
             throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative.");
     }
 
+    /// <summary>Longest client <c>contextId</c> accepted (spec 3.4.1 lets the server reject ids it cannot accept).</summary>
+    public const int MaxContextIdLength = 256;
+
+    /// <summary>
+    /// A client <c>contextId</c> is kept as given, never replaced (spec 3.4.1). One the server cannot accept is rejected:
+    /// longer than <see cref="MaxContextIdLength"/> or containing control characters.
+    /// </summary>
+    public static void ValidateContextId(string? contextId)
+    {
+        if (string.IsNullOrEmpty(contextId)) return;
+        if (contextId.Length > MaxContextIdLength)
+            throw new A2AException(A2AErrorCode.InvalidParams,
+                $"message.contextId is longer than {MaxContextIdLength} characters. Send a shorter id, or omit it to get a new context.");
+        if (contextId.Any(char.IsControl))
+            throw new A2AException(A2AErrorCode.InvalidParams,
+                "message.contextId contains control characters. Send a printable id, or omit it to get a new context.");
+    }
+
     public static void ValidateMessage(SendMessageRequest request, AgentCard card)
     {
         var message = request.Message;
         if (string.IsNullOrEmpty(message.MessageId))
             throw new A2AException(A2AErrorCode.InvalidParams, "message.messageId is required.");
+        if (message.Role == Role.Unspecified)
+            throw new A2AException(A2AErrorCode.InvalidParams, "message.role is missing or has an unknown value; use ROLE_USER.");
         if (message.Role != Role.User)
             throw new A2AException(A2AErrorCode.InvalidParams, "message.role must be ROLE_USER.");
         if (message.Parts.Count == 0)
@@ -25,6 +45,7 @@ internal static class RequestValidator
             if (!message.Parts[i].IsValid)
                 throw new A2AException(A2AErrorCode.InvalidParams, $"message.parts[{i}] must set exactly one of text, raw, url or data.");
         }
+        ValidateContextId(message.ContextId);
         ValidateHistoryLength(request.Configuration?.HistoryLength);
 
         var modes = card.DefaultInputModes;

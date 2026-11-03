@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace A2A.Protocol;
 
 /// <summary>Lifecycle state of a task (proto <c>TaskState</c>).</summary>
-[JsonConverter(typeof(StrictEnumConverter<TaskState>))]
+[JsonConverter(typeof(ProtoEnumConverter<TaskState>))]
 public enum TaskState
 {
     [JsonStringEnumMemberName("TASK_STATE_UNSPECIFIED")] Unspecified = 0,
@@ -18,7 +18,7 @@ public enum TaskState
 }
 
 /// <summary>Sender of a message (proto <c>Role</c>).</summary>
-[JsonConverter(typeof(StrictEnumConverter<Role>))]
+[JsonConverter(typeof(ProtoEnumConverter<Role>))]
 public enum Role
 {
     [JsonStringEnumMemberName("ROLE_UNSPECIFIED")] Unspecified = 0,

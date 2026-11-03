@@ -151,6 +151,10 @@ public sealed class RestTransportTests(MinimalServer server)
 
         var next = await GetAsync(client, $"tasks?status=TASK_STATE_COMPLETED&pageSize=2&pageToken={Uri.EscapeDataString(page["nextPageToken"]!.GetValue<string>())}");
         Assert.Single(next["tasks"]!.AsArray());
+        // Spec 3.1.4: nextPageToken is always present, "" on the last page; tasks newest first.
+        Assert.Equal("", next["nextPageToken"]!.GetValue<string>());
+        var stamps = tasks.Concat(next["tasks"]!.AsArray()).Select(t => DateTimeOffset.Parse(t!["status"]!["timestamp"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal(stamps.OrderByDescending(x => x), stamps);
 
         var without = await GetAsync(client, "tasks?pageSize=1&statusTimestampAfter=2000-01-01T00:00:00Z");
         Assert.Null(without["tasks"]![0]!["artifacts"]);
@@ -160,7 +164,6 @@ public sealed class RestTransportTests(MinimalServer server)
     }
 
     [Theory]
-    [InlineData("tasks?status=TASK_STATE_NOPE")]
     [InlineData("tasks?pageSize=ten")]
     [InlineData("tasks?includeArtifacts=maybe")]
     [InlineData("tasks?statusTimestampAfter=yesterday")]

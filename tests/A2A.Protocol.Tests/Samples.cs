@@ -111,6 +111,16 @@ public static class Samples
         },
     };
 
+    public static OAuthFlows ImplicitFlows() => new()
+    {
+        Implicit = new ImplicitOAuthFlow { AuthorizationUrl = "https://idp.example/authorize", RefreshUrl = "https://idp.example/refresh", Scopes = Scopes },
+    };
+
+    public static OAuthFlows PasswordFlows() => new()
+    {
+        Password = new PasswordOAuthFlow { TokenUrl = "https://idp.example/token", RefreshUrl = "https://idp.example/refresh", Scopes = Scopes },
+    };
+
     public static OAuthFlows DeviceCodeFlows() => new()
     {
         DeviceCode = new DeviceCodeOAuthFlow
@@ -158,10 +168,10 @@ public static class Samples
             new ListTaskPushNotificationConfigsRequest { Tenant = "acme", TaskId = "t-1", PageSize = 5, PageToken = "p" },
             new ListTaskPushNotificationConfigsResponse { Configs = [push], NextPageToken = "n" },
             new GetExtendedAgentCardRequest { Tenant = "acme" },
-            FullCard(), FullCard(ClientCredentialsFlows()), FullCard(DeviceCodeFlows()),
+            FullCard(), FullCard(ClientCredentialsFlows()), FullCard(DeviceCodeFlows()), FullCard(ImplicitFlows()), FullCard(PasswordFlows()),
             FullCard().SupportedInterfaces[0], FullCard().Provider!, FullCard().Capabilities, FullCard().Capabilities.Extensions[0],
             FullCard().Skills[0], FullCard().Signatures[0], FullCard().SecurityRequirements[0],
-            new StringList { List = ["a", "b"] }, AuthCodeFlows(), ClientCredentialsFlows(), DeviceCodeFlows(),
+            new StringList { List = ["a", "b"] }, AuthCodeFlows(), ClientCredentialsFlows(), DeviceCodeFlows(), ImplicitFlows(), PasswordFlows(),
             FullCard().SecuritySchemes!["apiKey"], FullCard().SecuritySchemes!["http"], FullCard().SecuritySchemes!["oauth"],
             FullCard().SecuritySchemes!["oidc"], FullCard().SecuritySchemes!["mtls"],
         ];
