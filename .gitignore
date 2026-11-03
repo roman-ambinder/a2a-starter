@@ -1,0 +1,7 @@
+bin/
+obj/
+.env
+.superpowers/
+*.user
+.vs/
+.idea/

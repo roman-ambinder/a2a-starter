@@ -1,0 +1,25 @@
+# Build context: repository root (see docker-compose.yml).
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+# Restore first (own layer) so source edits do not re-download packages.
+COPY Directory.Build.props Directory.Packages.props global.json A2A.Reference.slnx ./
+COPY proto/ proto/
+COPY src/A2A.Protocol/A2A.Protocol.csproj src/A2A.Protocol/
+COPY src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj src/A2A.Protocol.Grpc/
+COPY src/A2A.Server/A2A.Server.csproj src/A2A.Server/
+COPY src/A2A.Client/A2A.Client.csproj src/A2A.Client/
+COPY samples/WebhookReceiver/WebhookReceiver.csproj samples/WebhookReceiver/
+RUN dotnet restore samples/WebhookReceiver/WebhookReceiver.csproj
+COPY . .
+RUN dotnet publish samples/WebhookReceiver/WebhookReceiver.csproj -c Release --no-restore -o /out
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+# curl is only for the compose healthcheck.
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out .
+# The environment comes from compose (ASPNETCORE_ENVIRONMENT), not the image.
+ENV ASPNETCORE_URLS=http://0.0.0.0:5300
+EXPOSE 5300
+USER app
+ENTRYPOINT ["dotnet", "WebhookReceiver.dll"]

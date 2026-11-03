@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../A2A.Protocol/A2A.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" />
+  </ItemGroup>
+</Project>

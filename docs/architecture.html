@@ -1,0 +1,312 @@
+<title>A2A Reference Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: single reading column, figures break wider; each figure is one claim with its caption. */
+  :root {
+    --bg: #f5f7f9;
+    --panel: #ffffff;
+    --fg: #17202b;
+    --muted: #5a6575;
+    --line: #b9c2cf;
+    --accent: #0b7480;
+    --accent-soft: #dff0f1;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141a; --panel: #161e27; --fg: #e3e8ee; --muted: #98a4b3;
+      --line: #3a4757; --accent: #52c4cc; --accent-soft: #15333a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141a; --panel: #161e27; --fg: #e3e8ee; --muted: #98a4b3;
+    --line: #3a4757; --accent: #52c4cc; --accent-soft: #15333a; color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.6 var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+  }
+  main { max-width: 960px; margin: 0 auto; display: grid; gap: 40px; }
+  header { display: grid; gap: 8px; max-width: 68ch; }
+  .eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 30px; line-height: 1.2; font-weight: 600; margin: 0; text-wrap: balance; }
+  h2 { font-size: 19px; line-height: 1.3; font-weight: 600; margin: 0; text-wrap: balance; }
+  p { margin: 0; max-width: 68ch; }
+  .lede { color: var(--muted); font-size: 16px; }
+  section { display: grid; gap: 14px; }
+  figure { margin: 0; display: grid; gap: 10px; }
+  .scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+  svg { display: block; width: 100%; height: auto; min-width: 640px; color: var(--fg); font-family: var(--font-body); }
+  figcaption { color: var(--muted); font-size: 14px; max-width: 72ch; }
+  code { font-family: var(--font-mono); font-size: .9em; }
+  .status { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: 500 12px/1 var(--font-mono); padding: 6px 9px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+  .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+  dt { font-family: var(--font-mono); font-size: 13px; color: var(--accent); padding-top: 2px; }
+  dd { margin: 0; min-width: 0; }
+  @media (max-width: 560px) { dl { grid-template-columns: 1fr; } dd { margin-bottom: 8px; } }
+
+  /* SVG roles */
+  .bx { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+  .bx-strong { fill: var(--panel); stroke: var(--fg); stroke-width: 1.4; }
+  .bx-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .bx-planned { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .bx-group { fill: none; stroke: var(--line); stroke-width: 1.2; }
+  .t { fill: currentColor; font-size: 13px; font-weight: 500; }
+  .t-title { fill: currentColor; font-size: 14px; font-weight: 600; }
+  .t-sub { fill: var(--muted); font-size: 11px; }
+  .t-mono { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); }
+  .t-label { fill: var(--muted); font-size: 11px; }
+  .t-accent { fill: var(--accent); font-size: 11px; font-weight: 500; }
+  .ln { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+  .ln-accent { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .ln-dash { stroke: var(--muted); stroke-width: 1.3; fill: none; stroke-dasharray: 4 3; }
+  .ah { fill: var(--muted); }
+  .ah-accent { fill: var(--accent); }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">A2A v1.0 · .NET 10 · Phase 1</span>
+    <h1>A2A Reference Architecture</h1>
+    <p class="lede">A reference repo your team copies from to build A2A agents and the clients that call them. Phase 1 runs entirely on one laptop: fake agents, a mock Entra, and in-memory state. It needs no keys, no cloud, and no Docker.</p>
+    <div class="status" aria-label="Build status">
+      <span class="chip on">Task 1 scaffold + gRPC codegen: built</span>
+      <span class="chip on">Task 2 models + JSON: built, in review</span>
+      <span class="chip">Tasks 3–20: planned</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Runtime: who talks to whom</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 820 500" role="img" aria-label="Runtime topology. The console client gets a token from mock Entra, reads the agent card, then calls the agent server over JSON-RPC, REST or gRPC. The server validates tokens with mock Entra's keys and pushes signed task updates to the webhook receiver.">
+          <defs>
+            <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="a1x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-accent"/></marker>
+          </defs>
+
+          <!-- Mock Entra -->
+          <rect class="bx-strong" x="330" y="20" width="260" height="70" rx="5"/>
+          <text class="t-title" x="460" y="48" text-anchor="middle">MockEntra</text>
+          <text class="t-mono" x="460" y="68" text-anchor="middle">:5100 · OIDC · JWKS · /token</text>
+
+          <!-- Client -->
+          <rect class="bx-strong" x="20" y="190" width="170" height="100" rx="5"/>
+          <text class="t-title" x="105" y="226" text-anchor="middle">AgentClient</text>
+          <text class="t-sub" x="105" y="246" text-anchor="middle">console · one command</text>
+          <text class="t-sub" x="105" y="261" text-anchor="middle">per flow</text>
+
+          <!-- Receiver -->
+          <rect class="bx-strong" x="20" y="380" width="170" height="90" rx="5"/>
+          <text class="t-title" x="105" y="414" text-anchor="middle">WebhookReceiver</text>
+          <text class="t-mono" x="105" y="434" text-anchor="middle">:5300</text>
+          <text class="t-sub" x="105" y="451" text-anchor="middle">verifies every push</text>
+
+          <!-- Agent server -->
+          <rect class="bx-group" x="330" y="150" width="470" height="330" rx="6"/>
+          <text class="t-title" x="350" y="176">AgentServer</text>
+          <text class="t-sub" x="780" y="176" text-anchor="end">single instance · in memory</text>
+
+          <rect class="bx-accent" x="350" y="190" width="130" height="40" rx="4"/>
+          <text class="t" x="415" y="208" text-anchor="middle">JSON-RPC</text>
+          <text class="t-mono" x="415" y="223" text-anchor="middle">:5200 + SSE</text>
+          <rect class="bx-accent" x="500" y="190" width="130" height="40" rx="4"/>
+          <text class="t" x="565" y="208" text-anchor="middle">REST</text>
+          <text class="t-mono" x="565" y="223" text-anchor="middle">:5200 + SSE</text>
+          <rect class="bx-accent" x="650" y="190" width="130" height="40" rx="4"/>
+          <text class="t" x="715" y="208" text-anchor="middle">gRPC</text>
+          <text class="t-mono" x="715" y="223" text-anchor="middle">:5201–5204</text>
+
+          <line class="ln" x1="415" y1="230" x2="415" y2="248" marker-end="url(#a1)"/>
+          <line class="ln" x1="565" y1="230" x2="565" y2="248" marker-end="url(#a1)"/>
+          <line class="ln" x1="715" y1="230" x2="715" y2="248" marker-end="url(#a1)"/>
+
+          <rect class="bx" x="350" y="250" width="430" height="36" rx="4"/>
+          <text class="t" x="565" y="273" text-anchor="middle">IA2ARequestHandler → TaskManager · event broker · auth</text>
+
+          <line class="ln" x1="565" y1="286" x2="565" y2="308" marker-end="url(#a1)"/>
+          <text class="t-mono" x="573" y="301">IAgentHandler</text>
+
+          <rect class="bx" x="350" y="310" width="100" height="50" rx="4"/>
+          <text class="t" x="400" y="331" text-anchor="middle">echo</text>
+          <text class="t-sub" x="400" y="348" text-anchor="middle">direct reply</text>
+          <rect class="bx" x="460" y="310" width="100" height="50" rx="4"/>
+          <text class="t" x="510" y="331" text-anchor="middle">report</text>
+          <text class="t-sub" x="510" y="348" text-anchor="middle">streams artifacts</text>
+          <rect class="bx" x="570" y="310" width="100" height="50" rx="4"/>
+          <text class="t" x="620" y="331" text-anchor="middle">booking</text>
+          <text class="t-sub" x="620" y="348" text-anchor="middle">asks follow-up</text>
+          <rect class="bx" x="680" y="310" width="100" height="50" rx="4"/>
+          <text class="t" x="730" y="331" text-anchor="middle">secure</text>
+          <text class="t-sub" x="730" y="348" text-anchor="middle">needs approver</text>
+
+          <rect class="bx" x="350" y="385" width="210" height="36" rx="4"/>
+          <text class="t" x="455" y="408" text-anchor="middle">Push sender (retry, sign)</text>
+          <rect class="bx" x="570" y="385" width="210" height="36" rx="4"/>
+          <text class="t" x="675" y="408" text-anchor="middle">In-memory task store</text>
+          <text class="t-sub" x="565" y="458" text-anchor="middle">FakeChatClient behind IChatClient · real LLMs in Phase 2</text>
+
+          <!-- 1: token -->
+          <path class="ln" d="M105,190 V55 H328" marker-end="url(#a1)"/>
+          <text class="t-label" x="115" y="47">① token (client credentials)</text>
+          <!-- 2: card + calls -->
+          <line class="ln" x1="190" y1="215" x2="328" y2="215" marker-end="url(#a1)"/>
+          <text class="t-label" x="198" y="208">② GET agent card</text>
+          <line class="ln-accent" x1="190" y1="252" x2="328" y2="252" marker-end="url(#a1x)"/>
+          <text class="t-accent" x="198" y="245">③ A2A call + Bearer</text>
+          <!-- server validates -->
+          <line class="ln" x1="560" y1="150" x2="560" y2="92" marker-end="url(#a1)"/>
+          <text class="t-label" x="568" y="126">JWKS · validate token</text>
+          <!-- push -->
+          <line class="ln" x1="350" y1="403" x2="192" y2="403" marker-end="url(#a1)"/>
+          <text class="t-label" x="200" y="396">④ push (signed)</text>
+          <line class="ln-dash" x1="190" y1="452" x2="328" y2="452" marker-end="url(#a1)"/>
+          <text class="t-label" x="198" y="445">fetch push JWKS</text>
+          <!-- client reads receiver -->
+          <line class="ln-dash" x1="105" y1="290" x2="105" y2="378" marker-end="url(#a1)"/>
+          <text class="t-label" x="113" y="338">⑤ register, read</text>
+        </svg>
+      </div>
+      <figcaption>The client gets a token from MockEntra (①) and reads the agent card (②). It then makes the A2A call (③) over whichever of the three transports it picks. All three transports go into one request handler, so every agent behaves the same on every transport. Long tasks push signed updates to the webhook receiver (④). The receiver checks the signature against the server's published keys, and the client reads what arrived (⑤).</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Code: what you copy</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 820 380" role="img" aria-label="Project dependencies. Samples depend on the src libraries. A2A.Client and A2A.Server depend on A2A.Protocol.Grpc, which is generated from a2a.proto and maps to the plain A2A.Protocol records. MockEntra uses nothing from src.">
+          <defs>
+            <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+          </defs>
+
+          <text class="t-mono" x="20" y="22">samples/ · demo logic, not copied</text>
+          <rect class="bx-planned" x="40" y="34" width="170" height="54" rx="5"/>
+          <text class="t" x="125" y="58" text-anchor="middle">AgentClient</text>
+          <text class="t-sub" x="125" y="75" text-anchor="middle">Task 18</text>
+          <rect class="bx-planned" x="230" y="34" width="170" height="54" rx="5"/>
+          <text class="t" x="315" y="58" text-anchor="middle">AgentServer</text>
+          <text class="t-sub" x="315" y="75" text-anchor="middle">Tasks 14–16</text>
+          <rect class="bx-planned" x="420" y="34" width="170" height="54" rx="5"/>
+          <text class="t" x="505" y="58" text-anchor="middle">WebhookReceiver</text>
+          <text class="t-sub" x="505" y="75" text-anchor="middle">Task 17</text>
+          <rect class="bx-planned" x="610" y="34" width="170" height="54" rx="5"/>
+          <text class="t" x="695" y="58" text-anchor="middle">MockEntra</text>
+          <text class="t-sub" x="695" y="75" text-anchor="middle">Task 13 · no src refs</text>
+
+          <text class="t-mono" x="20" y="146">src/ · copy these</text>
+          <rect class="bx-planned" x="40" y="158" width="210" height="58" rx="5"/>
+          <text class="t" x="145" y="182" text-anchor="middle">A2A.Client</text>
+          <text class="t-sub" x="145" y="200" text-anchor="middle">IA2AClient × 3 transports</text>
+          <rect class="bx-planned" x="300" y="158" width="210" height="58" rx="5"/>
+          <text class="t" x="405" y="182" text-anchor="middle">A2A.Server</text>
+          <text class="t-sub" x="405" y="200" text-anchor="middle">IAgentHandler · transports</text>
+
+          <rect class="bx-accent" x="40" y="278" width="120" height="58" rx="5"/>
+          <text class="t" x="100" y="302" text-anchor="middle">a2a.proto</text>
+          <text class="t-sub" x="100" y="320" text-anchor="middle">official, pinned</text>
+          <rect class="bx-accent" x="220" y="278" width="200" height="58" rx="5"/>
+          <text class="t" x="320" y="302" text-anchor="middle">A2A.Protocol.Grpc</text>
+          <text class="t-sub" x="320" y="320" text-anchor="middle">generated + ProtoMapper</text>
+          <rect class="bx-accent" x="500" y="278" width="200" height="58" rx="5"/>
+          <text class="t" x="600" y="302" text-anchor="middle">A2A.Protocol</text>
+          <text class="t-sub" x="600" y="320" text-anchor="middle">records · JSON · errors</text>
+
+          <line class="ln" x1="125" y1="88" x2="140" y2="156" marker-end="url(#a2)"/>
+          <line class="ln" x1="315" y1="88" x2="395" y2="156" marker-end="url(#a2)"/>
+          <line class="ln" x1="505" y1="88" x2="590" y2="276" marker-end="url(#a2)"/>
+          <line class="ln" x1="145" y1="216" x2="285" y2="276" marker-end="url(#a2)"/>
+          <line class="ln" x1="405" y1="216" x2="345" y2="276" marker-end="url(#a2)"/>
+          <line class="ln" x1="160" y1="307" x2="218" y2="307" marker-end="url(#a2)"/>
+          <text class="t-label" x="189" y="298" text-anchor="middle">generates</text>
+          <line class="ln" x1="420" y1="307" x2="498" y2="307" marker-end="url(#a2)"/>
+          <text class="t-label" x="459" y="298" text-anchor="middle">maps to</text>
+
+          <rect class="bx-accent" x="560" y="170" width="16" height="12" rx="2"/>
+          <text class="t-label" x="584" y="180">built</text>
+          <rect class="bx-planned" x="630" y="170" width="16" height="12" rx="2"/>
+          <text class="t-label" x="654" y="180">planned</text>
+          <line class="ln" x1="560" y1="204" x2="592" y2="204" marker-end="url(#a2)"/>
+          <text class="t-label" x="600" y="208">project reference</text>
+        </svg>
+      </div>
+      <figcaption>Only <code>src/</code> is meant to be copied. Demo logic stays in <code>samples/</code>. The wire format comes from the official <code>a2a.proto</code>. Tests send our JSON through Google's proto parser, which rejects unknown fields, so any drift from the spec fails a test.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Task lifecycle: the states a request moves through</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 820 300" role="img" aria-label="Task states. A task goes from submitted to working, then ends completed, failed, canceled or rejected, or pauses at input-required or auth-required until the client sends another message on the same task.">
+          <defs>
+            <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="a3x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-accent"/></marker>
+          </defs>
+
+          <rect class="bx" x="20" y="120" width="130" height="44" rx="5"/>
+          <text class="t" x="85" y="147" text-anchor="middle">SUBMITTED</text>
+          <rect class="bx-strong" x="210" y="120" width="130" height="44" rx="5"/>
+          <text class="t" x="275" y="147" text-anchor="middle">WORKING</text>
+          <line class="ln" x1="150" y1="142" x2="208" y2="142" marker-end="url(#a3)"/>
+
+          <text class="t-mono" x="480" y="14">terminal</text>
+          <rect class="bx" x="480" y="22" width="160" height="40" rx="5"/>
+          <text class="t" x="560" y="47" text-anchor="middle">COMPLETED</text>
+          <rect class="bx" x="480" y="78" width="160" height="40" rx="5"/>
+          <text class="t" x="560" y="103" text-anchor="middle">FAILED</text>
+          <rect class="bx" x="480" y="134" width="160" height="40" rx="5"/>
+          <text class="t" x="560" y="159" text-anchor="middle">CANCELED</text>
+          <rect class="bx" x="480" y="190" width="160" height="40" rx="5"/>
+          <text class="t" x="560" y="215" text-anchor="middle">REJECTED</text>
+
+          <path class="ln" d="M340,136 C400,136 410,42 478,42" marker-end="url(#a3)"/>
+          <path class="ln" d="M340,140 C410,140 420,98 478,98" marker-end="url(#a3)"/>
+          <path class="ln" d="M340,146 C410,146 420,154 478,154" marker-end="url(#a3)"/>
+          <path class="ln" d="M340,150 C400,150 410,210 478,210" marker-end="url(#a3)"/>
+
+          <text class="t-label" x="652" y="46">report, booking, secure</text>
+          <text class="t-label" x="652" y="102">report with “fail”</text>
+          <text class="t-label" x="652" y="158">CancelTask on a running task</text>
+          <text class="t-label" x="652" y="214">booking, unknown city</text>
+
+          <text class="t-mono" x="20" y="236">interrupted · blocking send returns here</text>
+          <rect class="bx-accent" x="20" y="246" width="170" height="40" rx="5"/>
+          <text class="t" x="105" y="271" text-anchor="middle">INPUT_REQUIRED</text>
+          <rect class="bx-accent" x="230" y="246" width="170" height="40" rx="5"/>
+          <text class="t" x="315" y="271" text-anchor="middle">AUTH_REQUIRED</text>
+
+          <line class="ln-accent" x1="245" y1="164" x2="135" y2="244" marker-end="url(#a3x)"/>
+          <line class="ln-accent" x1="300" y1="164" x2="310" y2="244" marker-end="url(#a3x)"/>
+          <path class="ln-dash" d="M105,246 C105,200 170,180 225,166" marker-end="url(#a3)"/>
+          <path class="ln-dash" d="M345,246 C360,210 340,185 322,166" marker-end="url(#a3)"/>
+          <text class="t-label" x="142" y="198">booking: “Which date?”</text>
+          <text class="t-label" x="354" y="214">secure: needs approver role</text>
+          <text class="t-sub" x="420" y="262">dashed: client sends a new message</text>
+          <text class="t-sub" x="420" y="277">with the same taskId, task resumes</text>
+        </svg>
+      </div>
+      <figcaption>A blocking <code>SendMessage</code> returns as soon as the task reaches any terminal state or one of the two interrupted states. Each state has at least one demo agent that produces it, and each of those flows runs on all three transports in the integration tests.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Fixed local layout</h2>
+    <dl>
+      <dt>:5100</dt><dd>MockEntra. Starts in Development only. Tenant <code>a2a00000-…0001</code>, audience <code>api://a2a-demo</code>.</dd>
+      <dt>:5200</dt><dd>AgentServer HTTP: cards at <code>/.well-known/agent-card.json</code>, JSON-RPC at <code>/agents/{name}/jsonrpc</code>, REST under <code>/agents/{name}/rest</code>.</dd>
+      <dt>:5201–5204</dt><dd>gRPC, one port per agent (echo, report, booking, secure). gRPC has no path to route on, so each agent gets its own port.</dd>
+      <dt>:5300</dt><dd>WebhookReceiver: checks the bearer credentials, the notification token, and the server's signed JWT on every push.</dd>
+      <dt>Phase 2</dt><dd>Real Entra, real LLM providers, durable storage, TLS, telemetry, and multiple instances. All of these change config only; Phase 1 leaves the extension points in place.</dd>
+    </dl>
+  </section>
+</main>
