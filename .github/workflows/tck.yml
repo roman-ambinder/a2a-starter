@@ -37,12 +37,17 @@ jobs:
           TCK_REF: ${{ inputs.tck-ref }}
         run: bash tck/run-ci.sh "$TCK_REF"
 
+      - name: Collect the SUT log
+        if: always()
+        run: |
+          mkdir -p tck-reports
+          cp "$RUNNER_TEMP/sut.log" tck-reports/ || true
+
+      # One root (tck-reports/), so checker-output.txt sits at the top of the artifact.
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v5
         with:
           name: tck-reports
-          path: |
-            tck-reports/
-            ${{ runner.temp }}/sut.log
+          path: tck-reports/
           if-no-files-found: warn

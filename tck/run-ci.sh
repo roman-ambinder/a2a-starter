@@ -13,9 +13,6 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tck_ref="${1:-}"
 [ -n "$tck_ref" ] || tck_ref="$(cat "$repo/tck/TCK_VERSION")"
 reports_dir="${TCK_REPORTS_DIR:-$repo/tck-reports}"
-tck_ref="${1:-}"
-[ -n "$tck_ref" ] || tck_ref="$(cat "$repo/tck/TCK_VERSION")"
-reports_dir="${TCK_REPORTS_DIR:-$repo/tck-reports}"
 sut_log="$temp/sut.log"
 tck_dir="$temp/a2a-tck"
 sut_pid=""
@@ -61,8 +58,6 @@ echo "TCK at $(git -C "$tck_dir" rev-parse HEAD)"
 cd "$tck_dir"
 uv sync
 # The TCK exits non-zero when tests fail, and overwrites reports/ on every run: grading is the checker's job.
-rm -rf "$reports_dir"
-mkdir -p "$reports_dir"
 rm -rf "$reports_dir"
 mkdir -p "$reports_dir"
 report_args=()
