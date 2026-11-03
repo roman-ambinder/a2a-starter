@@ -693,7 +693,7 @@ Spec 03 says package 09 adds a nullable `Request` to `AgentCardContext`. With a 
   1. Serialize the card to a `JsonObject` with the `A2AJson` metadata from section 0.4, item 7 (the typed accessor, or `A2AJson.Options` before package 02's Task 2). Never `A2AJsonContext`.
   2. Run each `IAgentCardContributor` from DI in order. In Debug, snapshot the object before each contributor and assert the add-only rules from the spec after it.
   3. The body bytes are the result.
-  4. ETag input: the result with the `signatures` member removed, serialized, then `"\n"`, then the `kid`s of all signatures, sorted ordinally and joined with `","`. Read `kid` from the base64url-decoded `protected` header JSON, else from `header.kid`. ETag = `"` + base64url(first 16 bytes of SHA-256(input)) + `"`.
+  4. ETag input (B13, with the exact bytes from the package 04 plan, decision P6, so both packages produce the same ETag): the result with the `signatures` member removed, serialized, then for each `kid` of all signatures, in ordinal order, a `"\n"` followed by the UTF-8 `kid`. Read `kid` from the base64url-decoded `protected` header JSON, else from `header.kid`. ETag = `"` + base64url(first 16 bytes of SHA-256(input)) + `"`. An unsigned card hashes the payload only. Put the hash in `src/Shared/AgentCardETag.cs` as `internal static string Compute(ReadOnlySpan<byte> payload, IEnumerable<string> keyIds)`, linked into `Ambinder.A2A.Server` and `Ambinder.A2A.AspNetCore` (section 0.4, item 8). If package 04 already added that file, use it and do not write a second hash.
   5. Package 04 later replaces the serializer output in step 4 with its RFC 8785 canonical form (section 0.3). Leave a one-line comment that says so.
 
   Contributors run only for the public card endpoints. The extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC), so JSON contributions cannot reach it the same way on every transport. `IsExtended` is therefore always `false` in this package (differences list, item 5; approved by the owner on 2026-11-03).
@@ -881,7 +881,7 @@ git commit -am "feat(server): task state transition table from spec 03 D13"
 **Files:**
 - Modify: `docs/spec-decisions.md`
 
-- [ ] **Step 1: Fix the card caching row.** The ETag is now base64url of the first 16 bytes of SHA-256 over the unsigned card payload (the card without `signatures`, after contributors) plus the sorted signing key ids (B13). JCS replaces the serializer output when package 04 lands.
+- [ ] **Step 1: Fix the card caching row.** The ETag is now base64url of the first 16 bytes of SHA-256 over the unsigned card payload (the card without `signatures`, after contributors) followed by a newline and the UTF-8 key id for each signing key id in ordinal order (B13; the byte rule is package 04's P6). JCS replaces the serializer output when package 04 lands.
 - [ ] **Step 2: Add rows** (spec section, choice, reason), one each for:
   - Server tenant mismatch: `InvalidParams`; empty request tenant filled from the interface; how a server declares an interface tenant (`InterfaceTenants`, Task 14).
   - `A2AException.Details` holds the ErrorInfo metadata as strings.

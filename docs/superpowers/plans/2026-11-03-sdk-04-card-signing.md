@@ -76,6 +76,13 @@ Package 04 depends on 03, 07, 10 and 16 (spec "Dependencies"). They may or may n
 - **Package versions:** only `Ambinder.A2A.Azure.KeyVault` adds packages: `Azure.Security.KeyVault.Keys` and `Azure.Identity`. `Azure.Identity` is already pinned in `Directory.Packages.props`. For `Azure.Security.KeyVault.Keys`, take the latest **stable** version on nuget.org at execution time and pin it centrally. Do not guess a version number. Look it up.
 - **Build rules:** `TreatWarningsAsErrors`, nullable on, central package management, XML docs on every public member (package 02). Match the surrounding code style and comment density.
 - **AOT:** Protocol, Server, AspNetCore and Client are `IsAotCompatible`. No reflection-based JSON. New JSON types go into `A2AJsonContext`, or use `JsonElement`/`JsonNode` with `Utf8JsonWriter`.
+- **Package 02 rules** (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`; 02 may land before or after this plan). They apply to every task:
+  - **JSON metadata outside Protocol.** Code in `Server`, `AspNetCore`, `Client` and `Azure.KeyVault` never uses `A2AJsonContext` (02 makes it internal). Use the `A2AJson` typed accessors (`A2AJson.AgentCard`, and the `A2AJson.JsonWebKeySet` and `A2AJson.JsonWebKeyPublic` accessors that Task 5 adds). If 02's Task 2 has not landed, add those two accessors in Task 5 anyway, and use `(JsonTypeInfo<AgentCard>)A2AJson.Options.GetTypeInfo(typeof(AgentCard))` for the card. Do not serialize a served card with `A2AJsonContext.Default.AgentCard`: it lacks the "omit empty lists" modifier of `A2AJson.Options`, so the bytes (and the signing payload and ETag) would differ from today's served card. Tests that have `InternalsVisibleTo` to Protocol may still use `A2AJsonContext`.
+  - **No `InternalsVisibleTo` between shipped assemblies** (spec 01 rule 6). The card endpoints in `Ambinder.A2A.AspNetCore` reach the signer only through the public `IAgentCardSigner` seam (P18). A pure helper that two shipped assemblies need (`AgentCardETag`) is a linked file in `src/Shared/`, compiled `internal` into each (spec 01 rule 10).
+  - **No positional public records.** Public records use `required` / `init` properties (`JsonWebKeySet`, `CardVerificationResult`, `SignedAgentCard` below).
+  - **Complete XML docs.** The code blocks in this plan leave out some XML docs to stay short. The implementation documents every public member (`<summary>`, `<param>`, `<returns>`, `<exception>`), puts `<remarks>` with lifetime and concurrency on every implementer-facing interface, states the default of every options property, and adds "More values can be added in later versions; handle unknown values." to every public enum. Once 02 has landed, a gap fails the build (CS1591) and `XmlDocQualityTests`.
+  - **API files and records.** If `PublicAPI.Unshipped.txt` exists, update it with the analyzer fix in the task that adds the API (not only in Task 19). New public types must pass 02's `PublicSurfaceTests` allow-list: `Ambinder.A2A.Azure.KeyVault` may expose `Azure.Core` types (`TokenCredential`) but no `Azure.Security.KeyVault.*` type, so `KeyVaultSigningKey`, `IKeyVaultKeyOperations` and the adapter stay `internal`.
+  - **Logging.** `[LoggerMessage]` with fixed `EventId`s in the assembly's block from the 02 plan (Task 7.3: `Server` 1000–1999, `AspNetCore` 2000–2999, `Client` 4000–4999), unless `docs/policies/versioning.md` already lists another scheme. `Ambinder.A2A.Azure.KeyVault` takes the next free block of 1000 and records it there.
 - **Bytes are exact:** files under `tests/vectors/**` are compared byte for byte. Add `tests/vectors/** -text` to `.gitattributes`, so git never rewrites line endings. Payload files have no trailing newline.
 - **Error messages say what to do** (principle 3). The message texts given in this plan are the required wording. Tests assert on key phrases.
 - **Never log** private key material, full signatures or JWKS bodies. Log key ids, algorithm names, card URLs (without query string) and status codes.
@@ -104,6 +111,7 @@ The spec leaves these points open, or the plan needed one exact rule to be testa
 - **P14 pinned key without `kid`** matches when its RFC 7638 thumbprint equals the header `kid`.
 - **P15 exception type.** `JsonCanonicalizationException : FormatException` (public, `Ambinder.A2A.Protocol.Signing`).
 - **P16 extended card on gRPC.** It carries the signatures computed over the JSON form of the same card model. Its JSON canonical form is the same model, so it verifies after a ProtoJSON round trip, but only when no `IAgentCardContributor` changed the JSON. Tested on JSON-RPC and REST; documented for gRPC.
+- **P18 server signer seam (owner decision, 2026-11-03).** The card endpoints (`Ambinder.A2A.AspNetCore`) need the signer that lives in `Ambinder.A2A.Server`, and internals cannot cross shipped assemblies. So `Ambinder.A2A.Server` gets a public interface `IAgentCardSigner` (namespace `Ambinder.A2A.Server.Signing`) and a public property record `SignedAgentCard` (Task 8). The implementation `AgentCardSigner` and `SigningKeyCache` stay `internal`. The owner chose this over making `AgentCardSigner` itself public.
 - **P17 REQUIRED beats empty-repeated.** A REQUIRED repeated or map field is kept even when empty, because the spec says REQUIRED is "always kept, even at its default". The spec example vector (Task 4) is the referee. If the vector disagrees, the vector wins: stop, report, and ask the owner before changing the rule.
 
 ## File map
@@ -136,10 +144,14 @@ src/Ambinder.A2A.Server/Signing/
   CardSigningOptions.cs
   CardSigningServiceCollectionExtensions.cs     AddCardSigning, AddLocalCardSigningKey, AddDevelopmentCardSigningKey
   DevelopmentCardSigningKeySource.cs
+  IAgentCardSigner.cs                           public seam the card endpoints call (P18)
+  SignedAgentCard.cs                            public result of IAgentCardSigner.SignAsync (P18)
   SigningKeyCache.cs                            refresh, expiry filter, retired-key tracking (internal)
-  AgentCardSigner.cs                            sign once per card version + key set (internal)
-  AgentCardETag.cs                              B13 (internal)
+  AgentCardSigner.cs                            implements IAgentCardSigner: sign once per card version + key set (internal)
   CardSigningStartupCheck.cs                    IHostedService: dev-key environment, FailWhenNoKey, jku (internal)
+
+src/Shared/
+  AgentCardETag.cs                              B13 (internal; linked into Server and AspNetCore, spec 01 rule 10)
 
 src/Ambinder.A2A.AspNetCore/Signing/
   CardJwksEndpoint.cs
@@ -180,7 +192,7 @@ Ambinder.A2A.slnx                                    add tool, KeyVault project,
 Directory.Packages.props                             Azure.Security.KeyVault.Keys
 eng/package-dependencies.json                        KeyVault package row (01's allow-list)
 NOTICE                                               attribution for copied RFC 8785 / cyberphone test data
-src/Ambinder.A2A.Protocol/Json/A2AJson.cs            [JsonSerializable] for JsonWebKeyPublic, JsonWebKeySet
+src/Ambinder.A2A.Protocol/Json/A2AJson.cs            [JsonSerializable] and typed accessors for JsonWebKeyPublic, JsonWebKeySet
 src/Ambinder.A2A.Protocol/A2ATelemetryNames.cs       ClientMeter, CardVerifications, Status
 src/Ambinder.A2A.AspNetCore/.../AgentCardEndpoints.cs  (Branch B) sign + B13 ETag
 src/Ambinder.A2A.Server/Tasks/TaskManager.cs         extended card is signed
@@ -986,7 +998,7 @@ In the `DropRequiredDefaults` and `Python112` profiles, a REQUIRED field is judg
 
 **Files:**
 - Create: `src/Ambinder.A2A.Protocol/Signing/{JsonWebKeyPublic.cs,JwsAlgorithms.cs,CardJws.cs,A2ASigningKey.cs,IAgentCardSigningKeySource.cs}`
-- Modify: `src/Ambinder.A2A.Protocol/Json/A2AJson.cs` (add `[JsonSerializable(typeof(JsonWebKeyPublic))]`, `[JsonSerializable(typeof(JsonWebKeySet))]`)
+- Modify: `src/Ambinder.A2A.Protocol/Json/A2AJson.cs` (add `[JsonSerializable(typeof(JsonWebKeyPublic))]`, `[JsonSerializable(typeof(JsonWebKeySet))]`, and the public typed accessors `A2AJson.JsonWebKeyPublic` and `A2AJson.JsonWebKeySet`, built from `A2AJson.Options` the way the 02 plan, Task 2.2, builds the others)
 - Test: `tests/Ambinder.A2A.Protocol.Tests/Signing/{JsonWebKeyPublicTests.cs,CardJwsTests.cs}`
 
 - [ ] **Step 1: Write the failing tests.**
@@ -1026,7 +1038,11 @@ public sealed record JsonWebKeyPublic
 }
 
 /// <summary>A JWKS document: <c>{"keys":[...]}</c>.</summary>
-public sealed record JsonWebKeySet(IReadOnlyList<JsonWebKeyPublic> Keys);
+public sealed record JsonWebKeySet
+{
+    /// <summary>The keys in the set.</summary>
+    public required IReadOnlyList<JsonWebKeyPublic> Keys { get; init; }
+}
 ```
 
 Thumbprint input: the JCS of the required members only. For EC that is `{"crv","kty","x","y"}`; for RSA, `{"e","kty","n"}`. Build it with `Utf8JsonWriter` in that order (already sorted), then SHA-256, then base64url.
@@ -1108,7 +1124,7 @@ public interface IAgentCardSigningKeySource
 ### Task 7: B13 ETag helper
 
 **Files:**
-- Create: `src/Ambinder.A2A.Server/Signing/AgentCardETag.cs` (internal)
+- Create: `src/Shared/AgentCardETag.cs` (internal), linked into `Ambinder.A2A.Server` and `Ambinder.A2A.AspNetCore` with `<Compile Include="../Shared/AgentCardETag.cs" Link="Shared/AgentCardETag.cs" />` (match how 01 links the other `src/Shared` files). If package 03 already created a B13 helper, replace it with this one, so there is one implementation with the P6 bytes.
 - Test: `tests/Ambinder.A2A.Server.Tests/Signing/AgentCardETagTests.cs`
 
 - [ ] **Step 1: Failing tests.**
@@ -1146,7 +1162,7 @@ internal static class AgentCardETag
 ### Task 8: Server signing service and registration
 
 **Files:**
-- Create: `src/Ambinder.A2A.Server/Signing/{CardSigningOptions.cs,CardSigningServiceCollectionExtensions.cs,DevelopmentCardSigningKeySource.cs,SigningKeyCache.cs,AgentCardSigner.cs,CardSigningStartupCheck.cs}`
+- Create: `src/Ambinder.A2A.Server/Signing/{CardSigningOptions.cs,CardSigningServiceCollectionExtensions.cs,DevelopmentCardSigningKeySource.cs,IAgentCardSigner.cs,SignedAgentCard.cs,SigningKeyCache.cs,AgentCardSigner.cs,CardSigningStartupCheck.cs}`
 - Test: `tests/Ambinder.A2A.Server.Tests/Signing/{AgentCardSignerTests.cs,SigningKeyCacheTests.cs,CardSigningRegistrationTests.cs}`
 
 - [ ] **Step 1: Failing tests.** Use a `FakeTimeProvider` (`Microsoft.Extensions.TimeProvider.Testing`). If the test project does not reference it yet, add it; the version is pinned centrally (the B2 harness from 12 may already have added it).
@@ -1166,7 +1182,7 @@ internal static class AgentCardETag
     - No usable key and `FailWhenNoKey = false`: an unsigned result, an error log ("Card signing is configured but no usable key is available ... the card is served unsigned"), and ETag = `Compute(payload, [])`.
     - With `FailWhenNoKey = true`: an `InvalidOperationException`.
   - Registration:
-    - `AddA2AServer(...).AddCardSigning(o => o.KeySource = src)` resolves `AgentCardSigner`.
+    - `AddA2AServer(...).AddCardSigning(o => o.KeySource = src)` resolves `IAgentCardSigner` (implemented by the internal `AgentCardSigner`).
     - `AddLocalCardSigningKey(ecdsa)` registers a `StaticSigningKeySource` (the last registration wins, `Replace`).
     - `AddDevelopmentCardSigningKey()` with environment `Production` fails host start, with this message: "AddDevelopmentCardSigningKey() is only allowed in the Development environment (current: Production). Use AddLocalCardSigningKey(...) or AddAzureKeyVaultCardSigningKey(...) (package Ambinder.A2A.Azure.KeyVault)."
     - `FailWhenNoKey = true` with an empty source fails host start (P11).
@@ -1192,24 +1208,72 @@ public sealed class CardSigningOptions
 ```
 
 Extensions (namespace `Microsoft.Extensions.DependencyInjection`, per 01 naming rules), on the `A2AServerBuilder` that `AddA2AServer` returns:
-- `AddCardSigning(Action<CardSigningOptions>? configure = null)`: registers the options, `SigningKeyCache`, `AgentCardSigner` (singletons) and the `CardSigningStartupCheck` hosted service. It is idempotent.
+- `AddCardSigning(Action<CardSigningOptions>? configure = null)`: registers the options, `SigningKeyCache`, `AgentCardSigner` as `IAgentCardSigner` (singletons, `TryAdd`) and the `CardSigningStartupCheck` hosted service. It is idempotent.
 - `AddLocalCardSigningKey(string pemPath | X509Certificate2 | ECDsa | RSA, string? kid = null)`: calls `AddCardSigning()`, then `Replace`s the `IAgentCardSigningKeySource` registration with a `StaticSigningKeySource`.
 - `AddDevelopmentCardSigningKey()`: registers `DevelopmentCardSigningKeySource` (one ephemeral ES256 key per process, created lazily). The hosted check validates `IHostEnvironment.IsDevelopment()`.
 
 The key source comes from `options.KeySource` if it is set, else from the DI-registered `IAgentCardSigningKeySource`. If neither exists, startup fails: "AddCardSigning() needs a key source. Call AddLocalCardSigningKey(...), AddDevelopmentCardSigningKey() or AddAzureKeyVaultCardSigningKey(...), or set CardSigningOptions.KeySource."
 
-`AgentCardSigner` (internal sealed):
+The public seam (P18), in `Ambinder.A2A.Server`:
 
 ```csharp
-internal sealed record SignedCard(byte[] Json, IReadOnlyList<AgentCardSignature> Signatures, string ETag, string KeySetId);
+namespace Ambinder.A2A.Server.Signing;
 
-internal sealed class AgentCardSigner(SigningKeyCache keys, IOptions<CardSigningOptions> options, IOptions<A2AServerOptions> server, ILogger<AgentCardSigner> log)
+/// <summary>Signs agent cards before they are served, and lists the public keys for the card JWKS.</summary>
+/// <remarks>
+/// <c>AddCardSigning()</c> registers the default implementation as a singleton. Calls can be concurrent. The card endpoints
+/// call <see cref="SignAsync"/> when they build a card, not on every request. Implementer-facing: after 1.0 a new member gets
+/// a default implementation (package 02).
+/// </remarks>
+public interface IAgentCardSigner
+{
+    /// <summary>Signs a card. Any <c>signatures</c> member in the input is replaced.</summary>
+    /// <param name="cardJson">The card JSON after the card contributors ran. It is changed: <c>signatures</c> is set.</param>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The JSON to serve, its signatures and its B13 ETag. Unsigned when no usable key exists and <c>FailWhenNoKey</c> is false.</returns>
+    /// <exception cref="InvalidOperationException">No usable key exists and <c>CardSigningOptions.FailWhenNoKey</c> is true.</exception>
+    ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, CancellationToken ct);
+
+    /// <summary>Gets the id of the current signing key set. A cached card is stale when its <see cref="SignedAgentCard.KeySetId"/> differs.</summary>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The ordinally sorted key ids joined with a newline; empty when no key is usable.</returns>
+    ValueTask<string> GetKeySetIdAsync(CancellationToken ct);
+
+    /// <summary>Gets the keys to publish in the card JWKS: the published keys of the source plus keys retired within the grace period.</summary>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The JWKS document.</returns>
+    ValueTask<JsonWebKeySet> GetJwksAsync(CancellationToken ct);
+}
+
+/// <summary>A card ready to serve.</summary>
+public sealed record SignedAgentCard
+{
+    /// <summary>The card JSON bytes to send, with <c>signatures</c> when the card is signed.</summary>
+    public required ReadOnlyMemory<byte> Json { get; init; }
+
+    /// <summary>The signatures in <see cref="Json"/>; empty when the card is unsigned.</summary>
+    public required IReadOnlyList<AgentCardSignature> Signatures { get; init; }
+
+    /// <summary>The strong B13 ETag, with quotes.</summary>
+    public required string ETag { get; init; }
+
+    /// <summary>The key set id the card was signed with (see <see cref="IAgentCardSigner.GetKeySetIdAsync"/>).</summary>
+    public required string KeySetId { get; init; }
+}
+```
+
+`AgentCardSigner` (internal sealed) implements it:
+
+```csharp
+internal sealed class AgentCardSigner(SigningKeyCache keys, IOptions<CardSigningOptions> options, IOptions<A2AServerOptions> server, ILogger<AgentCardSigner> log) : IAgentCardSigner
 {
     // Cache per card variant: key = SHA-256 of the canonical payload (bytes as base64) + "|" + key set id.
-    public async ValueTask<SignedCard> SignAsync(JsonObject cardJson, CancellationToken ct)
+    public async ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, CancellationToken ct)
     {
         cardJson.Remove("signatures");
-        var element = JsonSerializer.SerializeToElement(cardJson, A2AJsonContext.Default.JsonNode); // or write cardJson to a buffer and JsonDocument.Parse it
+        // AOT-safe, no A2AJsonContext: write cardJson with cardJson.WriteTo(Utf8JsonWriter) into a pooled buffer, then parse it.
+        using var doc = /* JsonDocument.Parse(buffer.WrittenMemory) */;
+        var element = doc.RootElement;
         var payload = AgentCardCanonicalizer.GetSigningPayload(element);
         var set = await keys.GetUsableAsync(ct).ConfigureAwait(false);           // (IReadOnlyList<A2ASigningKey> Keys, string Id)
         // cache lookup -> return when hit
@@ -1223,14 +1287,16 @@ internal sealed class AgentCardSigner(SigningKeyCache keys, IOptions<CardSigning
         if (signatures.Count > 0) cardJson["signatures"] = /* JsonArray of {"protected","signature"} */;
         var json = /* write cardJson with Utf8JsonWriter (AOT-safe), no indentation */;
         var etag = AgentCardETag.Compute(payload, set.Keys.Select(k => k.KeyId));
-        // store and return
+        // store and return a SignedAgentCard
     }
+
+    public async ValueTask<string> GetKeySetIdAsync(CancellationToken ct) => (await keys.GetUsableAsync(ct).ConfigureAwait(false)).Id;
 
     public async ValueTask<JsonWebKeySet> GetJwksAsync(CancellationToken ct) => /* source.GetPublishedKeysAsync ∪ keys.RetiredWithinGrace, distinct by kid */;
 }
 ```
 
-Check that `JsonNode` is serializable through `A2AJsonContext`; add `[JsonSerializable(typeof(JsonNode))]` if needed. You may instead write with `cardJson.WriteTo(Utf8JsonWriter)` and parse the bytes with `JsonDocument.Parse`; both are AOT-safe. Bound the cache to the number of distinct card variants: keep at most 64 entries and evict the oldest.
+Write the `JsonObject` with `cardJson.WriteTo(Utf8JsonWriter)` and parse the bytes with `JsonDocument.Parse`; this is AOT-safe and needs no `A2AJsonContext` (which is internal to Protocol once 02 lands). Bound the cache to the number of distinct card variants: keep at most 64 entries and evict the oldest.
 
 Key set id: the ordinally sorted kids joined with `\n`.
 
@@ -1246,8 +1312,8 @@ Signing happens once per card variant and key set. The payload is computed on ea
 
 **Branch A: package 03's card pipeline exists.**
 - Find where 03 builds the per-version card bytes, after the contributors run (`git grep -n "IAgentCardContributor" -- src`).
-- Right after the contributors run, call `AgentCardSigner.SignAsync(cardJson)` if a signer is registered. Cache `SignedCard.Json` and `SignedCard.ETag` in place of 03's bytes and ETag.
-- 03's ETag code must use `AgentCardETag.Compute(payload, kids)`, which is the B13 rule 03 defines. If 03 computed its own hash, replace it with `AgentCardETag`, so there is one implementation.
+- Right after the contributors run, call `IAgentCardSigner.SignAsync(cardJson)` if one is registered (`RequestServices.GetService<IAgentCardSigner>()`). Cache `SignedAgentCard.Json` and `SignedAgentCard.ETag` in place of 03's bytes and ETag, and rebuild the entry when `GetKeySetIdAsync` no longer equals `SignedAgentCard.KeySetId`.
+- 03's ETag code must use `AgentCardETag.Compute(payload, kids)` (the linked `src/Shared` helper from Task 7), which is the B13 rule 03 defines. If 03 computed its own hash, replace it with `AgentCardETag`, so there is one implementation.
 - The extended card goes through the same path, with its own cache entry.
 
 **Branch B: 03's pipeline is not there.**
@@ -1272,8 +1338,8 @@ Signing happens once per card variant and key set. The payload is computed on ea
 - [ ] **Step 2: Run, see it fail.**
 
 - [ ] **Step 3: Implement (Branch B).**
-  - Change the endpoint's `ConditionalWeakTable<AgentCard, CachedCard>`, so the value holds `SignedCard` and is built asynchronously. Use a `Lazy<Task<SignedCard>>`-style entry. Rebuild it when `SigningKeyCache`'s key set id changes. Build with `JsonSerializer.SerializeToNode(card, A2AJsonContext.Default.AgentCard)` as a `JsonObject`, then `signer.SignAsync`. Without a signer, use `AgentCardCanonicalizer.GetSigningPayload` for the ETag, and the serializer bytes for the body.
-  - In `TaskManager.GetExtendedAgentCardAsync`, when a signer is registered, return `card with { Signatures = signed.Signatures }`. Its JSON form is the same model, so the payload matches on JSON-RPC and REST. P16 covers gRPC.
+  - Change the endpoint's `ConditionalWeakTable<AgentCard, CachedCard>`, so the value holds `SignedAgentCard` and is built asynchronously. Use a `Lazy<Task<SignedAgentCard>>`-style entry. Rebuild it when `IAgentCardSigner.GetKeySetIdAsync` no longer equals the entry's `KeySetId`. Build with `JsonSerializer.SerializeToNode(card, A2AJson.AgentCard)` (or the `A2AJson.Options` fallback from the global constraints) as a `JsonObject`, then `signer.SignAsync`. Without a signer, use `AgentCardCanonicalizer.GetSigningPayload` for the ETag, and the serializer bytes for the body.
+  - In `TaskManager.GetExtendedAgentCardAsync` (in `Ambinder.A2A.Server`, so it may use the internal signer directly or the interface), when a signer is registered, return `card with { Signatures = signed.Signatures }`. Its JSON form is the same model, so the payload matches on JSON-RPC and REST. P16 covers gRPC.
   - Update the "Card caching" row in `docs/spec-decisions.md` (Task 19 does the wording).
 
 - [ ] **Step 4: Run all tests and see them pass. Step 5: Commit.** `feat(signing): serve signed public and extended cards with the B13 ETag`
@@ -1296,7 +1362,7 @@ Signing happens once per card variant and key set. The payload is computed on ea
   - `JwksUrl` null: no route and no `jku`.
   - The JWKS path does not collide with the push JWKS path (`/.well-known/a2a-push-jwks.json`, package 08).
 
-- [ ] **Step 2: Fail. Step 3: Implement.** `MapA2A` maps `GET {JwksUrl}` anonymously when the signer is registered and `JwksUrl` starts with `/`. The handler writes `AgentCardSigner.GetJwksAsync` with `A2AJsonContext.Default.JsonWebKeySet`. **Step 4: Pass. Step 5: Commit.** `feat(signing): card JWKS endpoint`
+- [ ] **Step 2: Fail. Step 3: Implement.** `MapA2A` maps `GET {JwksUrl}` anonymously when an `IAgentCardSigner` is registered and `JwksUrl` starts with `/`. The handler writes `IAgentCardSigner.GetJwksAsync` with `A2AJson.JsonWebKeySet`. **Step 4: Pass. Step 5: Commit.** `feat(signing): card JWKS endpoint`
 
 ---
 
@@ -1352,7 +1418,17 @@ public enum CardVerificationStatus
     NotChecked,
 }
 
-public sealed record CardVerificationResult(CardVerificationStatus Status, string? KeyId, string Message);
+public sealed record CardVerificationResult
+{
+    /// <summary>The outcome.</summary>
+    public required CardVerificationStatus Status { get; init; }
+
+    /// <summary>The key id of the signature that decided the outcome, when there is one.</summary>
+    public string? KeyId { get; init; }
+
+    /// <summary>What happened and what to do about it.</summary>
+    public required string Message { get; init; }
+}
 
 /// <remarks>Implementer-facing: after 1.0 a new member gets a default implementation (package 02).</remarks>
 public interface IAgentCardVerifier
@@ -1404,7 +1480,7 @@ Required message texts (tests assert the quoted parts):
   - A failed fetch (HTTP 500, invalid JSON) gives `UnknownKey` with the reason, and the next fetch waits at least 1 minute (P13).
   - The JWKS request uses the named client `"Ambinder.A2A.CardJwks"`.
 
-- [ ] **Step 2: Fail. Step 3: Implement.** `JwksCache(IHttpClientFactory, TimeProvider)`. Read the body through a bounded loop with a limit of 64 × 1024 + 1 bytes. Parse with `A2AJsonContext.Default.JsonWebKeySet`. Cache per URL: success for 1 hour, failure for 1 minute, at most 256 URLs (evict the oldest). Same-origin means `Uri.Compare(a, b, UriComponents.SchemeAndServer | UriComponents.Port, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0` and `jku.Scheme == "https"`. **Step 4: Pass. Step 5: Commit.** `feat(signing): JWKS key lookup with origin rule and size limit`
+- [ ] **Step 2: Fail. Step 3: Implement.** `JwksCache(IHttpClientFactory, TimeProvider)`. Read the body through a bounded loop with a limit of 64 × 1024 + 1 bytes. Parse with `A2AJson.JsonWebKeySet`. Cache per URL: success for 1 hour, failure for 1 minute, at most 256 URLs (evict the oldest). Same-origin means `Uri.Compare(a, b, UriComponents.SchemeAndServer | UriComponents.Port, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0` and `jku.Scheme == "https"`. **Step 4: Pass. Step 5: Commit.** `feat(signing): JWKS key lookup with origin rule and size limit`
 
 ---
 
@@ -1446,7 +1522,7 @@ Required message texts (tests assert the quoted parts):
   - The "warning once per card URL" test calls twice with the same URL and expects one log; a second URL gets its own log.
   - Metric: each `VerifyAsync` adds 1 to `a2a.client.card_verifications` with tag `status` = the enum name. Use the repo's existing `MetricCollector` test helper (`tests/Shared/MetricCollector.cs`).
 
-- [ ] **Step 2: Fail. Step 3: Implement the enforcer.** Logging uses `LoggerMessage` source generation, with event ids in a new range that does not collide with existing client ids (check the file for the highest one in use). The warned-URL set is bounded (1024 entries).
+- [ ] **Step 2: Fail. Step 3: Implement the enforcer.** Logging uses `LoggerMessage` source generation, with fixed event ids in the `Ambinder.A2A.Client` block (4000–4999 in the 02 plan, or the scheme in `docs/policies/versioning.md` if it exists). Take ids that no other client log message uses (`git grep -n "EventId" -- src/Ambinder.A2A.Client`). The warned-URL set is bounded (1024 entries).
 
 - [ ] **Step 4: Wire it in.** Check Task 0's answer for `interface IA2ACardResolver`. Package 10's plan (`docs/superpowers/plans/2026-11-03-sdk-10-client.md`) owns the resolver, `ResolvedAgentCard`, `A2AClient` and `AddA2AClient`. This step only calls into them, and never defines 10's types. 10's plan follows the same rule in reverse ("Do not define 04's types here").
 
@@ -1652,7 +1728,7 @@ Retired-at time: the moment a version stopped being the signing version, observe
   - the "If it fails" entries, quoting the exact messages from Tasks 8, 11 and 13
 
   Any C# block over 5 lines is a DocFX include from `samples/CardSigning`. If the page goes past about 800 words, split it into `sign-your-agent-card.md` and `verify-agent-cards.md`. Add the page to whatever index 13 has. If 13 has not landed, link it from `README.md`'s docs list, so `DocsTests` checks its links.
-- [ ] **Step 4: API files.** If `PublicAPI.Unshipped.txt` exists (02), add every new public member, and make sure the build has no RS0016 or RS0017. Check XML docs on every public member.
+- [ ] **Step 4: API files.** If `PublicAPI.Unshipped.txt` exists (02), check that every new public member is in it (each task should already have added its own), and that the build has no RS0016 or RS0017. Check XML docs on every public member. If `tests/Ambinder.A2A.PublicApi.Tests` exists, it passes, and `AgentCardSigner`, `SigningKeyCache`, `AgentCardETag`, `KeyVaultSigningKey` and the Key Vault adapter are not public. Check the other package 02 rules in the global constraints for each new public type.
 - [ ] **Step 5: Commit.** `docs(signing): card signing guide, spec decisions, sample`
 
 ---
@@ -1672,7 +1748,7 @@ Expected: green. Skipped tests are only the Key Vault live test and the Python/J
 - [ ] **Step 4: PR body sections:**
   - Summary
   - Dependency branches taken (Tasks 9 and 14: A or B)
-  - Planner's calls P1–P17, for the owner to confirm
+  - Planner's calls P1–P17, for the owner to confirm (P18 is already an owner decision)
   - Hand-offs to 10, 14 and 16, if those packages have not landed
   - Acceptance table
   - Test results
@@ -1704,7 +1780,7 @@ Expected: green. Skipped tests are only the Key Vault live test and the Python/J
 - **How to run it:** execute this plan with **superpowers:subagent-driven-development**. The controller (the session that runs the plan) dispatches one fresh implementer subagent per task. After each task, it runs that skill's review steps (spec-compliance review, then code-quality review) before the next task starts.
 - **Model:** every subagent runs on model **`sonnet`**: implementers, spec reviewers, code-quality reviewers and any fix-up subagent. Pass `model: "sonnet"` explicitly on every Agent/Task dispatch. Do not rely on the default. This is the owner's rule: planning on Opus, execution on Sonnet.
 - **Order:** run the tasks in sequence, 0 to 20. Do not run implementers in parallel: most tasks touch `Ambinder.A2A.Protocol/Signing/`, and later tasks build on earlier types. Task 16 (Key Vault) and Task 18 (benchmarks) only need Tasks 5, 6, 8 and 10. The controller may move them later, but not earlier.
-- **What to give each subagent:** the full text of its task, the "Global constraints" section, the "Decisions" section (P1–P17) and Task 0's branch answers. Subagents should not need to read the whole plan.
+- **What to give each subagent:** the full text of its task, the "Global constraints" section, the "Decisions" section (P1–P18) and Task 0's branch answers. Reviewers check the package 02 rules in the global constraints on every task that adds public API, logging or JSON code. Subagents should not need to read the whole plan.
 - **Stop and ask the owner** (do not improvise) when:
   - Task 0 finds package 01 has not landed;
   - the spec example or the RFC vectors cannot be fetched;

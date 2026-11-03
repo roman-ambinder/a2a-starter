@@ -413,7 +413,7 @@ internal static class PublicSignatures
 - Create: `tests/Ambinder.A2A.PublicApi.Tests/ConsumerJsonContextTests.cs`
 
 - [ ] **2.1** Write `A2AJsonAccessorTests` first (red):
-  - `Every_public_protocol_type_has_a_typed_accessor`: reflect over `typeof(A2AJson).Assembly`, take every public `sealed record` and public `enum` in namespace `Ambinder.A2A.Protocol` (not `Ambinder.A2A.Protocol.Signing`, which package 04 adds), and assert `A2AJson` has a public static property of type `JsonTypeInfo<T>` for each. Exclude the error and constant types (`A2AException`, `A2AAuthException`, `A2AErrorCode`, `A2AErrorInfo`, `A2AError`, `A2AConstants`, `A2ATelemetryNames`); the exclusion list is in the test with a comment.
+  - `Every_public_protocol_type_has_a_typed_accessor`: reflect over `typeof(A2AJson).Assembly`, take every public `sealed record` and public `enum` in namespace `Ambinder.A2A.Protocol`, plus every public type in `Ambinder.A2A.Protocol.Signing` that has a `[JsonSerializable]` line in `A2AJsonContext` (package 04 adds `JsonWebKeyPublic` and `JsonWebKeySet`, which the client and the card JWKS endpoint serialize), and assert `A2AJson` has a public static property of type `JsonTypeInfo<T>` for each. Exclude the error and constant types (`A2AException`, `A2AAuthException`, `A2AErrorCode`, `A2AErrorInfo`, `A2AError`, `A2AConstants`, `A2ATelemetryNames`); the exclusion list is in the test with a comment.
   - `Accessors_use_the_shared_options`: for each accessor, `Assert.Same(A2AJson.Options, accessor.Options)`.
   - `TypeInfoResolver_resolves_protocol_types`: `A2AJson.TypeInfoResolver.GetTypeInfo(typeof(AgentTask), new JsonSerializerOptions())` is not null.
   - `Card_read_is_unchanged`: deserialize a card JSON from the existing golden samples with `A2AJson.AgentCard` and compare with the result of `JsonSerializer.Deserialize(json, A2AJson.Options)` (record equality on the parsed card, and equal JSON when written back with `A2AJson.Options`).
@@ -831,7 +831,8 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - any public type 01 needed in `Client.Grpc` (Task 4.3);
   - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
   - no new static singletons in public API (spec 02, "How it meets the six principles", item 6);
-  - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public.
+  - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public;
+  - the server signer seam from the package 04 plan (decision P18, owner decision 2026-11-03): `IAgentCardSigner` and `SignedAgentCard` in `Ambinder.A2A.Server.Signing`.
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
 
 ---
