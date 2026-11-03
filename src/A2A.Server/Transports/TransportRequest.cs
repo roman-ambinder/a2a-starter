@@ -1,6 +1,7 @@
 using A2A.Protocol;
 using A2A.Server.Agents;
 using A2A.Server.Auth;
+using A2A.Server.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,27 @@ internal static class TransportRequest
             throw new A2AAuthException(401, "Authentication is required.");
         var owners = http.RequestServices.GetService<IOwnerResolver>() ?? DefaultOwnerResolver.Instance;
         return owners.GetOwner(http.User);
+    }
+
+    /// <summary>
+    /// Version dispatch (design D2): when the requested version is not one the core serves, asks the registered
+    /// <see cref="IA2AVersionDispatcher"/> instances in order. The first that claims it handles the whole request and this
+    /// returns true; the caller then writes nothing more. Returns false when the version is supported or no dispatcher claims
+    /// it, and the caller goes on (its own version check then throws VersionNotSupported). Call it before reading the body.
+    /// </summary>
+    public static async Task<bool> TryDispatchVersionAsync(HttpContext http, AgentRegistration agent)
+    {
+        var (raw, _) = ServiceParameters.Read(http);
+        if (ServiceParameters.IsSupportedVersion(raw)) return false;
+        var version = ServiceParameters.NormalizeVersion(raw);
+        foreach (var dispatcher in http.RequestServices.GetServices<IA2AVersionDispatcher>())
+        {
+            if (!dispatcher.CanHandle(version)) continue;
+            await dispatcher.HandleAsync(http, new A2AAgentRoute(agent.Name, agent, agent.PublicCard), version, http.RequestAborted)
+                .ConfigureAwait(false);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>

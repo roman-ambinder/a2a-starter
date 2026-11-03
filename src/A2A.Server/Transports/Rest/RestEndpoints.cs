@@ -16,6 +16,7 @@ namespace A2A.Server.Transports.Rest;
 /// HTTP+JSON binding under <c>/agents/{agent}/rest</c>: a thin adapter over <see cref="IA2ARequestHandler"/>.
 /// One catch-all route per verb parses the path itself, because the public paths contain <c>:</c> (<c>message:send</c>,
 /// <c>{id}:cancel</c>) next to plain <c>{id}</c> routes. Order of checks: unknown agent (404) → agent policy (401/403) →
+/// an <see cref="IA2AVersionDispatcher"/> that claims an unsupported version takes the whole request →
 /// path and verb (404/405) → version (400) → extended card needs an authenticated caller (401) → body size (413) →
 /// body and query (400) → required fields (400) → handler. Errors are google.rpc.Status bodies.
 /// A streaming error before the first event is a plain error response; after it, one final <c>data: {"error":..}</c> frame.
@@ -66,6 +67,7 @@ internal static class RestEndpoints
         try
         {
             var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
+            if (await TransportRequest.TryDispatchVersionAsync(http, agent).ConfigureAwait(false)) return;
             await DispatchAsync(http, agent, owner, options, logger, ct).ConfigureAwait(false);
         }
         catch (A2AAuthException ex)

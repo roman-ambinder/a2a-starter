@@ -12,7 +12,8 @@ namespace A2A.Server.Transports.JsonRpc;
 
 /// <summary>
 /// <c>POST /agents/{agent}/jsonrpc</c>: a thin JSON-RPC 2.0 adapter over <see cref="IA2ARequestHandler"/>.
-/// Order of checks: unknown agent (HTTP 404) → agent policy (HTTP 401/403) → body size (HTTP 413) → JSON (-32700) →
+/// Order of checks: unknown agent (HTTP 404) → agent policy (HTTP 401/403) → an <see cref="IA2AVersionDispatcher"/> that claims an
+/// unsupported version takes the whole request → body size (HTTP 413) → JSON (-32700) →
 /// envelope (-32600) → version (-32009) → method (-32601) → extended card needs an authenticated caller (HTTP 401) →
 /// params (-32602) → handler. Every JSON-RPC error is sent with HTTP 200.
 /// A request without <c>id</c> is processed and answered with <c>"id": null</c>; batches are rejected (-32600).
@@ -64,6 +65,7 @@ internal static class JsonRpcEndpoint
         try
         {
             var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
+            if (await TransportRequest.TryDispatchVersionAsync(http, agent).ConfigureAwait(false)) return;
 
             var body = await RequestBody.ReadAsync(http, options.MaxRequestBodyBytes).ConfigureAwait(false);
             if (body is null)
