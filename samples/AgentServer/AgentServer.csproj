@@ -5,10 +5,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/A2A.Server/A2A.Server.csproj" />
+    <ProjectReference Include="../SampleTelemetry/SampleTelemetry.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Copied to a subfolder: projects that reference both AgentServer and MockEntra (integration tests) would

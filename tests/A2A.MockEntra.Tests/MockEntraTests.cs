@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.JsonWebTokens;
 using MockEntra;
+using SampleTelemetry;
 
 namespace A2A.MockEntra.Tests;
 
@@ -29,6 +30,7 @@ public sealed class MockEntraFixture : IAsyncLifetime
         Base = $"http://127.0.0.1:{offset + 150}";
         _app = MockEntraApp.Build(["--environment", "Development"], builder =>
         {
+            builder.Configuration[SampleTelemetryExtensions.EndpointKey] = ""; // a developer shell must not turn telemetry on in tests
             builder.WebHost.UseUrls(Base);
             builder.Configuration["MockEntra:IssuerBaseUrl"] = Base;
         });

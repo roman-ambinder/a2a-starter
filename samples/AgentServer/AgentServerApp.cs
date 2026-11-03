@@ -6,6 +6,7 @@ using AgentServer.Cards;
 using AgentServer.Llm;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using SampleTelemetry;
 
 namespace AgentServer;
 
@@ -30,6 +31,7 @@ public static class AgentServerApp
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = ContentRoot });
         configure?.Invoke(builder);
+        builder.AddSampleTelemetry("agentserver", SampleTelemetryExtensions.LlmSource);
         var config = builder.Configuration;
 
         builder.Services.Configure<FakeAgentOptions>(config.GetSection(FakeAgentOptions.SectionName));

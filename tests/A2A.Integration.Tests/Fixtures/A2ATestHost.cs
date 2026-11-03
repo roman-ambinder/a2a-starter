@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MockEntra;
+using SampleTelemetry;
 using WebhookReceiver;
 
 namespace A2A.Integration.Tests.Fixtures;
@@ -85,6 +86,7 @@ public sealed class A2ATestHost : IAsyncLifetime
         _mockEntra = MockEntraApp.Build(["--environment", "Development"], builder =>
         {
             builder.Logging.ClearProviders();
+            builder.Configuration[SampleTelemetryExtensions.EndpointKey] = ""; // a developer shell must not turn telemetry on in tests
             builder.WebHost.UseUrls(MockEntraBaseUrl);
             builder.Configuration["MockEntra:IssuerBaseUrl"] = MockEntraBaseUrl;
         });
@@ -111,6 +113,7 @@ public sealed class A2ATestHost : IAsyncLifetime
         var app = WebhookReceiverApp.Build(["--environment", "Development"], builder =>
         {
             builder.Logging.ClearProviders();
+            builder.Configuration[SampleTelemetryExtensions.EndpointKey] = ""; // a developer shell must not turn telemetry on in tests
             builder.WebHost.UseUrls(url);
             builder.Configuration["Receiver:PublicUrl"] = url;
             for (var i = 0; i < trustedServers.Count; i++) builder.Configuration[$"Receiver:TrustedServers:{i}"] = trustedServers[i];
@@ -150,6 +153,7 @@ public sealed class A2ATestHost : IAsyncLifetime
         var app = AgentServerApp.Build(["--environment", "Development"], builder =>
         {
             builder.Logging.ClearProviders();
+            builder.Configuration[SampleTelemetryExtensions.EndpointKey] = ""; // a developer shell must not turn telemetry on in tests
             builder.Configuration.AddInMemoryCollection(AgentServerConfig(portBase, mockEntraBaseUrl));
             configure?.Invoke(builder);
         });

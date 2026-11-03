@@ -1,4 +1,5 @@
 using System.Text;
+using SampleTelemetry;
 
 namespace MockEntra;
 
@@ -15,6 +16,7 @@ public static class MockEntraApp
             throw new InvalidOperationException("MockEntra runs only in Development");
 
         configure?.Invoke(builder);
+        builder.AddSampleTelemetry("mockentra");
 
         var options = builder.Configuration.GetSection("MockEntra").Get<MockEntraOptions>() ?? new MockEntraOptions();
         var issuer = new TokenIssuer(options);

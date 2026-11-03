@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SampleTelemetry;
 using Microsoft.AspNetCore.Http.Features;
 
 namespace WebhookReceiver;
@@ -34,6 +35,7 @@ public static class WebhookReceiverApp
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = ContentRoot });
         configure?.Invoke(builder);
+        builder.AddSampleTelemetry("webhookreceiver");
 
         var options = builder.Configuration.GetSection(ReceiverOptions.SectionName).Get<ReceiverOptions>() ?? new ReceiverOptions();
         options.PublicUrl = PushSignatureValidator.Normalize(options.PublicUrl);
