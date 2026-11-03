@@ -45,10 +45,13 @@ public sealed class TaskIdRulesTests(A2ATestHost host)
         Assert.Equal(TaskState.InputRequired, first.Status.State);
 
         var foreign = await Rejected(() => other.SendMessageAsync(Send("2027-03-15", first.Id, first.ContextId), Ct));
-        var unknown = await Rejected(() => other.SendMessageAsync(Send("2027-03-15", Guid.NewGuid().ToString(), first.ContextId), Ct));
+        var unknownId = Guid.NewGuid().ToString();
+        var unknown = await Rejected(() => other.SendMessageAsync(Send("2027-03-15", unknownId, first.ContextId), Ct));
 
         Assert.Equal(A2AErrorCode.TaskNotFound, foreign.Code);
         Assert.Equal(unknown.Code, foreign.Code);
+        // No leak: the message must not tell a foreign id from an unknown one (the ids themselves differ, so mask them).
+        Assert.Equal(unknown.Message.Replace(unknownId, "<id>"), foreign.Message.Replace(first.Id, "<id>"));
     }
 
     [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
