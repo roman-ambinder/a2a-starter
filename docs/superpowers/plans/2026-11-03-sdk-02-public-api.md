@@ -57,7 +57,7 @@ These were checked in the repo when this plan was written. They drive several st
 - `GetAwaiter().GetResult()` appears once: `src/A2A.Server/Hosting/A2AStartupValidation.cs:37`, inside a synchronous `IStartupFilter`.
 - 14 direct `Log*()` calls (no `[LoggerMessage]` yet): `Push/PushNotificationSender.cs` (5), `Tasks/TaskManager.cs` (6), `Tasks/TaskWriter.cs` (2), `Transports/TransportErrors.cs` (1).
 - 220 lines with `await` in `src/`, 213 with `ConfigureAwait(false)`. The rest need checking under CA2007 (some are `await foreach` / `await using`).
-- Tests that use types this plan makes internal: `tests/A2A.Server.Tests` (`TaskManager`, `TaskEventBroker`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `InMemoryTaskStore`, `PageToken`, `WebhookUrlValidator`, `DefaultOwnerResolver`, `AgentAuthorizer`), `tests/A2A.Integration.Tests` (`TaskManager`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `AgentCardInterfaces`, `SseReader`, the three transport clients, `TracingA2AClient`, `Lf.A2a.V1`), `tests/A2A.Protocol.Tests` (`ProtoMapper`, `Lf.A2a.V1`).
+- Tests that use types this plan makes internal: `tests/A2A.Server.Tests` (`TaskManager`, `TaskEventBroker`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `InMemoryTaskStore`, `PageToken`, `WebhookUrlValidator`, `AgentAuthorizer`), `tests/A2A.Integration.Tests` (`TaskManager`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `AgentCardInterfaces`, `SseReader`, the three transport clients, `TracingA2AClient`, `Lf.A2a.V1`), `tests/A2A.Protocol.Tests` (`ProtoMapper`, `Lf.A2a.V1`).
 - Samples do not use any type this plan makes internal. (`samples/AgentClient` uses `A2AClientFactory` and the `ListTasksRequest.PageToken` property, which stay public.)
 
 ## Global constraints
@@ -256,7 +256,8 @@ public sealed class PublicSurfaceTests
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
         "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
         // Default implementations (spec 02 section 3, writer's call as a default):
-        "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "DefaultOwnerResolver", "AgentAuthorizer",
+        "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "AgentAuthorizer",
+        // DefaultOwnerResolver stays public: spec 07 keeps it public so other-scheme resolvers can decorate it.
     ];
 
     /// <summary>Allowed InternalsVisibleTo targets besides "&lt;assembly&gt;.Tests". Integration.Tests: owner decision 2026-11-03 (Task 3, step 3.1).</summary>
@@ -488,7 +489,7 @@ Each type below is found by name (`git grep -nE "public (sealed |static |partial
 | `ServiceParameters`, `RestErrorWriter`, `SseWriter`, `AgentCardInterfaces`, `WebhookUrlValidator` | AspNetCore or Server | `internal` |
 | `GrpcErrorMapper`, `A2AGrpcService` | AspNetCore.Grpc | `internal` |
 | `ProtoMapper` (all partials), generated `Lf.A2a.V1.*` | `src/Grpc.Shared` | `internal` if 01 did not already (A4) |
-| `InMemoryTaskStore`, `InMemoryPushConfigStore`, `DefaultOwnerResolver`, `AgentAuthorizer` | Server | `internal` (spec: default implementations become internal unless a user must construct them; users get them through `Add...`) |
+| `InMemoryTaskStore`, `InMemoryPushConfigStore`, `AgentAuthorizer` (AspNetCore after 01, per the package 07 plan's decision 8) | Server | `internal` (spec: default implementations become internal unless a user must construct them; users get them through `Add...`) |
 
 Types that stay public in this task (owned by 05, 07, 08, 11; spec 02 section 3): `IAgentHandler`, `IAgentEventSink`, `AgentRequestContext`, `AgentRegistration`, `AgentCatalog`, `A2AServerBuilder`, `A2AServerOptions`, `PushOptions`, `ITaskStore`, `IPushConfigStore`, `StoredTask`, `IOwnerResolver`, `CallerIdentity`, `IAgentAuthorizer`, `ITaskEventObserver`, `IA2ARequestHandler`, `A2ACallContext`, and the extension classes.
 
