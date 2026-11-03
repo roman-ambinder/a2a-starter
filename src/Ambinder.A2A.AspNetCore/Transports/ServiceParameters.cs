@@ -67,7 +67,7 @@ public static class ServiceParameters
     public static IReadOnlyList<string> ActivateExtensions(AgentCard card, IReadOnlyList<string> requested)
         => Ambinder.A2A.Server.Tasks.RequestValidator.ResolveExtensions(card, requested);
 
-    /// <summary>Activates extensions (see <see cref="ActivateExtensions"/>) and echoes them in the <c>A2A-Extensions</c> response header.</summary>
+    /// <summary>Activates extensions (see <see cref="ActivateExtensions(AgentCard, IReadOnlyList{string})"/>) and echoes them in the <c>A2A-Extensions</c> response header.</summary>
     public static void ActivateExtensions(HttpContext http, AgentCard card, IReadOnlyList<string> requested)
     {
         ArgumentNullException.ThrowIfNull(http);

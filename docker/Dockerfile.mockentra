@@ -4,6 +4,7 @@ WORKDIR /src
 # Restore first (own layer) so source edits do not re-download packages.
 COPY Directory.Build.props Directory.Packages.props global.json Ambinder.A2A.slnx ./
 COPY proto/ proto/
+COPY src/Directory.Build.props src/
 COPY samples/Directory.Build.props samples/
 COPY src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj src/Ambinder.A2A.Protocol/
 COPY src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj src/Ambinder.A2A.Server/

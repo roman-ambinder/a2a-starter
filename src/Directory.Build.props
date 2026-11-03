@@ -1,0 +1,61 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- Shipped packages (spec 01, section 4). src/Shared and src/Grpc.Shared hold linked .cs files, not projects. -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <A2ARepositoryUrl>https://github.com/roman-ambinder/a2a-starter</A2ARepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Label="NuGet metadata">
+    <Authors>Roman Ambinder</Authors>
+    <Copyright>Copyright (c) Roman Ambinder</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>$(A2ARepositoryUrl)</PackageProjectUrl>
+    <RepositoryUrl>$(A2ARepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>a2a;agent2agent;agents;ai;json-rpc;grpc;aspnetcore</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Documentation, symbols, SourceLink">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591 (missing doc) and CS1573 (some but not all parameters documented): XML doc completeness is enforced by package 02. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- One version for all packages, from git tags v*. Untagged commits give 1.0.0-preview.0.N. -->
+  <PropertyGroup Label="MinVer">
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
+    <!-- A source tree without .git (Docker builds, source archives) has no version to compute; MinVer would warn. -->
+    <MinVerSkip Condition="!Exists('$(A2ARepoRoot).git')">true</MinVerSkip>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Label="Package contents">
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="$(A2ARepoRoot)eng/icon.png" Pack="true" PackagePath="\" Link="icon.png" Visible="false" />
+    <None Include="$(A2ARepoRoot)LICENSE" Pack="true" PackagePath="\" Link="LICENSE" Visible="false" />
+    <None Include="$(A2ARepoRoot)NOTICE" Pack="true" PackagePath="\" Link="NOTICE" Visible="false" />
+  </ItemGroup>
+
+  <!-- MinVer sets Version inside its own target, so the release link is built after it. -->
+  <Target Name="A2ASetReleaseNotes" AfterTargets="MinVer" Condition="'$(MinVerSkip)' != 'true'">
+    <PropertyGroup>
+      <PackageReleaseNotes>$(A2ARepositoryUrl)/releases/tag/v$(Version)</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
+</Project>
