@@ -1,36 +1,214 @@
 name: CI
 
+# Pull requests and master run the fast jobs. The nightly schedule, a manual run and the release workflow (which calls this file with
+# strict-audit: true) also run the Windows leg and treat Low and Moderate NuGet advisories as errors.
 on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      strict-audit:
+        description: Treat all NuGet advisories (also Low and Moderate) as errors and run the Windows leg
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# Inside a called workflow github.event_name and github.workflow are the caller's, so a release run gets its own group
+# (ci-Release-push-refs/tags/v1.0.0) and a push to master cannot cancel it. Only pull request runs are cancelled by a newer push.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Strict audit: nightly, manual and release runs. In a called workflow the event is the caller's, so the release uses the input.
+  # Empty on pull requests and master pushes, so the unquoted $A2A_AUDIT_ARGS below expands to nothing.
+  A2A_AUDIT_ARGS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || inputs.strict-audit) && '-p:A2AStrictAudit=true' || '' }}
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # MinVer needs the tags
 
       - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore Ambinder.A2A.slnx
+        run: dotnet restore Ambinder.A2A.slnx $A2A_AUDIT_ARGS
 
       - name: Build
-        run: dotnet build Ambinder.A2A.slnx --no-restore --configuration Release
+        run: dotnet build Ambinder.A2A.slnx --no-restore --configuration Release $A2A_AUDIT_ARGS
 
       - name: Test
-        run: dotnet test Ambinder.A2A.slnx --no-build --configuration Release
+        run: |
+          set -euo pipefail
+          mkdir -p TestResults
+          dotnet test --solution Ambinder.A2A.slnx --no-build --configuration Release 2>&1 | tee TestResults/test-output.log
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-ubuntu
+          path: |
+            TestResults/
+            **/TestResults/
+          if-no-files-found: ignore
+
+  # Unit tests on Windows (path, line ending and culture differences). There is no separate Client unit test project: the client
+  # unit-level tests live in Ambinder.A2A.Integration.Tests, which stays on Ubuntu together with TCK and interop.
+  windows-unit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || inputs.strict-audit
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Test (Protocol, Server, Client.Grpc)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for project in tests/Ambinder.A2A.Protocol.Tests tests/Ambinder.A2A.Server.Tests tests/Ambinder.A2A.Client.Grpc.Tests; do
+            echo "::group::$project"
+            dotnet test --project "$project" --configuration Release $A2A_AUDIT_ARGS
+            echo "::endgroup::"
+          done
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-windows
+          path: '**/TestResults/'
+          if-no-files-found: ignore
+
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Pack
+        run: dotnet pack Ambinder.A2A.slnx --configuration Release -p:ContinuousIntegrationBuild=true $A2A_AUDIT_ARGS --output artifacts/packages
+
+      - name: Check packages (allow-list, contents)
+        run: dotnet run eng/check-packages.cs -- --packages artifacts/packages --map eng/package-dependencies.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: artifacts/packages/
+          if-no-files-found: error
+
+  samples-on-packages:
+    needs: pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: artifacts/packages
+
+      - name: Build samples on the packed packages
+        run: bash eng/build-samples-on-packages.sh
+
+  core-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Core packages publish without ASP.NET Core, gRPC or Azure
+        run: bash eng/check-core-only.sh
+
+  # Two clean checkouts of one commit in two different paths must give byte-identical assemblies (spec 01, goal 6).
+  reproducibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: a
+          fetch-depth: 0
+
+      - uses: actions/checkout@v7
+        with:
+          path: b
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: a/global.json
+
+      - name: Build both checkouts
+        run: |
+          set -euo pipefail
+          for dir in a b; do
+            for project in "$dir"/src/*/*.csproj; do
+              dotnet build "$project" --configuration Release -p:ContinuousIntegrationBuild=true --nologo -v:q
+            done
+          done
+
+      - name: Compare DLL hashes of the shipped projects
+        run: |
+          set -euo pipefail
+          # The shipped projects are the folders under src/ that have a .csproj (src/Shared and src/Grpc.Shared hold linked files only).
+          hash_dir() {
+            local dir="$1"
+            for project in "$dir"/src/*/*.csproj; do
+              name="$(basename "$project" .csproj)"
+              sha256sum "$dir/src/$name/bin/Release/net10.0/$name.dll" | sed -E "s#^([0-9a-f]+)  .*/([^/]+)\$#\1  \2#"
+            done | sort -k2
+          }
+          hash_dir a > hashes-a.txt
+          hash_dir b > hashes-b.txt
+          echo "Checkout a:"; cat hashes-a.txt
+          echo "Checkout b:"; cat hashes-b.txt
+          test "$(wc -l < hashes-a.txt)" -gt 0
+          if ! diff -u hashes-a.txt hashes-b.txt; then
+            echo "::error::Builds are not reproducible: the hashes above differ."
+            exit 1
+          fi
+          echo "All $(wc -l < hashes-a.txt) assemblies are identical."
 
   proto-drift:
     runs-on: ubuntu-latest
@@ -47,3 +225,13 @@ jobs:
           expected=$(sed -n 's/^- SHA-256 of `a2a.proto`: //p' proto/README.md)
           actual=$(sha256sum proto/a2a.proto | cut -d' ' -f1)
           test "$expected" = "$actual" || { echo "proto/README.md hash $expected does not match $actual"; exit 1; }
+
+  # Hooks: each file is a placeholder that the owning package replaces. release.yml requires them through this workflow.
+  tck:
+    uses: ./.github/workflows/tck.yml
+
+  interop:
+    uses: ./.github/workflows/interop.yml
+
+  benchmarks:
+    uses: ./.github/workflows/benchmarks.yml
