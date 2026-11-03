@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Ambinder.A2A.Protocol.Grpc;
+using Ambinder.A2A.Protocol.ProtoMapping;
 using Google.Protobuf;
 
 namespace Ambinder.A2A.Protocol.Tests.Grpc;

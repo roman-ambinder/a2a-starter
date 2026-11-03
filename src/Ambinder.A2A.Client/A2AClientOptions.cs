@@ -23,6 +23,13 @@ public sealed class A2AClientOptions
     public string? PreferredBinding { get; init; }
 
     /// <summary>
+    /// Transports for bindings beyond the built-in JSON-RPC and HTTP+JSON, for example <c>GrpcClientTransport.Instance</c> from the
+    /// <c>Ambinder.A2A.Client.Grpc</c> package. A card interface is used only when its binding is built in or listed here; a transport
+    /// listed here replaces the built-in one for the same binding. Default: empty.
+    /// </summary>
+    public IReadOnlyList<IA2AClientTransport> Transports { get; init; } = [];
+
+    /// <summary>
     /// TLS for a gRPC interface whose card URL is a bare <c>host:port</c> (the spec's gRPC address form). Null (default): plain
     /// text (h2c) for loopback hosts, TLS for any other host. A card URL with <c>http://</c> or <c>https://</c> decides by itself.
     /// </summary>

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Integration.Tests.Fixtures;
 using Ambinder.A2A.Protocol;
@@ -205,6 +206,7 @@ public sealed class ReportCancelFlowTests(A2ATestHost host) : IAsyncLifetime
             HttpClient = host.Http,
             Credentials = new ApiKeyCredentialProvider(A2ATestHost.ApiKey),
             PreferredBinding = binding,
+            Transports = [GrpcClientTransport.Instance],
         });
         var request = new SendMessageRequest
         {

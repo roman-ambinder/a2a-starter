@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Ambinder.A2A.Client;
 using Ambinder.A2A.Client.Auth;
+using Ambinder.A2A.Client.Entra;
 using Ambinder.A2A.Client.Transports.Sse;
 using Ambinder.A2A.Protocol;
 using Azure.Core;

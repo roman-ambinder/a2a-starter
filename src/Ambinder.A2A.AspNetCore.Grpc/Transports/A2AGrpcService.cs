@@ -1,6 +1,6 @@
 using Ambinder.A2A.AspNetCore.Transports;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Protocol.Grpc;
+using Ambinder.A2A.Protocol.ProtoMapping;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Hosting;

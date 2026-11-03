@@ -6,11 +6,12 @@ COPY Directory.Build.props Directory.Packages.props global.json Ambinder.A2A.sln
 COPY proto/ proto/
 COPY samples/Directory.Build.props samples/
 COPY src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj src/Ambinder.A2A.Protocol/
-COPY src/Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj src/Ambinder.A2A.Protocol.Grpc/
 COPY src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj src/Ambinder.A2A.Server/
 COPY src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj src/Ambinder.A2A.AspNetCore/
 COPY src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj src/Ambinder.A2A.AspNetCore.Grpc/
 COPY src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj src/Ambinder.A2A.Client/
+COPY src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj src/Ambinder.A2A.Client.Grpc/
+COPY src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj src/Ambinder.A2A.Client.Entra/
 COPY samples/SampleTelemetry/SampleTelemetry.csproj samples/SampleTelemetry/
 COPY samples/AgentServer/AgentServer.csproj samples/AgentServer/
 RUN dotnet restore samples/AgentServer/AgentServer.csproj

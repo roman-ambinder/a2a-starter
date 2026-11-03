@@ -1,6 +1,6 @@
 using Proto = Lf.A2a.V1;
 
-namespace Ambinder.A2A.Protocol.Grpc;
+namespace Ambinder.A2A.Protocol.ProtoMapping;
 
 static partial class ProtoMapper
 {

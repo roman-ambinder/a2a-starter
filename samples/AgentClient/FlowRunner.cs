@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Ambinder.A2A.Client;
 using Ambinder.A2A.Client.Auth;
+using Ambinder.A2A.Client.Entra;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Protocol;
 using Azure.Identity;
 
@@ -191,6 +193,7 @@ public sealed partial class FlowRunner : IDisposable
             HttpClient = _http,
             Credentials = Credentials(who, anonymous, forceMock),
             PreferredBinding = _options.Binding,
+            Transports = [GrpcClientTransport.Instance],
             Extensions = extensions ?? [],
             ProtocolVersion = protocolVersion ?? A2AConstants.ProtocolVersion,
             // The sample's gRPC listeners use TLS exactly when its HTTP server URL does.

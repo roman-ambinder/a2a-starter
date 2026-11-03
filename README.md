@@ -53,18 +53,19 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 | Path | What it is |
 |---|---|
 | [src/Ambinder.A2A.Protocol](src/Ambinder.A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
-| [src/Ambinder.A2A.Protocol.Grpc](src/Ambinder.A2A.Protocol.Grpc/README.md) | Generated gRPC code and the model-to-proto mapper. |
 | [src/Ambinder.A2A.Server](src/Ambinder.A2A.Server/README.md) | Server core without a web host: agents, task manager, push delivery, `AddA2AServerCore`. |
 | [src/Ambinder.A2A.AspNetCore](src/Ambinder.A2A.AspNetCore/README.md) | ASP.NET Core hosting: JSON-RPC, REST and SSE endpoints, `AddA2AServer`, `MapA2A`. |
 | [src/Ambinder.A2A.AspNetCore.Grpc](src/Ambinder.A2A.AspNetCore.Grpc/README.md) | gRPC server endpoint (opt-in): `AddA2AGrpc`, `MapA2AGrpc`. |
-| [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over all three transports. |
+| [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over JSON-RPC and REST, plus the `IA2AClientTransport` seam. |
+| [src/Ambinder.A2A.Client.Grpc](src/Ambinder.A2A.Client.Grpc/README.md) | gRPC client transport (opt-in): `GrpcClientTransport.Instance`. |
+| [src/Ambinder.A2A.Client.Entra](src/Ambinder.A2A.Client.Entra/README.md) | `AzureIdentityCredentialProvider` (Azure.Identity). |
 | [samples/AgentServer](samples/AgentServer/README.md) | Four demo agents. |
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
 | [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
 | `samples/SampleTelemetry` | OpenTelemetry setup shared by the three server hosts. Off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. |
-| `tests/` | Four test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`. |
+| `tests/` | Five test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.Client.Grpc.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`. |
 | `docker/`, `docker-compose.yml` | Images and the compose stack. |
 | `.github/` | GitHub Actions CI and Dependabot (see [Continuous integration](#continuous-integration)). |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
@@ -170,9 +171,9 @@ Every public test class under `tests/Ambinder.A2A.Integration.Tests/Flows/` is n
 
 ## Copy the client side
 
-1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Protocol.Grpc` and `src/Ambinder.A2A.Client` ([details](src/Ambinder.A2A.Client/README.md)), plus `proto/` (`Ambinder.A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol` and `src/Ambinder.A2A.Client` ([details](src/Ambinder.A2A.Client/README.md)). For gRPC add `src/Ambinder.A2A.Client.Grpc` with `src/Grpc.Shared` and `proto/` (`Ambinder.A2A.Client.Grpc` compiles `proto/a2a.proto`); for Azure.Identity credentials add `src/Ambinder.A2A.Client.Entra`.
 2. Fetch the card with `A2ACardResolver`.
-3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
+3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC or REST from the card, or gRPC when you pass `Transports = [GrpcClientTransport.Instance]`. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
 4. Pick credentials: `ClientCredentialsProvider` (any OAuth2 token URL, including Entra), `AzureIdentityCredentialProvider`, `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`, or your own `IA2ACredentialProvider`.
    `ClientCredentialsProvider` sends your client secret to the token URL, so it does not trust the card blindly. Either pass the token URL yourself (`tokenUrlOverride`), or list the hosts you trust in `allowedTokenHosts` (for example `login.microsoftonline.com`). A card token URL is used only when its host is in that list and it is `https` (`http` only for localhost, 127.0.0.1 or ::1). Anything else throws `A2AAuthException` (401) and no request is sent.
 

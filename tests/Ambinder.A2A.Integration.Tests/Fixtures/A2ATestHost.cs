@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Protocol;
 using AgentServer;
@@ -175,6 +176,7 @@ public sealed class A2ATestHost : IAsyncLifetime
             HttpClient = Http,
             Credentials = Credentials(auth, card),
             PreferredBinding = binding,
+            Transports = [GrpcClientTransport.Instance],
             Extensions = extensions ?? [],
         });
     }

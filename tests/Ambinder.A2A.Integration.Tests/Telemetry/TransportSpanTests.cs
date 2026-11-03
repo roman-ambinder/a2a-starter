@@ -1,4 +1,5 @@
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Integration.Tests.Fixtures;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Tests.Shared;
@@ -19,7 +20,7 @@ public sealed class TransportSpanTests(A2ATestHost host)
         // The HTTP client and ASP.NET Core sources carry the trace from the client to the server span (in process).
         using var collector = new ActivityCollector(A2ATelemetryNames.ServerSource, "System.Net.Http", "Microsoft.AspNetCore");
         var card = await host.Cards.GetAgentCardAsync(new Uri($"{A2ATestHost.BaseUrl}/agents/echo"), Ct);
-        await using var client = A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = binding });
+        await using var client = A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = binding, Transports = [GrpcClientTransport.Instance] });
 
         await client.SendMessageAsync(new SendMessageRequest
         {

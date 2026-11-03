@@ -1,12 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Grpc.Net.Client" />
-    <PackageReference Include="Grpc.StatusProto" />
+    <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
-    <ProjectReference Include="../Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj" />
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/ClientSupport.cs" Link="Shared/ClientSupport.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />

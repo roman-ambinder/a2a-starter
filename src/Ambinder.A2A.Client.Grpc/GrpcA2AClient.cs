@@ -1,11 +1,12 @@
 using System.Runtime.CompilerServices;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Protocol.Grpc;
+using Ambinder.A2A.Client.Transports;
+using Ambinder.A2A.Protocol.ProtoMapping;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Proto = Lf.A2a.V1;
 
-namespace Ambinder.A2A.Client.Transports;
+namespace Ambinder.A2A.Client.Grpc;
 
 /// <summary>
 /// A2A client for the gRPC binding. Protocol version, extensions and credentials travel as call metadata

@@ -1,11 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
-    <Project Path="src/Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj" />
     <Project Path="src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
     <Project Path="src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
     <Project Path="src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
     <Project Path="src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+    <Project Path="src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
+    <Project Path="src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/AgentClient/AgentClient.csproj" />
@@ -18,6 +19,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Ambinder.A2A.MockEntra.Tests/Ambinder.A2A.MockEntra.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Protocol.Tests/Ambinder.A2A.Protocol.Tests.csproj" />
+    <Project Path="tests/Ambinder.A2A.Client.Grpc.Tests/Ambinder.A2A.Client.Grpc.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Integration.Tests/Ambinder.A2A.Integration.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Server.Tests/Ambinder.A2A.Server.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Tck.Sut/Ambinder.A2A.Tck.Sut.csproj" />

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Integration.Tests.Fixtures;

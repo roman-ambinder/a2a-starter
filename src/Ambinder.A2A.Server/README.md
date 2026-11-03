@@ -4,7 +4,7 @@ Hosts A2A v1.0 agents in ASP.NET Core over JSON-RPC, REST (HTTP+JSON) and gRPC. 
 
 ## What to copy
 
-Reference or copy the project (plus [Ambinder.A2A.Protocol](../Ambinder.A2A.Protocol/README.md) and [Ambinder.A2A.Protocol.Grpc](../Ambinder.A2A.Protocol.Grpc/README.md)). Your host app owns authentication and authorization; this library only applies an ASP.NET Core policy name per agent.
+Reference or copy the project (plus [Ambinder.A2A.Protocol](../Ambinder.A2A.Protocol/README.md)). Your host app owns authentication and authorization; this library only applies an ASP.NET Core policy name per agent.
 `samples/AgentServer/AgentServerApp.cs` is the full wiring example.
 
 ## Extension points

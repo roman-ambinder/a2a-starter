@@ -1,7 +1,8 @@
+using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Protocol;
 using Azure.Core;
 
-namespace Ambinder.A2A.Client.Auth;
+namespace Ambinder.A2A.Client.Entra;
 
 /// <summary>Gets bearer tokens from an Azure.Identity <see cref="TokenCredential"/> (which does its own caching).</summary>
 public sealed class AzureIdentityCredentialProvider(TokenCredential credential, string scope) : IA2ACredentialProvider

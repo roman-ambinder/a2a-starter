@@ -1,4 +1,4 @@
-using Ambinder.A2A.Protocol.Grpc;
+using Ambinder.A2A.Protocol.ProtoMapping;
 using Proto = Lf.A2a.V1;
 
 namespace Ambinder.A2A.Protocol.Tests.Grpc;

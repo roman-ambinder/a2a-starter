@@ -3,15 +3,10 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Proto = Lf.A2a.V1;
 
-namespace Ambinder.A2A.Protocol.Grpc;
+namespace Ambinder.A2A.Protocol.ProtoMapping;
 
 /// <summary>Maps Ambinder.A2A.Protocol models to and from the generated gRPC types (Lf.A2a.V1).</summary>
-#if A2A_GRPC_INTERNAL
-internal
-#else
-public
-#endif
-static partial class ProtoMapper
+internal static partial class ProtoMapper
 {
     private static string S(string? value) => value ?? "";
 

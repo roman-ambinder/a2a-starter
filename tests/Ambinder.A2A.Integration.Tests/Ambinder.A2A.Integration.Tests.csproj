@@ -2,9 +2,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The tests use the generated types (raw gRPC client, fake gRPC server) from their own internal copy of the proto, so no
+         src assembly shares its internal Lf.A2a.V1 types with them. -->
+    <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" Access="Internal" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -16,12 +23,17 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
     <ProjectReference Include="../../samples/AgentServer/AgentServer.csproj" />
     <ProjectReference Include="../../samples/MockEntra/MockEntra.csproj" />
     <ProjectReference Include="../../samples/WebhookReceiver/WebhookReceiver.csproj" />

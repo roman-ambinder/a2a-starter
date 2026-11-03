@@ -111,7 +111,7 @@ internal static class ClientSupport
 
     /// <summary>
     /// The A2A code for an HTTP error that has no ErrorInfo reason: 400 → InvalidParams, 404 → MethodNotFound, else InternalError.
-    /// Same rule as <see cref="GrpcErrorTranslator"/> for INVALID_ARGUMENT / UNIMPLEMENTED.
+    /// Same rule as <c>GrpcErrorTranslator</c> for INVALID_ARGUMENT / UNIMPLEMENTED.
     /// </summary>
     public static A2AErrorCode CodeForStatusWithoutReason(int? httpStatus) => httpStatus switch
     {

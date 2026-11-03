@@ -1,8 +1,9 @@
+using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Protocol;
 using Google.Rpc;
 using Grpc.Core;
 
-namespace Ambinder.A2A.Client.Transports;
+namespace Ambinder.A2A.Client.Grpc;
 
 /// <summary>Maps a failed gRPC call back to the exception the caller expects.</summary>
 internal static class GrpcErrorTranslator

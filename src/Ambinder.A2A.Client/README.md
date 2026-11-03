@@ -1,18 +1,19 @@
 # Ambinder.A2A.Client
 
-Calls A2A v1.0 agents. One interface, `IA2AClient`, with the same 11 operations over JSON-RPC, REST and gRPC. `A2AClientFactory` reads the agent card and picks the transport.
+Calls A2A v1.0 agents. One interface, `IA2AClient`, with the same 11 operations over JSON-RPC and REST (gRPC with [Ambinder.A2A.Client.Grpc](../Ambinder.A2A.Client.Grpc/README.md)). `A2AClientFactory` reads the agent card and picks the transport.
 
 ## What to copy
 
-Reference or copy the project (plus [Ambinder.A2A.Protocol](../Ambinder.A2A.Protocol/README.md), [Ambinder.A2A.Protocol.Grpc](../Ambinder.A2A.Protocol.Grpc/README.md) and the repo's `proto/` folder, which Ambinder.A2A.Protocol.Grpc compiles). `samples/AgentClient/FlowRunner*.cs` shows every operation.
+Reference or copy the project (plus [Ambinder.A2A.Protocol](../Ambinder.A2A.Protocol/README.md)). It has no gRPC or Azure dependency: add [Ambinder.A2A.Client.Grpc](../Ambinder.A2A.Client.Grpc/README.md) for gRPC and [Ambinder.A2A.Client.Entra](../Ambinder.A2A.Client.Entra/README.md) for `AzureIdentityCredentialProvider`. `samples/AgentClient/FlowRunner*.cs` shows every operation.
 
 ## Extension points
 
 | Type | Purpose |
 |---|---|
 | `IA2AClient` | The operations: send, stream, get, list, cancel, subscribe, push config create/get/list/delete, extended card. Mock it in your tests. |
-| `A2AClientFactory.Create(card, options)` | Builds the client for the first supported card interface (binding supported and `protocolVersion` 1.0), or the one in `A2AClientOptions.PreferredBinding` (`JSONRPC`, `HTTP+JSON`, `GRPC`). A gRPC interface given as `host:port` uses TLS unless the host is loopback; `A2AClientOptions.GrpcUseTls` overrides that. The result is a `TracingA2AClient` (see Telemetry). |
-| `IA2ACredentialProvider` | Returns the auth headers for a request. Built in: `ClientCredentialsProvider` (OAuth2 client credentials; token URL from an explicit override, or from the card only for hosts you allow, see below), `AzureIdentityCredentialProvider` (Azure.Identity `TokenCredential`), `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`. |
+| `A2AClientFactory.Create(card, options)` | Builds the client for the first supported card interface (binding supported and `protocolVersion` 1.0), or the one in `A2AClientOptions.PreferredBinding` (`JSONRPC`, `HTTP+JSON`, `GRPC`). JSON-RPC and HTTP+JSON are built in; other bindings come from `A2AClientOptions.Transports` (for gRPC: `GrpcClientTransport.Instance`). A card whose only interface is `GRPC` throws `NotSupportedException` without that transport. The result is a `TracingA2AClient` (see Telemetry). |
+| `IA2AClientTransport` | One protocol binding for the factory (`ProtocolBinding`, `TransportName`, `Create`). Listed in `A2AClientOptions.Transports`. |
+| `IA2ACredentialProvider` | Returns the auth headers for a request. Built in: `ClientCredentialsProvider` (OAuth2 client credentials; token URL from an explicit override, or from the card only for hosts you allow, see below), `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`. `AzureIdentityCredentialProvider` (Azure.Identity `TokenCredential`) is in Ambinder.A2A.Client.Entra. |
 | `A2ACardResolver` | Fetches and caches (5 minutes) the agent card. |
 
 ## Telemetry

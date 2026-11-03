@@ -1,5 +1,6 @@
 using System.Net;
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Integration.Tests.Conformance;
@@ -28,7 +29,7 @@ public sealed class ClientSelectionTests
     public async Task Preferred_binding_must_also_have_a_supported_version()
     {
         var card = Card(Interface("GRPC", "2.0", "http://agent.test:5000"), Interface("JSONRPC", "1.0"));
-        await using var client = A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC" });
+        await using var client = A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] });
         Assert.Equal("JsonRpcA2AClient", TransportOf(client));
     }
 
@@ -52,22 +53,21 @@ public sealed class ClientSelectionTests
         Assert.Contains("1.0", ex.Message);
     }
 
-    [Theory]
-    [InlineData("grpc.example.com:8443", null, "https://grpc.example.com:8443/")]
-    [InlineData("127.0.0.1:5201", null, "http://127.0.0.1:5201/")]
-    [InlineData("localhost:5201", null, "http://localhost:5201/")]
-    [InlineData("[::1]:5201", null, "http://[::1]:5201/")]
-    [InlineData("agent-server:5201", false, "http://agent-server:5201/")]
-    [InlineData("localhost:5201", true, "https://localhost:5201/")]
-    [InlineData("http://grpc.example.com:8080", true, "http://grpc.example.com:8080/")]
-    public void Grpc_host_port_address_gets_a_scheme(string url, bool? useTls, string expected)
-        => Assert.Equal(expected, new Uri(A2AClientFactory.GrpcAddress(url, useTls)).ToString());
-
     [Fact]
     public async Task Grpc_interface_in_host_port_form_creates_a_grpc_client()
     {
-        await using var client = A2AClientFactory.Create(Card(Interface("GRPC", "1.0", "localhost:5201")), new A2AClientOptions());
+        await using var client = A2AClientFactory.Create(Card(Interface("GRPC", "1.0", "localhost:5201")), new A2AClientOptions { Transports = [GrpcClientTransport.Instance] });
         Assert.Equal("GrpcA2AClient", TransportOf(client));
+    }
+
+    [Fact]
+    public void Grpc_only_card_without_the_transport_names_the_grpc_package()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            A2AClientFactory.Create(Card(Interface("GRPC", "1.0", "localhost:5201")), new A2AClientOptions()));
+        Assert.Contains("Ambinder.A2A.Client.Grpc", ex.Message);
+        Assert.Contains("GrpcClientTransport.Instance", ex.Message);
+        Assert.Contains("GRPC/1.0", ex.Message);
     }
 
     [Theory]

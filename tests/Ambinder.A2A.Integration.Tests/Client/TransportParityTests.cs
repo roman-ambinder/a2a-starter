@@ -1,4 +1,5 @@
 using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Grpc;
 using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Integration.Tests.Fixtures;
@@ -32,6 +33,7 @@ public sealed class TransportParityTests(MinimalServer server)
         var client = A2AClientFactory.Create(card, new A2AClientOptions
         {
             PreferredBinding = binding,
+            Transports = [GrpcClientTransport.Instance],
             Credentials = credentials,
             ProtocolVersion = version,
         });
@@ -169,6 +171,7 @@ public sealed class TransportParityTests(MinimalServer server)
         await using var client = A2AClientFactory.Create(card, new A2AClientOptions
         {
             PreferredBinding = binding,
+            Transports = [GrpcClientTransport.Instance],
             Credentials = new TestUserCredentials("tina"),
         });
 
@@ -264,13 +267,13 @@ public sealed class TransportParityTests(MinimalServer server)
 
         Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "HTTP+JSON" })).Inner);
         Assert.IsType<JsonRpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "jsonrpc" })).Inner);
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC" })).Inner);
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] })).Inner);
         // No preference, or a preference the card does not offer → first interface in card order.
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions())).Inner);
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON" })).Inner);
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { Transports = [GrpcClientTransport.Instance] })).Inner);
+        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON", Transports = [GrpcClientTransport.Instance] })).Inner);
 
         var restOnly = card with { SupportedInterfaces = [card.SupportedInterfaces[1]] };
-        Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC" })).Inner);
+        Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] })).Inner);
     }
 
     [Fact]
@@ -281,7 +284,7 @@ public sealed class TransportParityTests(MinimalServer server)
             Name = "bad-url",
             SupportedInterfaces = [new AgentInterface { Url = "not a url", ProtocolBinding = "GRPC", ProtocolVersion = "1.0" }],
         };
-        var ex = Assert.Throws<NotSupportedException>(() => A2AClientFactory.Create(card, new A2AClientOptions()));
+        var ex = Assert.Throws<NotSupportedException>(() => A2AClientFactory.Create(card, new A2AClientOptions { Transports = [GrpcClientTransport.Instance] }));
         Assert.Contains("GRPC", ex.Message);
         Assert.Contains("not a url", ex.Message);
     }

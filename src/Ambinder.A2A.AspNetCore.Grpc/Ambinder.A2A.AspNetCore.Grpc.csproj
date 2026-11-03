@@ -2,8 +2,6 @@
   <PropertyGroup>
     <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
     <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
-    <!-- ProtoMapper is compiled internal here (see src/Grpc.Shared). -->
-    <DefineConstants>$(DefineConstants);A2A_GRPC_INTERNAL</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />

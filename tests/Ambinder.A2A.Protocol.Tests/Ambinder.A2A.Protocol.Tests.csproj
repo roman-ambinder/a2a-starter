@@ -2,6 +2,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -10,9 +12,17 @@
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
-    <ProjectReference Include="../../src/Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The tests compile the mapper and the proto themselves (internal), so no src assembly shares internals with them. -->
+    <Compile Include="../../src/Grpc.Shared/*.cs" />
+    <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" Access="Internal" />
   </ItemGroup>
 </Project>

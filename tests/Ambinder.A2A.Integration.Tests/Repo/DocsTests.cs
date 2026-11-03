@@ -48,7 +48,7 @@ public sealed class DocsTests
 
         Assert.Contains(files, f => f.EndsWith(Path.Combine("docs", "flows.md")));
         Assert.Contains(files, f => f.EndsWith(Path.Combine("docs", "production.md")));
-        foreach (var project in new[] { "Ambinder.A2A.Protocol", "Ambinder.A2A.Protocol.Grpc", "Ambinder.A2A.Server", "Ambinder.A2A.Client" })
+        foreach (var project in new[] { "Ambinder.A2A.Protocol", "Ambinder.A2A.Client.Grpc", "Ambinder.A2A.Server", "Ambinder.A2A.Client" })
             Assert.Contains(files, f => f.EndsWith(Path.Combine(project, "README.md")));
 
         var broken = new List<string>();

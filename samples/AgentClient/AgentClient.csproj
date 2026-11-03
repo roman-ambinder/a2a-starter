@@ -11,6 +11,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Copied to a subfolder so it does not collide with other samples' appsettings.json in one output folder
