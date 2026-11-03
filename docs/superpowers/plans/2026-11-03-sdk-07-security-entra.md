@@ -43,7 +43,8 @@ Paths to current code in this plan (for example `TaskManager.cs`, `TransportRequ
 - Every task: project paths, namespaces `Ambinder.A2A.*`, test project names, `Ambinder.A2A.slnx` in build commands.
 - Task 3 and Task 6: the split of `TransportRequest`/transports into `Ambinder.A2A.AspNetCore` (the core must not reference ASP.NET Core).
 - Task 13 and Task 18: creating `Ambinder.A2A.AspNetCore.Entra` and `Ambinder.A2A.Client.Entra` per the package map, their `eng/package-dependencies.json` entries, README, description.
-- Task 18: removing `Azure.Identity` from `Ambinder.A2A.Client` (01 Goal 3; spec "Package layout").
+- Task 18: 01's plan (Task 3) already creates `Ambinder.A2A.Client.Entra`, moves `AzureIdentityCredentialProvider` there (namespace `Ambinder.A2A.Client.Entra`) and removes `Azure.Identity` from `Ambinder.A2A.Client`. Task 18 starts from that state and only does what is left (see its Step 0).
+- Task 12: after 01's split, `AgentAuthorizer` lives in `Ambinder.A2A.AspNetCore` (it uses ASP.NET Core's `IAuthorizationService`), while `IAgentAuthorizer` stays in the core. Task 12 keeps that split (§0.3 item 8).
 - Task 24: the package-graph check builds on 01's allow-list test.
 
 If Task 0 finds that 01 has **not** landed: stop and report. Do not do the rename here.
@@ -64,6 +65,7 @@ The spec needs seams from other packages (spec "Dependencies"). They are all M1 
 | `benchmarks/Ambinder.A2A.Benchmarks` | 14 | Task 25 | Skip Task 25, leave the acceptance item open, say so in the PR body. |
 | Docs site tree (`docs/security/…`, `docs/agents/…`) | 13 | Task 26 | Create the pages at 13's paths with 13's front matter anyway. |
 | TCK job | 03 | Task 27 | Skip the TCK run, say so in the PR body. |
+| `Microsoft.IdentityModel.JsonWebTokens` removed from `Ambinder.A2A.Server` (01 keeps it in the core for push signing "until 08"; 08 plan Task 13 drops it) | 08 | Task 24 | Run Task 24 with the one documented exception in §0.3 item 9, and list "08 open" in the PR body. |
 
 ### 0.3 Decisions this plan makes (plan-writer's calls)
 
@@ -76,6 +78,12 @@ The spec leaves these open or splits them across sections. They are recorded her
 5. **Manual pre-release checklist** goes in `docs/release/pre-release-checklist.md` (create it if no other package has; append if one exists).
 6. **`entra-live.yml` repository variables** (non-secret): `A2A_ENTRA_TENANT_A`, `A2A_ENTRA_TENANT_B`, `A2A_ENTRA_API_CLIENT_ID`, `A2A_ENTRA_CLIENT1_ID`, `A2A_ENTRA_CLIENT2_ID`, `A2A_ENTRA_MT_CLIENT_ID`.
 7. **Other-schemes guide** goes in `docs/security/other-auth-schemes.md` (13's tree has no page for it).
+8. **The extra-policy authorizer stays split across the two assemblies.** The spec says `IAgentAuthorizer` and `AgentAuthorizer` "become internal" and run inside the security path. After 01's split that cannot work as written: the security middleware is in `Ambinder.A2A.Server` (no ASP.NET Core), `AgentAuthorizer` needs `IAuthorizationService` and lives in `Ambinder.A2A.AspNetCore`, and an internal type cannot cross that boundary (01 rule 6: no `InternalsVisibleTo` between shipped assemblies). So:
+   - `IAgentAuthorizer` stays a **public** interface in `Ambinder.A2A.Server` (package 02's plan also keeps it public). Its contract shrinks to the optional extra policy: `ValueTask AuthorizeAsync(A2ACaller caller, AgentRegistration agent, CancellationToken ct)`, which throws `A2AAuthException(403)`. Access modes and card requirements are no longer its job.
+   - The core registers a no-op default with `TryAddSingleton`, so a host without ASP.NET Core still runs.
+   - `AgentAuthorizer` (the `IAuthorizationService` implementation) stays in `Ambinder.A2A.AspNetCore`, becomes `internal sealed`, and `AddA2AServer` registers it, replacing the no-op. It evaluates `AgentRegistration.AuthorizationPolicy` against `caller.Principal`.
+   - `SecurityMiddleware` calls `IAgentAuthorizer` after the card-requirement check and before the continuation pre-check.
+9. **Package-graph exception until 08.** `Microsoft.IdentityModel.JsonWebTokens` matches the `Microsoft.Identity*` ban, and 01 leaves it in `Ambinder.A2A.Server` until 08's Task 13 removes it. Task 24's check allows exactly that one package in exactly that one assembly while `src/Ambinder.A2A.Server` still has push-signing code that uses it. The test checks this with `git grep` and fails once the code is gone and the reference is still there. Every other `Microsoft.Identity*` or `Azure.*` reference fails at once.
 
 ---
 
@@ -83,7 +91,7 @@ The spec leaves these open or splits them across sections. They are recorded her
 
 - **Branch:** work on the branch the session names; base it on `master` after Task 0 passes. One commit per task (Conventional Commits, for example `feat(security): add OwnerKey`).
 - **Build rules:** `TreatWarningsAsErrors`, nullable on, central package management, `CS1591` (XML docs on every public member). Match surrounding style and comment density.
-- **Core stays clean (principle 5):** `Ambinder.A2A.Server` and `Ambinder.A2A.Client` get no `Azure.*`, `Microsoft.Identity*`, `Microsoft.AspNetCore.*` package references. `Ambinder.A2A.Client.Entra` does not reference `Ambinder.A2A.Server` (B10).
+- **Core stays clean (principle 5):** `Ambinder.A2A.Server` and `Ambinder.A2A.Client` get no `Azure.*`, `Microsoft.Identity*`, `Microsoft.AspNetCore.*` package references. The one temporary exception is `Microsoft.IdentityModel.JsonWebTokens` in `Ambinder.A2A.Server`, which 01 left there and 08 removes (§0.3 item 9). This plan adds no such reference. `Ambinder.A2A.Client.Entra` does not reference `Ambinder.A2A.Server` (B10).
 - **Never logged, traced, stored or put in exception messages:** access tokens, `Authorization` values, client assertions, user assertions, client secrets. `A2ACaller.AccessToken` is never copied into `StoredTask`/`StoredCaller`. Every test fixture that captures logs or spans runs the scrubber assertion (Task 23).
 - **Errors say what to do:** every 401/403/startup message names what is missing and where to configure it (spec "Anti-goals"; exact texts are given in the tasks — use them verbatim).
 - **Not-found hides existence:** another owner's task, another tenant's task, and a continuation without a valid grant all give `TaskNotFound` with the same message as a missing task.
@@ -124,7 +132,8 @@ Created: `src/Ambinder.A2A.Client.Entra/` (`EntraClientBuilderExtensions.cs`, `A
 Created (tests): `tests/Ambinder.A2A.FakeEntra/`, `tests/Ambinder.A2A.AspNetCore.Entra.Tests/`, `tests/Ambinder.A2A.Client.Entra.Tests/`, `tests/Ambinder.A2A.Entra.LiveTests/`, `tests/Shared/SecretScrubber.cs`, security test files in `Ambinder.A2A.Server.Tests/Security/` and `Ambinder.A2A.Integration.Tests/Security/`.
 Created (CI/docs): `.github/workflows/entra-live.yml`, `docs/security/{threat-model,identity-and-ownership,tenants,entra-setup,other-auth-schemes}.md`, `docs/agents/multi-tenant.md`, `docs/release/pre-release-checklist.md`.
 Modified: `A2ACallContext.cs`, `AgentRegistration.cs`, `AgentRequestContext.cs`, `IAgentEventSink.cs`, `AgentEventSink.cs`, `TaskManager.cs`, `TaskWriter.cs`, `A2AServerBuilder.cs`, `A2AServerOptions.cs`, `A2AStartupValidation.cs`, `TransportRequest.cs`, `JsonRpcEndpoint.cs`, `RestEndpoints.cs`, `A2AGrpcService.cs`, `AgentCardEndpoints.cs`, client `A2AClientFactory.cs`/`A2AClientOptions.cs`, `src/Ambinder.A2A.Client/*.csproj`, `Directory.Packages.props`, `eng/package-dependencies.json`, samples `AgentServer/Auth/*`, `AgentServer/Cards/AgentCards.cs`, `AgentServer/Program.cs`, `AgentClient/*`, `docs/production.md`.
-Deleted: `Auth/CallerIdentity.cs`, `Auth/IAgentAuthorizer.cs` + `Auth/AgentAuthorizer.cs` become internal (moved into the security middleware path), client `Auth/AzureIdentityCredentialProvider.cs` (moved), client `Auth/ClientCredentialsProvider.cs` and `Auth/ApiKeyCredentialProvider.cs` (moved to `samples/AgentClient`).
+Changed: `IAgentAuthorizer.cs` (core, stays public, narrowed to the extra policy; no-op default) and `AgentAuthorizer.cs` (in `Ambinder.A2A.AspNetCore` after 01, becomes internal), see §0.3 item 8.
+Deleted: `Auth/CallerIdentity.cs`; client `AzureIdentityCredentialProvider.cs` (01 moved it to `Ambinder.A2A.Client.Entra`; Task 19 replaces it with `EntraCredentialProvider`), client `Auth/ClientCredentialsProvider.cs` and `Auth/ApiKeyCredentialProvider.cs` (moved to `samples/AgentClient`).
 
 ---
 
@@ -405,11 +414,11 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(security): enforce card security requirements in the middleware pipeline`.
 
-### Task 12: Startup checks, skill authorization, extended card filter, `IAgentAuthorizer` internal
+### Task 12: Startup checks, skill authorization, extended card filter, the extra-policy authorizer
 
 **Files:**
 - Create: `Security/ISkillAuthorizer.cs`, `Security/CardSkillAuthorizer.cs`, `Security/SecurityStartupValidation.cs` (internal)
-- Modify: `AgentRequestContext.cs` (`AuthorizeSkillAsync`), `TaskManager.cs` (403 before first event vs `REJECTED` after), `AgentCardEndpoints.cs` / extended card handler, `Auth/IAgentAuthorizer.cs` + `Auth/AgentAuthorizer.cs` → internal, run from the security middleware for the optional extra `AuthorizationPolicy`
+- Modify: `AgentRequestContext.cs` (`AuthorizeSkillAsync`), `TaskManager.cs` (403 before first event vs `REJECTED` after), `AgentCardEndpoints.cs` / extended card handler, `IAgentAuthorizer.cs` (core: narrowed contract, no-op default), `AgentAuthorizer.cs` (in `Ambinder.A2A.AspNetCore`: internal, registered by `AddA2AServer`), `SecurityMiddleware.cs` (calls `IAgentAuthorizer`), per §0.3 item 8
 - Test: `tests/Ambinder.A2A.Integration.Tests/Security/SkillAuthorizationTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Hosting/SecurityStartupTests.cs` (extend)
 
 - [ ] **Step 1: Write failing tests.**
@@ -417,9 +426,11 @@ XML docs state the format is part of the public contract and frozen at 1.0.
   - Single-skill card whose skill requires role `Reports.Approve` → a caller without it gets 403 on `SendMessage` (checked with the agent level).
   - Multi-skill card: the agent calls `context.AuthorizeSkillAsync("approve")` as its first action → 403 for an unauthorized caller (blocking and streaming, before any event). The agent emits `WORKING` first, then calls it → the task ends `REJECTED` with status message text exactly "Not authorized for skill 'approve'." (no claims in it).
   - Extended card: unauthenticated → 401; with `FilterExtendedCardSkills = true` (default) the returned skills are only those whose requirements the caller meets; with `false` all skills.
-  - Optional `AuthorizationPolicy` on an agent still applies on top (existing tests keep passing).
+  - Optional `AuthorizationPolicy` on an agent still applies on top, on all three transports and for in-process calls through the pipeline (existing tests keep passing): a caller who meets the card but not the policy gets 403 / `PERMISSION_DENIED`.
+  - The core alone (`AddA2AServerCore` or whatever 01 named the host-neutral registration; an `AgentHarness`-style host with no ASP.NET Core) resolves the no-op `IAgentAuthorizer` and runs; an agent with an `AuthorizationPolicy` on such a host fails startup with "Agent 'x' sets AuthorizationPolicy, which needs ASP.NET Core authorization. Use AddA2AServer from Ambinder.A2A.AspNetCore or remove the policy." *(plan-writer's call: a policy that is silently skipped would be a hole)*.
+  - `AgentAuthorizer` is not a public type (reflection over `Ambinder.A2A.AspNetCore`'s exported types).
 - [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec. `ISkillAuthorizer` exactly as in the spec; `CardSkillAuthorizer` uses the per-skill `RequirementSet`. `AgentRequestContext.AuthorizeSkillAsync(string skillId, CancellationToken ct = default)` resolves `ISkillAuthorizer` from the run scope. In `TaskManager`, an `A2AAuthException` thrown by the agent before its first event completes `FirstResult` with that exception (the transport answers 403); after the first event it is turned into `REJECTED` with the message above. Delete the "one ASP.NET policy per agent" main-path code in `TransportRequest`.
+- [ ] **Step 3: Implement** per spec. `ISkillAuthorizer` exactly as in the spec; `CardSkillAuthorizer` uses the per-skill `RequirementSet`. `AgentRequestContext.AuthorizeSkillAsync(string skillId, CancellationToken ct = default)` resolves `ISkillAuthorizer` from the run scope. In `TaskManager`, an `A2AAuthException` thrown by the agent before its first event completes `FirstResult` with that exception (the transport answers 403); after the first event it is turned into `REJECTED` with the message above. Delete the "one ASP.NET policy per agent" main-path code in `TransportRequest`. Implement §0.3 item 8: narrow `IAgentAuthorizer`, register the no-op in the core and `AgentAuthorizer` in `AddA2AServer`, and call it from `SecurityMiddleware`. Do not add `InternalsVisibleTo` between `src/` assemblies.
 - [ ] **Step 4:** Run. Expected: PASS. Run the full suite.
 - [ ] **Step 5:** Commit `feat(security): skill-level requirements, startup checks, filtered extended card`.
 
@@ -509,18 +520,34 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 ### Task 18: Client contract and project split
 
 **Files:**
-- Create: `src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj` (refs `Ambinder.A2A.Client`, package `Azure.Identity`), `README.md`
-- Move: `src/Ambinder.A2A.Client/Auth/AzureIdentityCredentialProvider.cs` → `src/Ambinder.A2A.Client.Entra/EntraCredentialProvider.cs` (rewritten in Task 19)
-- Move: `ClientCredentialsProvider.cs`, `ApiKeyCredentialProvider.cs` → `samples/AgentClient/Auth/`
-- Modify: `src/Ambinder.A2A.Client/*.csproj` (remove `Azure.Identity`), `BearerTokenCredentialProvider.cs` → `DelegateCredentialProvider` (if 10 has not done it), `eng/package-dependencies.json`
+- Already done by 01 (check in Step 0, do not redo): `src/Ambinder.A2A.Client.Entra/` exists with `AzureIdentityCredentialProvider` (namespace `Ambinder.A2A.Client.Entra`); `Ambinder.A2A.Client` has no `Azure.Identity` reference; `eng/package-dependencies.json` has a `Client.Entra` entry.
+- Create only if Step 0 finds them missing: the `Ambinder.A2A.Client.Entra` project (refs `Ambinder.A2A.Client`, package `Azure.Identity`), its `README.md` and its allow-list entry.
+- Rename: `src/Ambinder.A2A.Client.Entra/AzureIdentityCredentialProvider.cs` → `EntraCredentialProvider.cs` (`git mv`; rewritten in Task 19). If 10 already ported it to `ApplyAsync` (10 plan, "A4"), keep that port as the starting point.
+- Move: `ClientCredentialsProvider.cs`, `ApiKeyCredentialProvider.cs` → `samples/AgentClient/Auth/` (skip if 10 already moved them).
+- Modify: `BearerTokenCredentialProvider.cs` → `DelegateCredentialProvider` (if 10 has not done it); `Ambinder.A2A.Client.Entra` README (it now describes the Entra providers of this package).
 - If 10's contract is missing: add `IA2ACredentialProvider.ApplyAsync`, `A2ACredentialContext`, `AuthChallenge`, `A2ARequestOptions` (with `Credentials`, `UserAssertion`, `CredentialCacheKey`), `IA2AClientBuilder` exactly as 10's spec defines (§0.2).
 - Test: `tests/Ambinder.A2A.Client.Entra.Tests/` (new project), update `CredentialProviderTests.cs`
 
-- [ ] **Step 1:** Write a failing test: a console-style test that loads `Ambinder.A2A.Client`'s dependency list from its `.csproj`/nuspec (or 01's allow-list test) and asserts no `Azure.*`/`Microsoft.Identity*`.
-- [ ] **Step 2:** Run. Expected: FAIL (Azure.Identity still referenced).
-- [ ] **Step 3:** Do the moves and the csproj change. Samples that used the moved providers reference them from `samples/AgentClient`.
+- [ ] **Step 0: Check 01's state.**
+
+```bash
+ls src/Ambinder.A2A.Client.Entra && git grep -n "class AzureIdentityCredentialProvider\|class EntraCredentialProvider" -- src
+```
+
+```bash
+git grep -n "Azure.Identity" -- src/Ambinder.A2A.Client/*.csproj src/Ambinder.A2A.Client.Entra/*.csproj
+```
+
+Expected: the project exists, the provider is in it, and only `Client.Entra` references `Azure.Identity`. Record the result in the PR body. If 01 did not do this, do it here (create the project, move the provider, remove the reference) before Step 1.
+- [ ] **Step 1: Write failing tests** for what is still missing:
+  - The type `Ambinder.A2A.Client.Entra.EntraCredentialProvider` exists and `AzureIdentityCredentialProvider` does not (reflection over the `Client.Entra` assembly).
+  - `ClientCredentialsProvider` and `ApiKeyCredentialProvider` are not types of `Ambinder.A2A.Client`; the `AgentClient` sample still builds with them.
+  - `DelegateCredentialProvider` exists in `Ambinder.A2A.Client` and `BearerTokenCredentialProvider` does not.
+  - `Ambinder.A2A.Client` still has no `Azure.*` or `Microsoft.Identity*` dependency, and `Ambinder.A2A.Client.Entra` has no `Ambinder.A2A.Server` dependency (B10). These two pass from the start (01 did the split). They guard the split, so they are kept even though they are not red.
+- [ ] **Step 2:** Run. Expected: the type tests FAIL; the two guard tests PASS.
+- [ ] **Step 3:** Do the rename and the moves. Samples that used the moved providers reference them from `samples/AgentClient`.
 - [ ] **Step 4:** `dotnet build Ambinder.A2A.slnx` and run the client tests. Expected: PASS.
-- [ ] **Step 5:** Commit `refactor(client)!: move Azure.Identity provider to Ambinder.A2A.Client.Entra`.
+- [ ] **Step 5:** Commit `refactor(client)!: Entra provider naming; move non-Entra providers to samples`.
 
 ### Task 19: `EntraCredentialProvider` with cache, refresh, claims challenge and card-scope rule
 
@@ -606,7 +633,7 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 
 **Files:** `eng/package-dependencies.json`, 01's allow-list test (extend), or a new test in `Ambinder.A2A.Integration.Tests/Repo/`.
 
-- [ ] **Step 1:** Add a test that fails when `Ambinder.A2A.Server` or `Ambinder.A2A.Client` has any `Azure.*` or `Microsoft.Identity*` dependency (direct, from the packed nuspec) and when `Ambinder.A2A.Client.Entra` depends on `Ambinder.A2A.Server`.
+- [ ] **Step 1:** Add a test that fails when `Ambinder.A2A.Server` or `Ambinder.A2A.Client` has any `Azure.*` or `Microsoft.Identity*` dependency (direct, from the packed nuspec) and when `Ambinder.A2A.Client.Entra` depends on `Ambinder.A2A.Server`. The only allowed exception is §0.3 item 9: `Microsoft.IdentityModel.JsonWebTokens` in `Ambinder.A2A.Server` while `git grep -n "Microsoft.IdentityModel" -- 'src/Ambinder.A2A.Server/**/*.cs'` still finds a use. When that grep is empty and the reference is still there, the test fails with "Remove Microsoft.IdentityModel.JsonWebTokens from Ambinder.A2A.Server: nothing in the core uses it any more (package 08 moved push signing off it)."
 - [ ] **Step 2:** Run it with a temporary bad reference to see it fail, remove the bad reference.
 - [ ] **Step 3:** Run. Expected: PASS.
 - [ ] **Step 4:** Commit `ci: package-graph check for security dependencies`.
@@ -685,7 +712,7 @@ XML docs state the format is part of the public contract and frozen at 1.0.
 
 - **Method:** execute this plan with **superpowers:subagent-driven-development**: one fresh implementer subagent per task, then a spec-compliance review and a code-quality review of that task before the next task starts.
 - **Model:** every subagent (implementer and both reviewers) runs on model **`sonnet`**. Pass `model: "sonnet"` on every Agent call. The controller does not raise the model for any task; if a task is too hard on `sonnet`, split it rather than switching models.
-- **Order:** tasks run in the numbered order. Phases stop at their gates (§0.2): if 05 is missing, stop after Task 6; if 09's pipeline is missing, stop after Task 10; if 03's contributor is missing, stop before Task 15. Report what landed and what waits.
+- **Order:** tasks run in the numbered order. Phases stop at their gates (§0.2): if 05 is missing, stop after Task 6; if 09's pipeline is missing, stop after Task 10; if 03's contributor is missing, stop before Task 15. Report what landed and what waits. Task 24 can run before 08's Task 13 only with the §0.3 item 9 exception; re-run it after 08 lands, and the exception must then be unused.
 - **Each subagent's brief:** the task text from this plan, §0 and Global Constraints, the spec path, and the Task 0 seam table. Tell it to quote the spec's exact error messages and names, not to add public API beyond the spec, and to stop and ask when a seam differs from what this plan assumes.
 - **Reviews check in particular:** Review Focus items 1–8; no token in any message, log or store field; every new public member has XML docs and (if 02 is present) an `PublicAPI.Unshipped.txt` line.
 - **No cloud:** no subagent creates Azure resources or app registrations (O3). Live tests must skip.
