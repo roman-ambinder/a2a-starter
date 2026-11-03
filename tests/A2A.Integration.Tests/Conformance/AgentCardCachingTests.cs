@@ -12,7 +12,7 @@ namespace A2A.Integration.Tests.Conformance;
 
 /// <summary>
 /// Spec 8.6.1 / design D7: agent card responses carry Cache-Control max-age and a strong ETag, and answer If-None-Match with 304;
-/// the extended card is never stored; registered <see cref="IAgentCardContributor"/>s shape the served card and its ETag.
+/// the extended card is never stored; registered <see cref="IAgentCardContributor"/>s shape the served public card and its ETag (not the extended card).
 /// </summary>
 [Collection(A2ATestHostCollection.Name)]
 public sealed class AgentCardCachingTests(A2ATestHost host)
@@ -98,14 +98,9 @@ public sealed class AgentCardCachingTests(A2ATestHost host)
     [Theory]
     [InlineData("rest")]
     [InlineData("jsonrpc")]
-    public async Task Contributors_run_for_extended_card(string transport)
+    public async Task Contributors_do_not_run_for_the_extended_card(string transport)
     {
-        var seen = new List<(string Agent, bool IsExtended)>();
-        var contributor = new Contributor((context, json) =>
-        {
-            lock (seen) seen.Add((context.AgentName, context.IsExtended));
-            json["x-extended"] = context.IsExtended;
-        });
+        var contributor = new Contributor((_, json) => json["x-test"] = 1);
         await using var server = await StartExtraServerAsync(contributor);
         using var request = ExtendedCardRequest(A2ATestHost.AgentServerBaseUrl(ExtraPortBase), transport,
             await host.GetTokenAsync(TestAuth.Client, Ct));
@@ -115,8 +110,7 @@ public sealed class AgentCardCachingTests(A2ATestHost host)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!.AsObject();
         var card = transport == "jsonrpc" ? body["result"]!.AsObject() : body;
-        Assert.True(card["x-extended"]!.GetValue<bool>());
-        lock (seen) Assert.Contains(("report", true), seen);
+        Assert.False(card.ContainsKey("x-test"));
     }
 
     [Fact]

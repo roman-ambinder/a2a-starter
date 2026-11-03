@@ -141,10 +141,7 @@ internal static class JsonRpcEndpoint
             }
 
             var result = await method.Invoke!(handler, call, parameters, ct).ConfigureAwait(false);
-            await WriteJsonAsync(http, method.IsExtendedCard
-                ? JsonRpcMessages.RawResult(request.Id, http.RequestServices.GetRequiredService<AgentCardRenderer>()
-                    .Render(agent.Name, (AgentCard)result!, isExtended: true).Bytes)
-                : JsonRpcMessages.Result(request.Id, result, method.ResultType)).ConfigureAwait(false);
+            await WriteJsonAsync(http, JsonRpcMessages.Result(request.Id, result, method.ResultType)).ConfigureAwait(false);
         }
         catch (A2AAuthException)
         {

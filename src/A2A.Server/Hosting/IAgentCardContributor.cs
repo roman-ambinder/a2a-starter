@@ -3,33 +3,30 @@ using A2A.Protocol;
 
 namespace A2A.Server.Hosting;
 
-/// <summary>
-/// Adds members to an agent card before it is served. Register implementations as <see cref="IAgentCardContributor"/> services;
-/// the core registers none. They run in registration order, once per card (public and extended) before its bytes and ETag are
-/// cached, so the ETag covers what they add. A contributor may run more than once for the same card when requests race; it must
-/// give the same result each time.
-/// </summary>
+/// <summary>What an <see cref="IAgentCardContributor"/> is told about the card it edits.</summary>
+public sealed record AgentCardContext
+{
+    /// <summary>The agent's registered name.</summary>
+    public required string AgentName { get; init; }
+
+    /// <summary>The card model before any contributor ran.</summary>
+    public required AgentCard Card { get; init; }
+
+    /// <summary><see langword="true"/> for the extended card. Always <see langword="false"/> in this version; see the remarks on <see cref="IAgentCardContributor"/>.</summary>
+    public bool IsExtended { get; init; }
+}
+
+/// <summary>Adds members to an agent card's JSON before the card is cached and served.</summary>
 /// <remarks>
-/// A contributor may only add: new top-level members; entries appended to <c>supportedInterfaces</c> and
-/// <c>capabilities.extensions</c>; new keys in <c>securitySchemes</c>; and <c>securityRequirements</c> (on the card or a skill)
-/// where none is set. It must not change or remove anything already there. Debug builds assert this after each contributor.
-/// The extended card that JSON-RPC and REST serve carries every added member; gRPC carries only what its card message can hold.
-/// <para>
-/// Contributors are resolved once from the root provider, so they must be singleton-safe, not scoped. <see cref="Contribute"/> may
-/// run concurrently on two threads, so it must be thread-safe. A contributor that adds a member of the wrong type makes the card
-/// endpoint fail (500).
-/// </para>
+/// Contributors run once per card, in registration order, on the public card endpoints only. A contributor may add new
+/// top-level members, append to <c>supportedInterfaces</c> and <c>capabilities.extensions</c>, add new <c>securitySchemes</c>
+/// keys, and set <c>securityRequirements</c> where the card has none. It must not change or remove anything already set.
+/// Register implementations as singletons; calls for different agents can run concurrently.
 /// </remarks>
 public interface IAgentCardContributor
 {
-    /// <summary>Adds members to <paramref name="cardJson"/>, the card as it will be served.</summary>
-    /// <param name="card">Which card this is.</param>
-    /// <param name="cardJson">The card JSON, including what earlier contributors added. Change it in place.</param>
+    /// <summary>Adds this contributor's members to the card JSON.</summary>
+    /// <param name="card">The agent and card being served.</param>
+    /// <param name="cardJson">The card JSON to add to. Changes are kept.</param>
     void Contribute(AgentCardContext card, JsonObject cardJson);
 }
-
-/// <summary>The card an <see cref="IAgentCardContributor"/> is asked to contribute to.</summary>
-/// <param name="AgentName">Catalog name of the agent (the <c>{agent}</c> route value).</param>
-/// <param name="Card">The card model before any contributor ran.</param>
-/// <param name="IsExtended">True for the authenticated extended card, false for the public card.</param>
-public sealed record AgentCardContext(string AgentName, AgentCard Card, bool IsExtended);

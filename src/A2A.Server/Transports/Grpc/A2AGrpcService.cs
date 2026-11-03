@@ -6,7 +6,6 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Proto = Lf.A2a.V1;
@@ -72,13 +71,7 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
 
     public override Task<Proto.AgentCard> GetExtendedAgentCard(Proto.GetExtendedAgentCardRequest request, ServerCallContext context)
         => Unary<GetExtendedAgentCardRequest, Proto.AgentCard>(request, context, true,
-            async (r, call, ct) =>
-            {
-                // Contributors run here too; the card message keeps what it has fields for.
-                var card = await handler.GetExtendedAgentCardAsync(call, r, ct).ConfigureAwait(false);
-                var cards = context.GetHttpContext().RequestServices.GetRequiredService<AgentCardRenderer>();
-                return ProtoMapper.ToProto(cards.Render(call.AgentName, card, isExtended: true).Model);
-            });
+            async (r, call, ct) => ProtoMapper.ToProto(await handler.GetExtendedAgentCardAsync(call, r, ct).ConfigureAwait(false)));
 
     // ---------- plumbing ----------
 

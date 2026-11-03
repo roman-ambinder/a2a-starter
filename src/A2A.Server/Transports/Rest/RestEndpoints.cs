@@ -165,10 +165,7 @@ internal static class RestEndpoints
 
         http.Response.StatusCode = StatusCodes.Status200OK;
         http.Response.ContentType = A2AConstants.ContentType;
-        var json = route.Op == Op.ExtendedCard
-            ? http.RequestServices.GetRequiredService<AgentCardRenderer>().Render(agent.Name, (AgentCard)result, isExtended: true).Bytes
-            : JsonSerializer.SerializeToUtf8Bytes(result, A2AJson.Options.GetTypeInfo(type));
-        await http.Response.Body.WriteAsync(json, ct).ConfigureAwait(false);
+        await http.Response.Body.WriteAsync(JsonSerializer.SerializeToUtf8Bytes(result, A2AJson.Options.GetTypeInfo(type)), ct).ConfigureAwait(false);
     }
 
     private static Task StreamAsync(HttpContext http, IAsyncEnumerable<StreamResponse> events, ILogger logger, CancellationToken ct)

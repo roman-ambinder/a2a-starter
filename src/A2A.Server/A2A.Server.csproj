@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
+    <Compile Include="../Shared/AgentCardETag.cs" Link="Shared/AgentCardETag.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="A2A.Server.Tests" />

@@ -36,7 +36,7 @@ internal static class AgentCardEndpoints
             return;
         }
         var options = http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value;
-        var (bytes, etag, _) = http.RequestServices.GetRequiredService<AgentCardRenderer>().Render(agent.Name, agent.PublicCard, isExtended: false);
+        var (bytes, etag) = http.RequestServices.GetRequiredService<AgentCardRenderer>().Render(agent.Name, agent.PublicCard);
 
         // Spec 8.6.1: Cache-Control max-age and an ETag; conditional GET answers 304. Vary, so a shared cache never serves
         // one protocol version's card to a client of another.

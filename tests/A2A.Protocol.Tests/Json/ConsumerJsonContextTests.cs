@@ -12,6 +12,7 @@ public partial class ConsumerJsonContextTests
 {
     [JsonSerializable(typeof(AgentTask))]
     [JsonSerializable(typeof(Message))]
+    [JsonSerializable(typeof(AgentCard))]
     private sealed partial class ConsumerContext : JsonSerializerContext;
 
     [Fact]
@@ -23,5 +24,33 @@ public partial class ConsumerJsonContextTests
 
         var back = JsonSerializer.Deserialize("""{"messageId":"m1","role":"ROLE_FUTURE","parts":[]}""", ConsumerContext.Default.Message);
         Assert.Equal(Role.Unspecified, back!.Role);
+    }
+
+    [Fact]
+    public void Consumer_context_round_trips_a_card_with_an_oauth_flow()
+    {
+        var card = new AgentCard
+        {
+            Name = "echo",
+            SecuritySchemes = new Dictionary<string, SecurityScheme>
+            {
+                ["oauth"] = new()
+                {
+                    Oauth2SecurityScheme = new()
+                    {
+                        Flows = new()
+                        {
+                            ClientCredentials = new() { TokenUrl = "https://idp.example/token", Scopes = new Dictionary<string, string> { ["a2a"] = "Call the agent" } },
+                        },
+                    },
+                },
+            },
+        };
+
+        var json = JsonSerializer.Serialize(card, ConsumerContext.Default.AgentCard);
+        var back = JsonSerializer.Deserialize(json, ConsumerContext.Default.AgentCard)!;
+
+        Assert.Equal("https://idp.example/token", back.SecuritySchemes!["oauth"].Oauth2SecurityScheme!.Flows.ClientCredentials!.TokenUrl);
+        Assert.Equal("Call the agent", back.SecuritySchemes["oauth"].Oauth2SecurityScheme!.Flows.ClientCredentials!.Scopes["a2a"]);
     }
 }

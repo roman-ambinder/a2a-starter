@@ -2,33 +2,29 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using A2A.Protocol;
+using A2A.Shared;
 
 namespace A2A.Server.Hosting;
 
 /// <summary>
-/// The served form of an agent card: its JSON after every <see cref="IAgentCardContributor"/> ran, cached once per card instance
+/// The served form of a public agent card: its JSON after every <see cref="IAgentCardContributor"/> ran, cached once per card instance
 /// (cards are immutable records built at startup). One per host, so contributors of one host never shape another's cards.
 /// </summary>
 internal sealed class AgentCardRenderer(IEnumerable<IAgentCardContributor> contributors)
 {
     private readonly IAgentCardContributor[] _contributors = contributors.ToArray();
-    private readonly ConditionalWeakTable<AgentCard, RenderedCard> _public = new();
-    private readonly ConditionalWeakTable<AgentCard, RenderedCard> _extended = new();
+    private readonly ConditionalWeakTable<AgentCard, RenderedCard> _cards = new();
 
-    /// <summary>The served bytes, ETag and model of <paramref name="card"/>.</summary>
-    public RenderedCard Render(string agentName, AgentCard card, bool isExtended)
-        => (isExtended ? _extended : _public).GetValue(card, c => Build(new AgentCardContext(agentName, c, isExtended)));
+    /// <summary>The served bytes and ETag of the public card <paramref name="card"/>.</summary>
+    public RenderedCard Render(string agentName, AgentCard card)
+        => _cards.GetValue(card, c => Build(new AgentCardContext { AgentName = agentName, Card = c }));
 
     private RenderedCard Build(AgentCardContext context)
     {
-        var typeInfo = A2AJson.Options.GetTypeInfo(typeof(AgentCard));
-        if (_contributors.Length == 0) return RenderedCard.From(JsonSerializer.SerializeToUtf8Bytes(context.Card, typeInfo), context.Card);
-
-        var json = JsonSerializer.SerializeToNode(context.Card, typeInfo)!.AsObject();
+        var json = JsonSerializer.SerializeToNode(context.Card, A2AJson.Options.GetTypeInfo(typeof(AgentCard)))!.AsObject();
         foreach (var contributor in _contributors)
         {
 #if DEBUG
@@ -41,7 +37,38 @@ internal sealed class AgentCardRenderer(IEnumerable<IAgentCardContributor> contr
 #endif
         }
         var bytes = ToBytes(json);
-        return RenderedCard.From(bytes, (AgentCard)JsonSerializer.Deserialize(bytes, typeInfo)!);
+
+        // B13: hash the card without its signatures, plus the signing key ids, so re-signing with the same keys keeps the ETag.
+        // Package 04 replaces this payload with the RFC 8785 canonical form; the hash rule stays the same.
+        var keyIds = KeyIds(json);
+        var payload = json.Remove("signatures") ? ToBytes(json) : bytes;
+        return new RenderedCard(bytes, AgentCardETag.Compute(payload, keyIds));
+    }
+
+    private static List<string> KeyIds(JsonObject json)
+    {
+        var kids = new List<string>();
+        if (json["signatures"] is not JsonArray signatures) return kids;
+        foreach (var signature in signatures)
+        {
+            if (signature is not JsonObject entry) continue;
+            var kid = KeyIdOf(entry["protected"]) ?? (entry["header"] as JsonObject)?["kid"]?.GetValue<string>();
+            if (kid is not null) kids.Add(kid);
+        }
+        return kids;
+    }
+
+    private static string? KeyIdOf(JsonNode? protectedHeader)
+    {
+        if (protectedHeader is not JsonValue value || !value.TryGetValue<string>(out var text) || text.Length == 0) return null;
+        try
+        {
+            return JsonNode.Parse(Base64Url.DecodeFromChars(text)) is JsonObject header ? header["kid"]?.GetValue<string>() : null;
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private static byte[] ToBytes(JsonObject json)
@@ -55,13 +82,8 @@ internal sealed class AgentCardRenderer(IEnumerable<IAgentCardContributor> contr
 
 /// <summary>A served card.</summary>
 /// <param name="Bytes">The card JSON as served.</param>
-/// <param name="ETag">Strong ETag: base64url of the first 16 bytes of the SHA-256 of <paramref name="Bytes"/>, so every instance agrees.</param>
-/// <param name="Model">The served card as a model (members the model has no property for are dropped); used by gRPC.</param>
-internal sealed record RenderedCard(byte[] Bytes, string ETag, AgentCard Model)
-{
-    public static RenderedCard From(byte[] bytes, AgentCard model)
-        => new(bytes, $"\"{Base64Url.EncodeToString(SHA256.HashData(bytes).AsSpan(0, 16))}\"", model);
-}
+/// <param name="ETag">Strong ETag from <c>AgentCardETag.Compute</c>: the same on every instance, and unchanged when only a signature value changes.</param>
+internal sealed record RenderedCard(byte[] Bytes, string ETag);
 
 /// <summary>What an <see cref="IAgentCardContributor"/> may change (design D7): it may add, never change or remove.</summary>
 internal static class AgentCardContributionRules
