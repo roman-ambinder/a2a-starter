@@ -65,7 +65,8 @@ public sealed class ErrorRoundTripTests(A2ATestHost host)
         var error = await Assert.ThrowsAsync<A2AException>(() => client.GetTaskAsync(new GetTaskRequest { Id = ThrowingHandler.CrashId }, Ct));
 
         Assert.Equal(A2AErrorCode.InternalError, error.Code);
-        var traceId = error.Details["traceId"];
+        var traceId = Assert.Single(error.Details).Value;
+        Assert.Equal("traceId", Assert.Single(error.Details).Key);
         Assert.Matches("^[0-9a-f]{32}$", traceId);
         Assert.StartsWith($"Internal error. Quote trace id {traceId} when you report it.", error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("secret detail", error.Message, StringComparison.Ordinal);

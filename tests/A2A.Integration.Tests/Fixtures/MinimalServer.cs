@@ -133,15 +133,19 @@ public sealed class MinimalServer : IAsyncLifetime
 /// <summary>A clock that reads the system time until a test freezes it at an instant of its choice.</summary>
 public sealed class TestClock : TimeProvider
 {
+    private readonly object _gate = new();
     private DateTimeOffset? _frozen;
 
     /// <summary>Makes <see cref="GetUtcNow"/> return <paramref name="instant"/> until <see cref="Release"/>.</summary>
-    public void Freeze(DateTimeOffset instant) => _frozen = instant;
+    public void Freeze(DateTimeOffset instant) { lock (_gate) _frozen = instant; }
 
     /// <summary>Back to the system clock.</summary>
-    public void Release() => _frozen = null;
+    public void Release() { lock (_gate) _frozen = null; }
 
-    public override DateTimeOffset GetUtcNow() => _frozen ?? base.GetUtcNow();
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (_gate) return _frozen ?? base.GetUtcNow();
+    }
 }
 
 [CollectionDefinition(Name)]

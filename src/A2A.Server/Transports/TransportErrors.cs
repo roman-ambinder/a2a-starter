@@ -29,7 +29,7 @@ internal static partial class TransportErrors
         }
         catch (Exception ex) when (ex is JsonException or FormatException or NotSupportedException or InvalidOperationException)
         {
-            throw new A2AException(onError, $"Invalid params: {ex.Message}");
+            throw new A2AException(onError, $"Invalid params: {ex.Message} Fix the field named above and send the request again.");
         }
     }
 
@@ -71,16 +71,20 @@ internal static partial class TransportErrors
     /// </summary>
     public static IEnumerable<KeyValuePair<string, string>> ErrorMetadata(JsonElement? data) => ErrorDetailsFlattener.Flatten(data);
 
-    /// <summary>ErrorInfo reason for <see cref="A2AErrorCode.InternalError"/>, which has no catalog reason. Only sent with a trace id.</summary>
-    public const string InternalReason = "INTERNAL_ERROR";
+    /// <summary>
+    /// ErrorInfo reason of the server-generated internal error (<see cref="TraceIdInternalError"/>). <see cref="A2AErrorCode.InternalError"/>
+    /// has no catalog reason, so this is the only place the reason exists. It follows the catalog naming (no <c>_ERROR</c> suffix).
+    /// </summary>
+    public const string InternalReason = "INTERNAL";
 
     /// <summary>
-    /// The ErrorInfo reason to send for <paramref name="error"/>: the catalog reason, or <see cref="InternalReason"/> for an
-    /// internal error that carries data (the trace id). Null when the error gets no ErrorInfo.
+    /// The ErrorInfo reason to send for <paramref name="error"/>: the catalog reason, or <see cref="InternalReason"/> for the
+    /// error <see cref="Internal"/> builds. An <see cref="A2AErrorCode.InternalError"/> a handler throws gets none, so its data
+    /// stays off the wire. Null when the error gets no ErrorInfo.
     /// </summary>
     public static string? ReasonFor(A2AException error)
         => A2AError.Get(error.Code).Reason
-           ?? (error.Code == A2AErrorCode.InternalError && error.Details.Count > 0 ? InternalReason : null);
+           ?? (error is TraceIdInternalError ? InternalReason : null);
 
     /// <summary>The <c>@type</c> of a google.rpc.ErrorInfo detail in ProtoJSON <c>Any</c> form.</summary>
     public const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
@@ -113,16 +117,19 @@ internal static partial class TransportErrors
 
     /// <summary>HTTP 404 for an agent name not in the catalog.</summary>
     public static Task WriteUnknownAgentAsync(HttpContext http, string? agentName)
-        => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'.");
+        => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'. Use an agent name from the server's agent list.");
 
     private static A2AException Internal(Exception ex, ILogger logger)
     {
         var traceId = Activity.Current?.TraceId.ToHexString() ?? ActivityTraceId.CreateRandom().ToHexString();
         LogUnhandled(logger, ex, traceId);
-        return new A2AException(A2AErrorCode.InternalError,
+        return new TraceIdInternalError(
             $"Internal error. Quote trace id {traceId} when you report it.",
             JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["traceId"] = traceId }));
     }
+
+    /// <summary>The internal error the server builds for an unknown exception. Only this one is sent with an ErrorInfo.</summary>
+    private sealed class TraceIdInternalError(string message, JsonElement data) : A2AException(A2AErrorCode.InternalError, message, data);
 
     [LoggerMessage(EventId = 3001, Level = LogLevel.Error, Message = "Unhandled error in A2A request. Trace id {TraceId}.")]
     private static partial void LogUnhandled(ILogger logger, Exception exception, string traceId);

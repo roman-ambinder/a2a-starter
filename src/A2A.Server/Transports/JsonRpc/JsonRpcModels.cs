@@ -39,7 +39,7 @@ internal static class JsonRpcMessages
         {
             if (idElement.ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.Null))
             {
-                error = new A2AException(A2AErrorCode.InvalidRequest, "id must be a string, a number or null. Change the id.");
+                error = new A2AException(A2AErrorCode.InvalidRequest, "id must be a string, a number or null. Send the id as one of those, not an object or an array.");
                 return false;
             }
             id = idElement.Clone();

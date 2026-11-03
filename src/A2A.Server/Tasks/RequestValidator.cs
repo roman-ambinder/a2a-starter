@@ -37,7 +37,7 @@ internal static class RequestValidator
         if (message.Role == Role.Unspecified)
             throw new A2AException(A2AErrorCode.InvalidParams, "message.role is missing or has an unknown value; use ROLE_USER.");
         if (message.Role != Role.User)
-            throw new A2AException(A2AErrorCode.InvalidParams, "message.role must be ROLE_USER. Clients send user messages only.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "message.role must be ROLE_USER. Set message.role to ROLE_USER; only the agent sends ROLE_AGENT.");
         if (message.Parts.Count == 0)
             throw new A2AException(A2AErrorCode.InvalidParams, "message.parts must not be empty. Send at least one part.");
         for (var i = 0; i < message.Parts.Count; i++)

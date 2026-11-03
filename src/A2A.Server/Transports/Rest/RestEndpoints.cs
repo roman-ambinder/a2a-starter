@@ -104,7 +104,7 @@ internal static class RestEndpoints
             {
                 http.Response.Headers.Allow = string.Join(", ", allowed);
                 await TransportErrors.WriteStatusAsync(http, StatusCodes.Status405MethodNotAllowed, "UNIMPLEMENTED",
-                    $"Method {http.Request.Method} is not allowed here.").ConfigureAwait(false);
+                    $"Method {http.Request.Method} is not allowed here. Use one of: {string.Join(", ", allowed)}.").ConfigureAwait(false);
                 return;
             }
             throw new A2AException(A2AErrorCode.MethodNotFound, $"No operation at '/{path}'. Use a path from the A2A HTTP+JSON binding.");
@@ -249,7 +249,7 @@ internal static class RestEndpoints
         {
             throw new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON. Send a JSON object.");
         }
-        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body must be a JSON object. Send a JSON object.");
+        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body is not a JSON object. Send the request as one JSON object, not an array or a value.");
     }
 
     private static object BuildRequest(Route route, JsonObject? body, IQueryCollection query)
