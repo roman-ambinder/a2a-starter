@@ -8,7 +8,7 @@ Versions come from git tags (`vX.Y.Z[-preview.N]`). Until 1.0.0, any preview can
 
 <!--
 Release pipeline: the validate job looks for a `## [X.Y.Z]` heading (with the pre-release part, for example
-`## [0.1.0-preview.1]`) for the tag being released, and the GitHub Release body is cut from that section.
+`## [1.0.0-preview.1]` for the tag `v1.0.0-preview.1`) for the tag being released, and the GitHub Release body is cut from that section.
 Before tagging, rename `## [Unreleased]` content into a new `## [X.Y.Z]` section and keep an empty `## [Unreleased]` above it.
 Every preview section keeps a `### Breaking changes` heading.
 -->

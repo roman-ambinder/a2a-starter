@@ -56,17 +56,51 @@ dotnet test --project tests/Ambinder.A2A.Server.Tests -c Release
 
 ## Releasing
 
-Versions come from git tags (MinVer). Only the maintainer releases.
+Versions come from git tags (MinVer), start at `1.0.0` previews and are the same for all packages. Only the maintainer releases.
 
 1. Merge the changes to `master`.
-2. Update `CHANGELOG.md`: add a `## [X.Y.Z]` section (for example `## [0.1.0-preview.1]`) for the version. The pipeline refuses a tag
-   without it, and uses that section as the GitHub Release notes.
+2. Update `CHANGELOG.md`: add a `## [X.Y.Z]` section (for example `## [1.0.0-preview.1]` for the tag `v1.0.0-preview.1`) for the
+   version. The pipeline refuses a tag without it, and uses that section as the GitHub Release notes.
 3. Tag the merge commit `vX.Y.Z` or `vX.Y.Z-preview.N` and push the tag.
-4. The release workflow validates, runs the full CI, packs and checks the packages, and then waits for approval in the
-   `nuget-release` environment. Approve it to publish to nuget.org. After publishing it creates the GitHub Release and runs a
-   smoke test against the published packages.
+4. The `Release` workflow (`.github/workflows/release.yml`) runs these jobs in order:
+   - `validate`: the tag is valid SemVer, its commit is on `master`, and `CHANGELOG.md` has the section.
+   - `verify`: the full CI workflow on the tagged commit, with Low and Moderate NuGet advisories as errors, the Windows leg and
+     the TCK, interop and benchmark hooks.
+   - `pack`: packs with `ContinuousIntegrationBuild`, checks that the packages carry the tag's version, runs
+     `eng/check-packages.cs` and `sourcelink test` on every symbol file.
+   - `sign`: signs the `.nupkg` files with Azure Trusted Signing when the repository variable `SIGN_PACKAGES` is `true`.
+     Without it a preview ships unsigned (a notice in the log); a stable version (no `-` in the version) fails here.
+   - `attest`: CycloneDX SBOM and a build-provenance attestation of the packages.
+   - `publish`: waits for your approval in the `nuget-release` environment, then pushes the packages and symbols to nuget.org
+     (`--skip-duplicate`). Approve it only after the earlier jobs are green: a pushed version can be unlisted but never replaced.
+   - `github-release`: creates the GitHub Release with the `CHANGELOG.md` section as notes (marked pre-release for versions with a
+     `-`) and attaches the packages, the SBOM and the attestation bundle.
+   - `smoke`: waits until nuget.org lists the version (up to 20 minutes), then installs `Ambinder.A2A.AspNetCore` and
+     `Ambinder.A2A.Client` at exactly that version into fresh projects, runs `samples/GettingStarted.Agent` and calls it with
+     `samples/GettingStarted.Client` (`eng/smoke-test.sh`). It opens an issue on failure.
+   - `docs`: hook for the versioned docs site (package 13).
 
-To rehearse without publishing, run the release workflow manually (`workflow_dispatch`) with `dry_run=true`.
+### Rehearsal (dry run)
+
+Run the `Release` workflow by hand (Actions, Release, Run workflow) with "Use workflow from" set to an existing tag, the input
+`tag` set to the same tag, and `dry_run` on (the default). Every job runs except `publish` and `github-release`; `smoke-local` runs the
+smoke test against the packages built in the run instead of nuget.org. Nothing is published. The `sourcelink test` step downloads
+sources from GitHub, so the repository must be public and the commit pushed.
+
+### One-time setup (owner)
+
+- Environment `nuget-release` with the owner as required reviewer.
+- Repository variables (Settings, Secrets and variables, Actions, Variables):
+  - `NUGET_USER`: the nuget.org account name for trusted publishing. Add a trusted-publishing policy for `Ambinder.*` on nuget.org.
+    If that is not available, set `NUGET_USE_API_KEY` to `true` and store a scoped API key (glob `Ambinder.*`, push only, expiring)
+    as the secret `NUGET_API_KEY` of the `nuget-release` environment. That secret is the only secret the workflows use, and only in
+    this fallback.
+  - `SIGN_PACKAGES`: `true` once Azure Trusted Signing is set up (required for any stable version), together with
+    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (an Entra app with a federated credential for this repository)
+    and `TRUSTED_SIGNING_ENDPOINT`, `TRUSTED_SIGNING_ACCOUNT`, `TRUSTED_SIGNING_PROFILE` (the Trusted Signing endpoint URL, account
+    name and certificate profile name).
+
+### If something goes wrong
 
 If the smoke test fails after publishing: unlist the bad version (`dotnet nuget delete <id> <version>` unlists on nuget.org),
 fix the problem, and tag the next patch or preview number. Never re-tag a version that was pushed.
