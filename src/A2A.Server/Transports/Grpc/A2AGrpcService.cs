@@ -75,13 +75,13 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
 
     // ---------- plumbing ----------
 
-    private async Task<TResponse> Unary<TModel, TResponse>(IMessage request, ServerCallContext context, bool requireAuthenticated,
+    private async Task<TResponse> Unary<TModel, TResponse>(IMessage request, ServerCallContext context, bool isExtendedCard,
         Func<TModel, A2ACallContext, CancellationToken, Task<TResponse>> run) where TModel : notnull
     {
         var ct = context.CancellationToken;
         try
         {
-            var (model, call) = await PrepareAsync<TModel>(request, context, requireAuthenticated).ConfigureAwait(false);
+            var (model, call) = await PrepareAsync<TModel>(request, context, isExtendedCard).ConfigureAwait(false);
             return await run(model, call, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -107,7 +107,7 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
     }
 
     private async Task<(TModel Model, A2ACallContext Call)> PrepareAsync<TModel>(IMessage request, ServerCallContext context,
-        bool requireAuthenticated) where TModel : notnull
+        bool isExtendedCard) where TModel : notnull
     {
         var http = context.GetHttpContext();
         var agent = ResolveAgent(http);
@@ -117,8 +117,8 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
         var extensions = ServiceParameters.ParseExtensions(
             context.RequestHeaders.Where(e => e.Key == A2AConstants.GrpcExtensionsKey && !e.IsBinary).Select(e => e.Value));
         ServiceParameters.EnsureSupportedVersion(string.IsNullOrEmpty(version) ? null : version);
-        if (requireAuthenticated)
-            await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+        if (isExtendedCard)
+            await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
         var active = ServiceParameters.ActivateExtensions(agent.PublicCard, extensions);
         if (active.Count > 0)
             await context.WriteResponseHeadersAsync(new Metadata { { A2AConstants.GrpcExtensionsKey, string.Join(',', active) } }).ConfigureAwait(false);

@@ -25,6 +25,15 @@ internal static class TransportRequest
     }
 
     /// <summary>
+    /// The extra check for GetExtendedAgentCard: an authenticated caller, but only when the card declares
+    /// <c>capabilities.extendedAgentCard</c>. Otherwise the handler answers UnsupportedOperation to anyone (spec 3.3.4).
+    /// </summary>
+    public static Task AuthorizeExtendedCardAsync(HttpContext http, AgentRegistration agent)
+        => agent.PublicCard.Capabilities.ExtendedAgentCard == true
+            ? AuthorizeAsync(http, agent, requireAuthenticated: true)
+            : Task.CompletedTask;
+
+    /// <summary>
     /// HTTP 401/403 with no body. Uses the app's default challenge/forbid scheme when there is one (so for example
     /// <c>WWW-Authenticate</c> is set), else only the status code.
     /// </summary>

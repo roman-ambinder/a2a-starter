@@ -44,7 +44,7 @@ internal static class JsonRpcEndpoint
                 return null;
             }),
         Unary<GetExtendedAgentCardRequest, AgentCard>("GetExtendedAgentCard", (h, c, r, ct) => h.GetExtendedAgentCardAsync(c, r, ct))
-            with { RequiresAuthentication = true },
+            with { IsExtendedCard = true },
     }.ToDictionary(m => m.Name, StringComparer.Ordinal);
 
     public static async Task HandleAsync(HttpContext http)
@@ -116,8 +116,8 @@ internal static class JsonRpcEndpoint
             ServiceParameters.EnsureSupportedVersion(version);
             if (!Methods.TryGetValue(request.Method, out method!))
                 throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
-            if (method.RequiresAuthentication)
-                await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+            if (method.IsExtendedCard)
+                await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
             ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
@@ -176,6 +176,6 @@ internal static class JsonRpcEndpoint
         Func<IA2ARequestHandler, A2ACallContext, object, CancellationToken, Task<object?>>? Invoke = null,
         Func<IA2ARequestHandler, A2ACallContext, object, CancellationToken, IAsyncEnumerable<StreamResponse>>? Stream = null)
     {
-        public bool RequiresAuthentication { get; init; }
+        public bool IsExtendedCard { get; init; }
     }
 }

@@ -103,7 +103,7 @@ internal static class RestEndpoints
         ServiceParameters.EnsureSupportedVersion(version);
         if (route.Op == Op.ExtendedCard)
         {
-            await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+            await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
             http.Response.Headers.CacheControl = "private, no-store";
         }
         ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
