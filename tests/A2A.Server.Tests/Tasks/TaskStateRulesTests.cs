@@ -32,6 +32,15 @@ public class TaskStateRulesTests
         return data;
     }
 
+    [Theory]
+    [InlineData(TaskState.Unspecified)]
+    [InlineData((TaskState)99)]
+    public void Unknown_state_is_neither_terminal_nor_interrupted(TaskState state)
+    {
+        Assert.False(TaskStateRules.IsTerminal(state));
+        Assert.False(TaskStateRules.IsInterrupted(state));
+    }
+
     [Theory, MemberData(nameof(AllPairs))]
     public void CanAgentTransition_follows_the_D13_table(TaskState from, TaskState to, bool expected)
         => Assert.Equal(expected, TaskStateRules.CanAgentTransition(from, to));

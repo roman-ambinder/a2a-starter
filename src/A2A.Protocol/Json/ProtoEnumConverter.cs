@@ -57,7 +57,7 @@ public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAc
 /// <summary>Metrics of the protocol library.</summary>
 internal static class ProtocolInstruments
 {
-    private static readonly Meter Meter = new("A2A.Protocol");
+    private static readonly Meter Meter = new(A2ATelemetryNames.ProtocolMeter);
 
     /// <summary>Enum values read from the wire that this version does not know (read as <c>*_UNSPECIFIED</c>). Tag <c>a2a.enum</c>.</summary>
     public static readonly Counter<long> UnknownEnumValues =
