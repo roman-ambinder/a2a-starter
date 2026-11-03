@@ -716,6 +716,10 @@ Today the server never writes a `tenant` on its interfaces, so there is nothing 
 
 `A2AServerOptions.InterfaceTenants`: `IDictionary<string, string>` from agent name to tenant. When an agent has an entry, every interface `AgentCardInterfaces.For` writes for it gets that `Tenant`.
 
+- [ ] **Step 0: Check whether package 07 has landed first.** Run `git grep -nE "class (A2ASecurityOptions|DefaultTenantResolver)\b" -- src`.
+  - **Found:** package 07 owns tenants (its plan, Task 9 Step 2a). Do **not** add `InterfaceTenants`. Configure tenant `t1` in the tests with `A2ASecurityOptions.Tenants["<agent>"] = ["t1"]`. Do not write `ResolveTenant` in Step 2: `DefaultTenantResolver` already does it on every transport. In Step 1, assert the mismatch message `DefaultTenantResolver` gives for route `a` with body `b`, not the text below. Check that an agent with exactly one configured tenant gets it on every card interface (07 Task 9 Step 2a). If it does not, add that to `AgentCardInterfaces` in this task. Leave `InterfaceTenants` out of Task 19's public-type list. In Task 18, the tenant row names `A2ASecurityOptions.Tenants`. Write all of this in the PR body.
+  - **Not found:** do Steps 1–3 as written. Package 07 replaces `InterfaceTenants` later (its plan, Task 9 Step 2a).
+
 - [ ] **Step 1: Write failing tests** over `TransportMatrix.Bindings`, with an agent configured with tenant `t1`:
   - A request with `tenant = "t2"` gives `InvalidParams` with the message `tenant 't2' does not match this interface (tenant 't1'). Leave tenant empty or send 't1'.` To send a mismatched tenant you must bypass the client's own check: use raw HTTP for JSON-RPC and REST (REST path prefix `/t2/...`), and a raw gRPC call.
   - A request with empty `tenant`: `A2ACallContext.Tenant == "t1"` (the agent records it).
@@ -883,7 +887,7 @@ git commit -am "feat(server): task state transition table from spec 03 D13"
 
 - [ ] **Step 1: Fix the card caching row.** The ETag is now base64url of the first 16 bytes of SHA-256 over the unsigned card payload (the card without `signatures`, after contributors) followed by a newline and the UTF-8 key id for each signing key id in ordinal order (B13; the byte rule is package 04's P6). JCS replaces the serializer output when package 04 lands.
 - [ ] **Step 2: Add rows** (spec section, choice, reason), one each for:
-  - Server tenant mismatch: `InvalidParams`; empty request tenant filled from the interface; how a server declares an interface tenant (`InterfaceTenants`, Task 14).
+  - Server tenant mismatch: `InvalidParams`; empty request tenant filled from the interface; how a server declares an interface tenant (`InterfaceTenants`, or `A2ASecurityOptions.Tenants` if package 07 landed first; Task 14 Step 0).
   - `A2AException.Details` holds the ErrorInfo metadata as strings.
   - Internal errors: generic message plus `metadata.traceId`.
   - Unknown `TaskState` on the client reads as `Unspecified`; it is neither terminal nor interrupted.
@@ -913,7 +917,7 @@ All must pass.
 
 - [ ] **Step 2:** Run the TCK locally as in Task 4. The checker must pass with `tck/known-issues.json` holding no MUST entry.
 - [ ] **Step 3:** Go through the spec's "Acceptance criteria" list one by one. For each, write the test name (or CI job) that proves it in the PR description. For each item in section 0.3, write "blocked on package NN". Do not tick a box that has no test.
-- [ ] **Step 4:** Check the anti-goals: no `continue-on-error`; no skip list in the TCK run; no conformance logic only in the SUT; no new public type beyond `IA2AVersionDispatcher`, `A2AAgentRoute` (if added), `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants`. Check section 0.4 for each of them: no positional record, full XML docs, API file updated (if 02 has landed), breaking changes recorded. If `tests/Ambinder.A2A.PublicApi.Tests` exists, it passes.
+- [ ] **Step 4:** Check the anti-goals: no `continue-on-error`; no skip list in the TCK run; no conformance logic only in the SUT; no new public type beyond `IA2AVersionDispatcher`, `A2AAgentRoute` (if added), `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants` (only if Task 14 added it). Check section 0.4 for each of them: no positional record, full XML docs, API file updated (if 02 has landed), breaking changes recorded. If `tests/Ambinder.A2A.PublicApi.Tests` exists, it passes.
 
 ```bash
 git grep -n "continue-on-error" -- .github
@@ -947,7 +951,7 @@ These are the places where PR #6, or the spec itself, differs from what spec 03 
 1. **The spec's TCK command skips every MUST test.** Spec D1 step 3 runs `run_tck.py ... --level should`. In the TCK, `--level should` passes `-m should` to pytest, so only SHOULD tests run. [Plan: run without `--level`; the checker fails on MUST and on unlisted SHOULD failures. This meets the spec's intent.]
 2. **The extended card cannot be turned on in the SUT.** Spec D1 wants it on, and says the SUT accepts a static bearer token "if the TCK can send one". The TCK has no credentials option, and the library always requires auth for `GetExtendedAgentCard`. [Plan: leave it off, so the TCK skips those tests as "not declared". Record it in `docs/spec-decisions.md`. Revisit when the TCK can send credentials.]
 3. **Empty `protocolVersion` on a card interface.** PR #6's client treats it as `1.0`. The spec only says "whose protocolVersion Major.Minor is supported". PR #6 records this in `docs/spec-decisions.md`. [Plan: keep it.]
-4. **How a server declares an interface tenant.** D8 says the server rejects a tenant that does not match "the interface it arrived on", but today's server never writes a tenant on its interfaces, and the spec does not say where it comes from. [Plan: `A2AServerOptions.InterfaceTenants` (agent name → tenant). Package 07 may replace it.]
+4. **How a server declares an interface tenant.** D8 says the server rejects a tenant that does not match "the interface it arrived on", but today's server never writes a tenant on its interfaces, and the spec does not say where it comes from. [Plan: `A2AServerOptions.InterfaceTenants` (agent name → tenant). Package 07 replaces it with `A2ASecurityOptions.Tenants`; if 07 lands first, Task 14 uses 07's setting and adds no option.]
 5. **`IAgentCardContributor` and the extended card.** Contributors edit card JSON, but the extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC). JSON edits cannot reach it the same way on every transport. [Plan: contributors run on the public card endpoints only; `AgentCardContext.IsExtended` is always false for now. Packages 07 and 15 must not expect contributors to change the extended card.]
 6. **ETag input.** PR #6 hashes the whole serialized card, signatures included. B13 says: the unsigned canonical payload plus sorted key ids. [Plan: Task 13, with the exact bytes of the package 04 plan's P6 and its `AgentCardETag` helper. JCS waits for package 04.]
 7. **Error metadata name.** PR #6 keeps ErrorInfo metadata in `A2AException.Data` (a `JsonElement`). The spec names it `A2AException.Details` (read-only string map). [Plan: add `Details`, keep `Data`; package 02 picks the final names.]
