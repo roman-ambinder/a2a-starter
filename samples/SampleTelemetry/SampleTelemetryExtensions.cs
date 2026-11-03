@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using A2A.Protocol;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -50,11 +51,7 @@ public static class SampleTelemetryExtensions
         });
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(r => r.AddService(name))
-            .WithTracing(t => t
-                .AddAspNetCoreInstrumentation(o => o.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/health"))
-                .AddHttpClientInstrumentation()
-                .AddSource(A2ATelemetryNames.ServerSource, A2ATelemetryNames.ClientSource)
-                .AddSource(extraSources))
+            .WithTracing(t => t.AddSampleTracing(extraSources))
             .WithMetrics(m => m
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
@@ -62,5 +59,54 @@ public static class SampleTelemetryExtensions
                 .AddMeter(A2ATelemetryNames.ServerMeter))
             .UseOtlpExporter();
         return builder;
+    }
+
+    /// <summary>
+    /// The tracing part of <see cref="AddSampleTelemetry"/>, without an exporter: ASP.NET Core (no health checks), HttpClient,
+    /// the A2A sources and <paramref name="extraSources"/>. Public so tests can check it with an in-memory processor.
+    /// </summary>
+    public static TracerProviderBuilder AddSampleTracing(this TracerProviderBuilder tracing, params string[] extraSources)
+    {
+        ArgumentNullException.ThrowIfNull(tracing);
+        ArgumentNullException.ThrowIfNull(extraSources);
+        return tracing
+            .AddAspNetCoreInstrumentation(o => o.Filter = ctx => !ctx.Request.Path.StartsWithSegments("/health"))
+            .AddHttpClientInstrumentation(o =>
+            {
+                // The runtime sets url.full at start; scrub again at the end in case anything sets it later.
+                o.EnrichWithHttpRequestMessage = (activity, _) => ScrubPushUrl(activity);
+                o.EnrichWithHttpResponseMessage = (activity, _) => ScrubPushUrl(activity);
+                o.EnrichWithException = (activity, _) => ScrubPushUrl(activity);
+            })
+            .AddSource(A2ATelemetryNames.ServerSource, A2ATelemetryNames.ClientSource)
+            .AddSource(extraSources);
+    }
+
+    private const string PushDeliverSpan = "a2a.push.deliver";
+    private static readonly string[] UrlTags = ["url.full", "http.url"];
+    private static readonly string[] PathTags = ["url.path", "url.query", "http.target"];
+
+    /// <summary>
+    /// Cuts a webhook request's URL down to scheme://host[:port]. A webhook path can hold a secret (Slack-style
+    /// <c>/services/.../&lt;secret&gt;</c>), so like the <c>a2a.push.deliver</c> span the HTTP span keeps the host only.
+    /// A webhook request is one made under an <c>a2a.push.deliver</c> span. The parent chain is used because the
+    /// HttpClient name ("a2a-push") never reaches the instrumentation. When telemetry is on, the push span always exists
+    /// (its source is added above), and with the default parent-based sampler an HTTP span is only recorded when its push span is.
+    /// </summary>
+    private static void ScrubPushUrl(Activity activity)
+    {
+        if (!IsUnderPushDelivery(activity)) return;
+        foreach (var tag in UrlTags)
+            if (activity.GetTagItem(tag) is string value && Uri.TryCreate(value, UriKind.Absolute, out var url))
+                activity.SetTag(tag, $"{url.Scheme}://{url.Authority}"); // Authority has no user info and no default port
+        foreach (var tag in PathTags)
+            if (activity.GetTagItem(tag) is not null) activity.SetTag(tag, null);
+    }
+
+    private static bool IsUnderPushDelivery(Activity activity)
+    {
+        for (var parent = activity.Parent; parent is not null; parent = parent.Parent)
+            if (parent.OperationName == PushDeliverSpan && parent.Source.Name == A2ATelemetryNames.ServerSource) return true;
+        return false;
     }
 }
