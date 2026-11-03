@@ -1,4 +1,4 @@
-using A2A.Protocol;
+using Ambinder.A2A.Protocol;
 
 namespace AgentClient;
 

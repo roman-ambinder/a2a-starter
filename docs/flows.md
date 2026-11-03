@@ -2,11 +2,11 @@
 
 One sequence diagram per flow. Each flow lists where the agent code is, the console command and the test.
 
-Shorthand: `Client` is `samples/AgentClient` (library `src/A2A.Client`), `Server` is `samples/AgentServer` (library `src/A2A.Server`). Every request carries `A2A-Version: 1.0` unless noted. Run any command with `dotnet run --project samples/AgentClient -- <command>` after `./run-all.sh`. Back to the [README](../README.md).
+Shorthand: `Client` is `samples/AgentClient` (library `src/Ambinder.A2A.Client`), `Server` is `samples/AgentServer` (library `src/Ambinder.A2A.Server`). Every request carries `A2A-Version: 1.0` unless noted. Run any command with `dotnet run --project samples/AgentClient -- <command>` after `./run-all.sh`. Back to the [README](../README.md).
 
 Each flow is also one trace when telemetry is on: the AgentClient runs a flow under a root span `flow <name>`. See [production.md](production.md#6-observability-otlp) and the [AppHost](../samples/AppHost/README.md).
 
-The task manager is `src/A2A.Server/Tasks/TaskManager.cs`. The three transports are in `src/A2A.Server/Transports/` (`JsonRpc`, `Rest`, `Grpc`). Client flows are in `samples/AgentClient/FlowRunner.Basics.cs` and `FlowRunner.Advanced.cs`.
+The task manager is `src/Ambinder.A2A.Server/Tasks/TaskManager.cs`. The three transports are in `src/Ambinder.A2A.Server/Transports/` (`JsonRpc`, `Rest`, `Grpc`). Client flows are in `samples/AgentClient/FlowRunner.Basics.cs` and `FlowRunner.Advanced.cs`.
 
 ## 1. Discovery
 
@@ -59,7 +59,7 @@ sequenceDiagram
     Note over C,S: stream closes after a terminal or interrupted state
 ```
 
-- Agent code: `ReportAgent.cs` (`sink.AddArtifactAsync(..., append, lastChunk, ct)`), SSE in `src/A2A.Server/Transports/Sse/`
+- Agent code: `ReportAgent.cs` (`sink.AddArtifactAsync(..., append, lastChunk, ct)`), SSE in `src/Ambinder.A2A.Server/Transports/Sse/`
 - Command: `stream`
 - Test: `ReportFlowTests.Report_stream_emits_working_chunks_and_completed_in_order`
 
@@ -83,7 +83,7 @@ sequenceDiagram
 
 `historyLength` 0 returns no history, unset returns all. `ListTasks` sorts by status timestamp (newest first), defaults to 50 per page (1 to 100) and only returns the caller's tasks.
 
-- Code: `src/A2A.Server/Tasks/TaskManager.cs`, `InMemoryTaskStore.cs` (`ITaskStore.ListAsync`)
+- Code: `src/Ambinder.A2A.Server/Tasks/TaskManager.cs`, `InMemoryTaskStore.cs` (`ITaskStore.ListAsync`)
 - Commands: `get`, `list`
 - Tests: `ReportFlowTests.Report_return_immediately_then_get_task_until_completed`, `Report_list_tasks_filters_by_context_and_status`
 
@@ -104,7 +104,7 @@ sequenceDiagram
 
 A cancel on a finished task returns `TaskNotCancelable`. A fast agent may finish first; the console flow reports that, it is not a failure.
 
-- Agent code: `ReportAgent.cs` (stops quietly on cancel), default `CancelAsync` in `src/A2A.Server/Agents/IAgentHandler.cs`
+- Agent code: `ReportAgent.cs` (stops quietly on cancel), default `CancelAsync` in `src/Ambinder.A2A.Server/Agents/IAgentHandler.cs`
 - Command: `cancel`
 - Tests: `ReportCancelFlowTests.Report_cancel_mid_task_ends_canceled`, `ReportFlowTests.Report_cancel_completed_task_not_cancelable`
 
@@ -127,7 +127,7 @@ sequenceDiagram
 
 Subscribing to a task that is already terminal is refused with `UnsupportedOperation`.
 
-- Code: `src/A2A.Server/Tasks/TaskEventBroker.cs`, `TaskManager.cs`
+- Code: `src/Ambinder.A2A.Server/Tasks/TaskEventBroker.cs`, `TaskManager.cs`
 - Command: `resubscribe`
 - Test: `ResubscribeTests.Resubscribe_after_disconnect_receives_terminal_event`
 
@@ -197,7 +197,7 @@ sequenceDiagram
 
 The receiver checks credentials, token, JWT signature (`aud`, `body_sha256`, `task_id`) and lifetime. A failed check returns 401 and stores nothing. See the [WebhookReceiver README](../samples/WebhookReceiver/README.md).
 
-- Code: `src/A2A.Server/Push/PushNotificationSender.cs`, `PushSigningKey.cs`, `samples/WebhookReceiver/`
+- Code: `src/Ambinder.A2A.Server/Push/PushNotificationSender.cs`, `PushSigningKey.cs`, `samples/WebhookReceiver/`
 - Command: `push`
 - Tests: `PushFlowTests.Report_push_delivers_all_events_to_receiver`, `Push_config_crud_over_each_transport`, `ReceiverVerificationTests`
 
@@ -215,7 +215,7 @@ sequenceDiagram
     S-->>C: error UnsupportedOperation (echo does not declare an extended card)
 ```
 
-- Code: `samples/AgentServer/Cards/AgentCards.cs` (`HasExtendedCard`), `src/A2A.Server/Hosting/AgentCardEndpoints.cs`
+- Code: `samples/AgentServer/Cards/AgentCards.cs` (`HasExtendedCard`), `src/Ambinder.A2A.Server/Hosting/AgentCardEndpoints.cs`
 - Command: `extended-card`
 - Tests: `DiscoveryAndAuthTests.Extended_card_requires_auth_and_adds_skills`, `Echo_extended_card_not_offered_is_unsupported_operation`
 
@@ -263,6 +263,6 @@ sequenceDiagram
 
 The same error maps to a JSON-RPC code, an HTTP status and a gRPC status with `ErrorInfo` (domain `a2a-protocol.org`). Auth failures are not A2A errors: they are HTTP 401 or 403 (gRPC `UNAUTHENTICATED` or `PERMISSION_DENIED`). The client throws `A2AException` for protocol errors and `A2AAuthException` for 401 and 403.
 
-- Code: `src/A2A.Protocol/Errors/`, `src/A2A.Server/Transports/TransportErrors.cs`, `Grpc/GrpcErrorMapper.cs`, `Rest/RestErrorWriter.cs`
+- Code: `src/Ambinder.A2A.Protocol/Errors/`, `src/Ambinder.A2A.Server/Transports/TransportErrors.cs`, `Grpc/GrpcErrorMapper.cs`, `Rest/RestErrorWriter.cs`
 - Command: `errors`
 - Tests: `ReportFlowTests` (`Report_rejects_image_input_with_content_type_not_supported`), `SecureFlowTests`, `EchoFlowTests`, and all of them together in `ConsoleFlowRunnerTests.All_flows_pass_against_test_host`

@@ -34,7 +34,7 @@ trap stop_all EXIT
 
 start() { # name  (runs the built DLL directly: the PID is the app, no `dotnet run` host in between)
   echo "Starting $1..."
-  dotnet "samples/$1/bin/Debug/net10.0/$1.dll" &
+  dotnet "samples/$1/bin/Debug/net10.0/Ambinder.A2A.Samples.$1.dll" &
   PIDS+=("$!")
 }
 
@@ -56,7 +56,7 @@ for port in 5100 5200 5201 5202 5203 5204 5300; do
   fi
 done
 
-dotnet build A2A.Reference.slnx --nologo -v q
+dotnet build Ambinder.A2A.slnx --nologo -v q
 
 start MockEntra
 wait_ready MockEntra http://localhost:5100/health/ready "${PIDS[0]}"

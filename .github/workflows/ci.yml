@@ -24,13 +24,13 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore A2A.Reference.slnx
+        run: dotnet restore Ambinder.A2A.slnx
 
       - name: Build
-        run: dotnet build A2A.Reference.slnx --no-restore --configuration Release
+        run: dotnet build Ambinder.A2A.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test A2A.Reference.slnx --no-build --configuration Release
+        run: dotnet test Ambinder.A2A.slnx --no-build --configuration Release
 
   proto-drift:
     runs-on: ubuntu-latest

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using A2A.Protocol;
+using Ambinder.A2A.Protocol;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using A2A.Protocol;
+using Ambinder.A2A.Protocol;
 
 namespace AgentClient;
 

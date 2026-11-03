@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace A2A.Tests.Shared;
+namespace Ambinder.A2A.Tests.Shared;
 
 /// <summary>
 /// Records the activities of the given sources, but only those under <see cref="Root"/>. The sampler drops everything else, so parallel

@@ -24,9 +24,9 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 
 ## Checking conformance
 
-`tests/A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files.
+`tests/Ambinder.A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files.
 
-1. Start it: `dotnet run --project tests/A2A.Tck.Sut -- --port 9999 --grpc-port 10000`
+1. Start it: `dotnet run --project tests/Ambinder.A2A.Tck.Sut -- --port 9999 --grpc-port 10000`
 2. In an `a2aproject/a2a-tck` checkout: `uv venv && uv pip install -e .`, then `./run_tck.py --sut-host http://localhost:9999 --level should`
 
 The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it.

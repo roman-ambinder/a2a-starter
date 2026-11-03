@@ -184,7 +184,7 @@
     <h2>Code: what you copy</h2>
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 820 380" role="img" aria-label="Project dependencies. AgentClient depends on A2A.Client and AgentServer on A2A.Server. AgentServer, WebhookReceiver and MockEntra also use SampleTelemetry, which uses A2A.Protocol for the telemetry names. A2A.Client and A2A.Server depend on A2A.Protocol.Grpc, which is generated from a2a.proto and maps to the plain A2A.Protocol records.">
+        <svg viewBox="0 0 820 380" role="img" aria-label="Project dependencies. AgentClient depends on Ambinder.A2A.Client and AgentServer on Ambinder.A2A.Server. AgentServer, WebhookReceiver and MockEntra also use SampleTelemetry, which uses Ambinder.A2A.Protocol for the telemetry names. Ambinder.A2A.Client and Ambinder.A2A.Server depend on Ambinder.A2A.Protocol.Grpc, which is generated from a2a.proto and maps to the plain Ambinder.A2A.Protocol records.">
           <defs>
             <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
           </defs>
@@ -205,23 +205,23 @@
 
           <text class="t-mono" x="20" y="146">src/ · copy these</text>
           <rect class="bx-accent" x="40" y="158" width="210" height="58" rx="5"/>
-          <text class="t" x="145" y="182" text-anchor="middle">A2A.Client</text>
+          <text class="t" x="145" y="182" text-anchor="middle">Ambinder.A2A.Client</text>
           <text class="t-sub" x="145" y="200" text-anchor="middle">IA2AClient × 3 transports</text>
           <rect class="bx-accent" x="300" y="158" width="210" height="58" rx="5"/>
           <rect class="bx" x="620" y="158" width="170" height="58" rx="5"/>
           <text class="t" x="705" y="182" text-anchor="middle">SampleTelemetry</text>
           <text class="t-sub" x="705" y="200" text-anchor="middle">OTLP setup · samples only</text>
-          <text class="t" x="405" y="182" text-anchor="middle">A2A.Server</text>
+          <text class="t" x="405" y="182" text-anchor="middle">Ambinder.A2A.Server</text>
           <text class="t-sub" x="405" y="200" text-anchor="middle">IAgentHandler · transports</text>
 
           <rect class="bx-accent" x="40" y="278" width="120" height="58" rx="5"/>
           <text class="t" x="100" y="302" text-anchor="middle">a2a.proto</text>
           <text class="t-sub" x="100" y="320" text-anchor="middle">official, pinned</text>
           <rect class="bx-accent" x="220" y="278" width="200" height="58" rx="5"/>
-          <text class="t" x="320" y="302" text-anchor="middle">A2A.Protocol.Grpc</text>
+          <text class="t" x="320" y="302" text-anchor="middle">Ambinder.A2A.Protocol.Grpc</text>
           <text class="t-sub" x="320" y="320" text-anchor="middle">generated + ProtoMapper</text>
           <rect class="bx-accent" x="500" y="278" width="200" height="58" rx="5"/>
-          <text class="t" x="600" y="302" text-anchor="middle">A2A.Protocol</text>
+          <text class="t" x="600" y="302" text-anchor="middle">Ambinder.A2A.Protocol</text>
           <text class="t-sub" x="600" y="320" text-anchor="middle">records · JSON · errors</text>
 
           <line class="ln" x1="125" y1="88" x2="140" y2="156" marker-end="url(#a2)"/>

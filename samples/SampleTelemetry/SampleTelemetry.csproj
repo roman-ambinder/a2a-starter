@@ -9,6 +9,6 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/A2A.Protocol/A2A.Protocol.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
   </ItemGroup>
 </Project>

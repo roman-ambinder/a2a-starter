@@ -1,5 +1,7 @@
 # Observability (Phase 2, part 1): design
 
+> Written before the rename to Ambinder.A2A.*
+
 Date: 2026-11-03
 Status: draft for approval. Items marked *(Design call.)* were decided by Claude after the builder review, not by the owner.
 

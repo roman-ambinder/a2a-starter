@@ -1,5 +1,5 @@
-using A2A.Protocol;
-using A2A.Server.Hosting;
+using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Hosting;
 using AgentServer.Agents;
 using AgentServer.Auth;
 using AgentServer.Cards;

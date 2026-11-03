@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <RootNamespace>AgentClient</RootNamespace>
-    <AssemblyName>AgentClient</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
@@ -12,7 +10,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/A2A.Client/A2A.Client.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Copied to a subfolder so it does not collide with other samples' appsettings.json in one output folder

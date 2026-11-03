@@ -12,7 +12,7 @@ Prerequisites: .NET SDK 10.0.401 or newer. Docker is optional. Tests and the fir
 ```bash
 ./run-all.sh                                        # or: pwsh ./run-all.ps1
 dotnet run --project samples/AgentClient -- all     # in a second terminal
-dotnet test --solution A2A.Reference.slnx           # unit and integration tests (Microsoft.Testing.Platform syntax)
+dotnet test --solution Ambinder.A2A.slnx           # unit and integration tests (Microsoft.Testing.Platform syntax)
 ```
 
 `run-all` builds once, then starts MockEntra (5100), WebhookReceiver (5300) and AgentServer (5200 to 5204). Press Ctrl+C to stop all three.
@@ -52,17 +52,17 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 
 | Path | What it is |
 |---|---|
-| [src/A2A.Protocol](src/A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
-| [src/A2A.Protocol.Grpc](src/A2A.Protocol.Grpc/README.md) | Generated gRPC code and the model-to-proto mapper. |
-| [src/A2A.Server](src/A2A.Server/README.md) | Hosting library: JSON-RPC, REST and gRPC endpoints, task manager, push delivery. |
-| [src/A2A.Client](src/A2A.Client/README.md) | Client library: one `IA2AClient` over all three transports. |
+| [src/Ambinder.A2A.Protocol](src/Ambinder.A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
+| [src/Ambinder.A2A.Protocol.Grpc](src/Ambinder.A2A.Protocol.Grpc/README.md) | Generated gRPC code and the model-to-proto mapper. |
+| [src/Ambinder.A2A.Server](src/Ambinder.A2A.Server/README.md) | Hosting library: JSON-RPC, REST and gRPC endpoints, task manager, push delivery. |
+| [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over all three transports. |
 | [samples/AgentServer](samples/AgentServer/README.md) | Four demo agents. |
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
 | [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
 | `samples/SampleTelemetry` | OpenTelemetry setup shared by the three server hosts. Off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. |
-| `tests/` | Four test projects: `A2A.Protocol.Tests`, `A2A.Server.Tests`, `A2A.MockEntra.Tests`, `A2A.Integration.Tests`. |
+| `tests/` | Four test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`. |
 | `docker/`, `docker-compose.yml` | Images and the compose stack. |
 | `.github/` | GitHub Actions CI and Dependabot (see [Continuous integration](#continuous-integration)). |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
@@ -73,7 +73,7 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `A2A.Reference.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
+`.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `Ambinder.A2A.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
 It does not run the TCK or start Docker or the AppHost.
 
 `.github/dependabot.yml` opens weekly update pull requests for NuGet packages, GitHub Actions and the Docker base images in `docker/`.
@@ -154,11 +154,11 @@ Run one flow with `dotnet run --project samples/AgentClient -- <command>`. Optio
 | Errors | report, secure, echo | `errors` | `ReportFlowTests`, `SecureFlowTests`, `EchoFlowTests` |
 | Everything, through the console runner | all | `all` | `ConsoleFlowRunnerTests` |
 
-Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in this table. `DocsTests` fails if a console command or a flow test class is missing from this table.
+Every public test class under `tests/Ambinder.A2A.Integration.Tests/Flows/` is named in this table. `DocsTests` fails if a console command or a flow test class is missing from this table.
 
 ## Copy the server side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Server` ([details](src/A2A.Server/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Protocol.Grpc` and `src/Ambinder.A2A.Server` ([details](src/Ambinder.A2A.Server/README.md)), plus `proto/` (`Ambinder.A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
 2. Write an `IAgentHandler` (see `samples/AgentServer/Agents/EchoAgent.cs` for the smallest one).
 3. Register it with `AddA2AServer(...).AddAgent<THandler>(name, publicCard, extendedCard, policy)`, then call `MapA2A()` and `MapA2AGrpc()`.
 4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
@@ -168,7 +168,7 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 
 ## Copy the client side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Client` ([details](src/A2A.Client/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Protocol.Grpc` and `src/Ambinder.A2A.Client` ([details](src/Ambinder.A2A.Client/README.md)), plus `proto/` (`Ambinder.A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
 2. Fetch the card with `A2ACardResolver`.
 3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
 4. Pick credentials: `ClientCredentialsProvider` (any OAuth2 token URL, including Entra), `AzureIdentityCredentialProvider`, `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`, or your own `IA2ACredentialProvider`.
@@ -189,4 +189,4 @@ Everything to change for Phase 2 is in [docs/production.md](docs/production.md).
 
 ## Conformance
 
-The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). That page also shows how to run the official A2A TCK against `tests/A2A.Tck.Sut`, a small server that serves all three transports. CI checks that `proto/a2a.proto` equals the `v1.0.1` release file; it does not run the TCK yet.
+The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). That page also shows how to run the official A2A TCK against `tests/Ambinder.A2A.Tck.Sut`, a small server that serves all three transports. CI checks that `proto/a2a.proto` equals the `v1.0.1` release file; it does not run the TCK yet.

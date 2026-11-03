@@ -2,12 +2,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 # Restore first (own layer) so source edits do not re-download packages.
-COPY Directory.Build.props Directory.Packages.props global.json A2A.Reference.slnx ./
+COPY Directory.Build.props Directory.Packages.props global.json Ambinder.A2A.slnx ./
 COPY proto/ proto/
-COPY src/A2A.Protocol/A2A.Protocol.csproj src/A2A.Protocol/
-COPY src/A2A.Protocol.Grpc/A2A.Protocol.Grpc.csproj src/A2A.Protocol.Grpc/
-COPY src/A2A.Server/A2A.Server.csproj src/A2A.Server/
-COPY src/A2A.Client/A2A.Client.csproj src/A2A.Client/
+COPY samples/Directory.Build.props samples/
+COPY src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj src/Ambinder.A2A.Protocol/
+COPY src/Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj src/Ambinder.A2A.Protocol.Grpc/
+COPY src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj src/Ambinder.A2A.Server/
+COPY src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj src/Ambinder.A2A.Client/
 COPY samples/SampleTelemetry/SampleTelemetry.csproj samples/SampleTelemetry/
 COPY samples/MockEntra/MockEntra.csproj samples/MockEntra/
 RUN dotnet restore samples/MockEntra/MockEntra.csproj
@@ -24,4 +25,4 @@ COPY --from=build /out .
 ENV Urls=http://0.0.0.0:5100
 EXPOSE 5100
 USER app
-ENTRYPOINT ["dotnet", "MockEntra.dll"]
+ENTRYPOINT ["dotnet", "Ambinder.A2A.Samples.MockEntra.dll"]

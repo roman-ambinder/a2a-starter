@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using A2A.Client;
-using A2A.Client.Auth;
-using A2A.Protocol;
+using Ambinder.A2A.Client;
+using Ambinder.A2A.Client.Auth;
+using Ambinder.A2A.Protocol;
 using Azure.Identity;
 
 namespace AgentClient;
