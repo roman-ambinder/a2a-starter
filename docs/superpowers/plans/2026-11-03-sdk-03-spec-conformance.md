@@ -538,7 +538,7 @@ The owner approved decisions D1 and D2 of the package 15 plan (`docs/superpowers
 
 **Files:**
 - Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `.../Hosting/A2AVersionDispatchContext.cs`, `.../Hosting/IA2ACallerResolver.cs`
-- Modify: the JSON-RPC and REST endpoints, `TransportRequest.cs` (07's `ResolveCallerAsync` becomes the default `IA2ACallerResolver`), the gRPC call-context path, DI registration, the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
+- Modify: the JSON-RPC and REST endpoints, `TransportRequest.cs` and 07's internal caller-resolution class (07's `ResolveCallerAsync` becomes the default `IA2ACallerResolver`), the gRPC call-context path, DI registration, the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
 - Test: `VersionNegotiationTests` (add)
 
 - [ ] **Step 1: Write failing tests.** Register a fake dispatcher with `CanHandle("0.3") == true`. It records the context it gets and writes `200` with a marker body. Then:
@@ -616,7 +616,7 @@ public interface IA2ACallerResolver
 
 There is no `A2AAgentRoute` type: the context replaces it. The names and shapes are the ones in the 15 plan's D1. Package 02's API review checks them before `rc.1`.
 
-- [ ] **Step 3: The default caller resolver.** Make 07's `TransportRequest.ResolveCallerAsync` the body of an internal `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
+- [ ] **Step 3: The default caller resolver.** Make 07's internal `ResolveCallerAsync` (package 07 plan Task 3 writes it as a separate internal class with this signature, not as a helper on `TransportRequest`) the body of an internal `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
 
 - [ ] **Step 4: Wire the dispatcher (D2).** In one helper shared by the JSON-RPC and REST endpoints, in this order:
   1. Resolve the agent (as today).
