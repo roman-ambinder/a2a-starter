@@ -54,15 +54,27 @@ public sealed class TckSutBehaviorTests
         Assert.Equal(expected, sink.States[^1]);
     }
 
-    [Fact]
-    public async Task Unknown_behavior_fails()
+    [Theory]
+    [InlineData("tck-not-a-behavior-1")]
+    [InlineData("test-not-a-behavior-1")]
+    public async Task Unknown_tck_or_test_behavior_fails(string messageId)
     {
         var sink = new RecordingSink();
-        await new TckAgent().ExecuteAsync(ContextFor("tck-not-a-behavior-1"), sink, Ct);
+        await new TckAgent().ExecuteAsync(ContextFor(messageId), sink, Ct);
 
         Assert.Equal(TaskState.Failed, sink.States[^1]);
-        var text = sink.StatusMessages[^1]!.Parts[0].Text!;
-        Assert.StartsWith("behaviour not implemented: tck-not-a-behavior-1", text, StringComparison.Ordinal);
+        Assert.Equal(
+            $"SUT behaviour not implemented: {messageId}. Add it to tests/A2A.Tck.Sut and tck/sut-behaviors.yaml.",
+            sink.StatusMessages[^1]!.Parts[0].Text);
+    }
+
+    [Fact]
+    public async Task Other_messages_complete()
+    {
+        var sink = new RecordingSink();
+        await new TckAgent().ExecuteAsync(ContextFor("hello-1"), sink, Ct);
+
+        Assert.Equal(TaskState.Completed, sink.States[^1]);
     }
 
     [Fact]

@@ -88,8 +88,17 @@ internal sealed class TckAgent : IAgentHandler
                 return;
             }
         }
-        // A behaviour the TCK expects but the SUT does not list must fail its test, never pass or skip.
-        await sink.UpdateStatusAsync(TaskState.Failed, helpers.Agent("behaviour not implemented: " + id), ct);
+        if (id.StartsWith("tck-", StringComparison.Ordinal) || id.StartsWith("test-", StringComparison.Ordinal))
+        {
+            // A behaviour the TCK expects but the SUT does not list must fail its test, never pass or skip.
+            await sink.UpdateStatusAsync(
+                TaskState.Failed,
+                helpers.Agent($"SUT behaviour not implemented: {id}. Add it to tests/A2A.Tck.Sut and tck/sut-behaviors.yaml."),
+                ct);
+            return;
+        }
+        // Any other message (not part of the TCK scenarios) completes.
+        await helpers.Complete();
     }
 
     private sealed class Helpers(IAgentEventSink sink, CancellationToken ct)
