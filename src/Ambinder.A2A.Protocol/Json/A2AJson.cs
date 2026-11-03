@@ -63,7 +63,7 @@ public static class A2AJson
             TypeInfoResolver = JsonTypeInfoResolver.Combine(A2AJsonContext.Default)
                 .WithAddedModifier(OmitEmptyLists),
         };
-        options.MakeReadOnly(populateMissingResolver: false);
+        options.MakeReadOnly();
         return options;
     }
 

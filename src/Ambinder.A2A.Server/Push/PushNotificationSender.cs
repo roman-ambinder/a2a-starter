@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Tasks;
@@ -140,7 +141,7 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
         var configs = await _store.GetAllAsync(item.AgentName, item.TaskId, ct).ConfigureAwait(false);
         if (configs.Count > 0)
         {
-            var body = JsonSerializer.SerializeToUtf8Bytes(item.Event, A2AJson.Options);
+            var body = JsonSerializer.SerializeToUtf8Bytes(item.Event, (JsonTypeInfo<StreamResponse>)A2AJson.Options.GetTypeInfo(typeof(StreamResponse)));
             await Task.WhenAll(configs.Select(c => DeliverToAsync(item, c, body, ct))).ConfigureAwait(false);
         }
         if (item.IsFinal)

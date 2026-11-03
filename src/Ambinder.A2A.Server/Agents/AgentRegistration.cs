@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Server.Agents;
@@ -10,6 +11,8 @@ namespace Ambinder.A2A.Server.Agents;
 /// <param name="AuthorizationPolicy">ASP.NET Core authorization policy name, or null for none.</param>
 public sealed record AgentRegistration(
     string Name,
+    [param: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    [property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
     Type HandlerType,
     AgentCard PublicCard,
     AgentCard? ExtendedCard,

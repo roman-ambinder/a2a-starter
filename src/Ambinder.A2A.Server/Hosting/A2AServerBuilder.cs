@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
@@ -24,7 +25,7 @@ public sealed partial class A2AServerBuilder
     /// <param name="publicCard">The anonymous card.</param>
     /// <param name="extendedCard">The extended card for authenticated callers. Also set <c>capabilities.extendedAgentCard</c> on the public card.</param>
     /// <param name="authorizationPolicy">ASP.NET Core policy every operation of this agent must pass (cards excepted). Null → open.</param>
-    public A2AServerBuilder AddAgent<THandler>(string name, Func<IServiceProvider, AgentCard> publicCard,
+    public A2AServerBuilder AddAgent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>(string name, Func<IServiceProvider, AgentCard> publicCard,
         Func<IServiceProvider, AgentCard>? extendedCard = null, string? authorizationPolicy = null)
         where THandler : class, IAgentHandler
     {
@@ -55,6 +56,7 @@ public sealed partial class A2AServerBuilder
     [GeneratedRegex("^[A-Za-z0-9._-]+$")]
     private static partial Regex NamePattern();
 
-    private sealed record Definition(string Name, Type HandlerType, Func<IServiceProvider, AgentCard> PublicCard,
+    private sealed record Definition(string Name,
+        [property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type HandlerType, Func<IServiceProvider, AgentCard> PublicCard,
         Func<IServiceProvider, AgentCard>? ExtendedCard, string? AuthorizationPolicy);
 }

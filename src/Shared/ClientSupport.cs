@@ -173,8 +173,18 @@ internal static class ClientSupport
     /// </summary>
     public static JsonElement? MetadataToData(IEnumerable<KeyValuePair<string, string>> metadata)
     {
-        var pairs = metadata.ToList();
-        return pairs.Count == 0 ? null : JsonSerializer.SerializeToElement(pairs.ToDictionary(p => p.Key, p => p.Value));
+        var map = metadata.ToDictionary(p => p.Key, p => p.Value);
+        if (map.Count == 0) return null;
+        // Written by hand: the reflection-based JsonSerializer overloads are not trim or AOT safe.
+        using var buffer = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            foreach (var (key, value) in map) writer.WriteString(key, value);
+            writer.WriteEndObject();
+        }
+        using var document = JsonDocument.Parse(buffer.ToArray());
+        return document.RootElement.Clone();
     }
 
     /// <summary>Deserializes with the protocol JSON options; failure → InvalidAgentResponse.</summary>

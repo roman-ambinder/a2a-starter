@@ -294,5 +294,5 @@ internal static class RestEndpoints
         => tenant is null ? fields : [.. fields, ("tenant", tenant)];
 
     private static T Deserialize<T>(JsonObject body)
-        => (T)TransportErrors.Deserialize(JsonSerializer.SerializeToElement(body), typeof(T));
+        => (T)TransportErrors.Deserialize(RestQuery.ToElement(body), typeof(T));
 }

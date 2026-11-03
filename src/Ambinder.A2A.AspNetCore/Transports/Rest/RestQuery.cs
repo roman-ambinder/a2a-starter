@@ -32,11 +32,15 @@ internal static class RestQuery
             };
         }
         foreach (var (name, value) in pathValues) obj[name] = value;
-        return (T)TransportErrors.Deserialize(JsonSerializerElement(obj), typeof(T));
+        return (T)TransportErrors.Deserialize(ToElement(obj), typeof(T));
     }
 
-    private static System.Text.Json.JsonElement JsonSerializerElement(JsonObject obj)
-        => System.Text.Json.JsonSerializer.SerializeToElement(obj);
+    /// <summary>The object as a <see cref="System.Text.Json.JsonElement"/>, without reflection-based serialization (trim and AOT safe).</summary>
+    internal static System.Text.Json.JsonElement ToElement(JsonObject obj)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(obj.ToJsonString());
+        return document.RootElement.Clone();
+    }
 
     private static A2AException Bad(string name, string expected)
         => new(A2AErrorCode.InvalidParams, $"Invalid params: query parameter '{name}' must be {expected}.");
