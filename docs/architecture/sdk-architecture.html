@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambinder.A2A SDK Architecture</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --text: #1f2328;
+    --muted: #59636e;
+    --border: #d1d9e0;
+    --link: #0969da;
+    --code-bg: #eff2f5;
+    --accent: #0969da;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117;
+      --surface: #151b23;
+      --text: #e6edf3;
+      --muted: #9198a1;
+      --border: #3d444d;
+      --link: #4493f8;
+      --code-bg: #212830;
+      --accent: #4493f8;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117;
+    --surface: #151b23;
+    --text: #e6edf3;
+    --muted: #9198a1;
+    --border: #3d444d;
+    --link: #4493f8;
+    --code-bg: #212830;
+    --accent: #4493f8;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+  }
+  .layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 32px;
+  }
+  nav.toc {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    font-size: 14px;
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+  }
+  nav.toc h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; border: 0; padding: 0; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--muted); text-decoration: none; }
+  nav.toc a:hover { color: var(--link); }
+  main { min-width: 0; }
+  h1 { font-size: 2rem; line-height: 1.25; margin: 0 0 16px; }
+  h2 { font-size: 1.5rem; margin: 48px 0 16px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.2rem; margin: 32px 0 12px; }
+  p, ul, ol { margin: 0 0 16px; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--link); }
+  code {
+    font: 0.875em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    overflow-wrap: anywhere;
+  }
+  .table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--border); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) td { background: var(--surface); }
+  .diagram {
+    overflow-x: auto;
+    margin: 0 0 24px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  pre.mermaid { margin: 0; background: transparent; text-align: center; }
+  pre.mermaid:not([data-processed]) { color: var(--muted); font-size: 12px; text-align: left; white-space: pre; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    nav.toc { position: static; max-height: none; border-left: 0; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#1-overview-and-principles">1. Overview and principles</a></li>
+      <li><a href="#2-layers-and-package-map">2. Layers and package map</a></li>
+      <li><a href="#3-extension-points">3. Extension points</a></li>
+      <li><a href="#4-server-request-flow">4. Server request flow</a></li>
+      <li><a href="#5-client-call-flow">5. Client call flow</a></li>
+      <li><a href="#6-task-lifecycle-and-events">6. Task lifecycle and events</a></li>
+      <li><a href="#7-deployment-on-aks">7. Deployment on AKS</a></li>
+      <li><a href="#8-security-model">8. Security model</a></li>
+      <li><a href="#9-key-decisions">9. Key decisions</a></li>
+      <li><a href="#10-resolved-during-architecture-review">10. Resolved during architecture review</a></li>
+    </ol>
+  </nav>
+  <main>
+<h1>Ambinder.A2A SDK architecture</h1>
+<p>Date: 2026-11-03. Status: draft, derived from the SDK specs.</p>
+<p>This page shows how the Ambinder.A2A .NET SDK fits together. It is for product teams that adopt the SDK, for contributors, and for the builder. It adds no decisions. Every fact comes from the work plan <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a> and the 16 package specs (01 to 16). Where the specs disagreed or were silent, the points were resolved and are listed under <a href="#10-resolved-during-architecture-review">Resolved during architecture review</a>.</p>
+<p>Spec links: <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a> work plan, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a> packaging, <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a> public API, <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a> conformance, <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a> card signing, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a> stores, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a> cluster, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a> security, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a> push, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a> hosting, <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a> client, <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a> authoring and AI, <a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a> testing, <a href="../superpowers/specs/2026-11-03-sdk-13-docs-design.md">[13]</a> docs, <a href="../superpowers/specs/2026-11-03-sdk-14-performance-design.md">[14]</a> performance, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a> 0.3 compat, <a href="../superpowers/specs/2026-11-03-sdk-16-interop-design.md">[16]</a> interop.</p>
+<h2 id="1-overview-and-principles">1. Overview and principles</h2>
+<p>The SDK lets .NET teams build A2A agents (server) and call A2A agents (client) in production. It targets A2A v1.0.1 and .NET 10 only. Package IDs and namespaces are <code>Ambinder.A2A.*</code>, because the NuGet ID <code>A2A</code> belongs to the official SDK <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>.</p>
+<p>Every package must meet six principles <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>:</p>
+<ol><li><strong>Follows the A2A protocol.</strong> The official TCK passes every MUST and SHOULD on JSON-RPC, HTTP+JSON and gRPC, in CI on every PR.</li><li><strong>An enabler for .NET developers.</strong> <code>Add…()</code> and Options, <code>ILogger</code>, <code>IHttpClientFactory</code>, OpenTelemetry, Microsoft.Extensions.AI, nullable and XML docs.</li><li><strong>Easy to use.</strong> An agent in about 20 lines, a client call in about 5, safe defaults, every error says what to do.</li><li><strong>Performance efficient.</strong> Source-generated JSON, pooled buffers, no whole-body buffering, benchmarks in CI with budgets.</li><li><strong>Modular and extendable.</strong> Small packages, every seam an interface with a default, server middleware, client interceptors, an extension framework, no Azure or database in the core.</li><li><strong>Takes on known A2A integration pains</strong>, so teams do not each solve them again.</li></ol>
+<p>Two milestones <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    M1["M1: 1.0.0-preview<br/>single replica in production-like use<br/>01, 02, 03, 04, 05, 07, 08, 09, 10, 14 baseline, 16<br/>plus the internal test-harness slice of 12"]
+    M2["M2: 1.0.0<br/>scale-out, API frozen, packages signed<br/>06, 11, 12, 13, 15<br/>02 freeze, 14 budgets enforced"]
+    After["After 1.0<br/>Redis cluster backend, other stores,<br/>A2A v1.1 features, other auth schemes"]
+    M1 --> M2 --> After
+</pre></div>
+<ul><li><strong>M1 exit:</strong> the TCK passes, interop with Python, JS and Java passes, benchmarks have a baseline, previews ship unsigned. M1 deployments are single-replica only: "do not scale out before 1.0" (B1).</li><li><strong>M2 exit:</strong> 3 replicas on <code>kind</code> (and AKS when secrets exist), 0.3 peers work, docs site is live, public API frozen, packages signed.</li><li>Live Entra, Key Vault, Cosmos and AKS tests run only when their secrets exist and are skipped visibly otherwise (O3).</li></ul>
+<h2 id="2-layers-and-package-map">2. Layers and package map</h2>
+<p>Packages form layers. An arrow means "may depend on". Each layer depends only on layers below it. Bridges and infrastructure plug-ins sit side by side and do not depend on each other. The package IDs are exactly those of the package map in <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>. The table below gives each package's direct dependencies.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+    subgraph Tools["Developer tools"]
+        direction LR
+        Testing["Ambinder.A2A.Testing"]
+        TestAI["Ambinder.A2A.Testing.AI"]
+        TestConf["Ambinder.A2A.Testing.Conformance"]
+        NotShipped["not shipped: Ambinder.A2A.Benchmarks,<br/>Ambinder.A2A.Tck.Sut"]
+    end
+    subgraph Bridges["Bridges and compat"]
+        direction TB
+        ExtAI["Ambinder.A2A.Extensions.AI"]
+        AgentFw["Ambinder.A2A.Extensions.AI.AgentFramework"]
+        Compat["Ambinder.A2A.Compat.V0_3"]
+        CompatAsp["Ambinder.A2A.Compat.V0_3.AspNetCore"]
+    end
+    subgraph Infra["Infrastructure plug-ins"]
+        direction LR
+        subgraph Stores["Stores"]
+            direction TB
+            EF["Ambinder.A2A.Stores.EntityFrameworkCore"]
+            EFP["Ambinder.A2A.Stores.EntityFrameworkCore<br/>.PostgreSql, .Sqlite, .SqlServer"]
+            Cosmos["Ambinder.A2A.Stores.Cosmos"]
+        end
+        subgraph Ident["Identity and keys"]
+            direction TB
+            AspEntra["Ambinder.A2A.AspNetCore.Entra"]
+            ClientEntra["Ambinder.A2A.Client.Entra"]
+            KV["Ambinder.A2A.Azure.KeyVault"]
+        end
+        subgraph Scale["Cluster and push"]
+            direction TB
+            Cluster["Ambinder.A2A.Cluster"]
+            ClusterEntra["Ambinder.A2A.Cluster.Entra"]
+            Recv["Ambinder.A2A.Push.Receiver"]
+        end
+    end
+    subgraph Hosting["Hosting and transports"]
+        direction LR
+        Asp["Ambinder.A2A.AspNetCore"]
+        AspGrpc["Ambinder.A2A.AspNetCore.Grpc"]
+        ClientGrpc["Ambinder.A2A.Client.Grpc"]
+    end
+    subgraph Core["Core: no web host, no database, no Azure"]
+        direction LR
+        Server["Ambinder.A2A.Server<br/>card signing on the server side"]
+        Client["Ambinder.A2A.Client<br/>card verification"]
+    end
+    subgraph Proto["Protocol"]
+        Protocol["Ambinder.A2A.Protocol<br/>models, JSON, errors<br/>namespace Protocol.Signing: JCS and JWS"]
+    end
+    Tools --> Bridges
+    Tools --> Infra
+    Bridges --> Hosting
+    Infra --> Hosting
+    Hosting --> Core
+    Core --> Proto
+</pre></div>
+<p>There is no separate card-signing package. JCS and JWS primitives live in <code>Ambinder.A2A.Protocol</code> (namespace <code>Ambinder.A2A.Protocol.Signing</code>), signing in Server, verification in Client. Only the Key Vault key source is its own package <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>.</p>
+<div class="table-wrap"><table><thead><tr><th>Package</th><th>Layer</th><th>Depends on (our packages)</th><th>Owner spec</th><th>AOT</th><th>Milestone</th></tr></thead><tbody><tr><td><code>Ambinder.A2A.Protocol</code></td><td>Protocol</td><td>none (no package dependencies)</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a></td><td>yes</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Server</code></td><td>Core</td><td>Protocol</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td><td>yes</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Client</code></td><td>Core</td><td>Protocol</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td><td>yes</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.AspNetCore</code></td><td>Hosting</td><td>Server</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td><td>yes</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.AspNetCore.Grpc</code></td><td>Hosting</td><td>AspNetCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td><td>no (until proven)</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Client.Grpc</code></td><td>Hosting</td><td>Client</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td><td>no (until proven)</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.AspNetCore.Entra</code></td><td>Infrastructure</td><td>AspNetCore, Client.Entra</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Client.Entra</code></td><td>Infrastructure</td><td>Client</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Azure.KeyVault</code></td><td>Infrastructure</td><td>Server</td><td><a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a> (push part: <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>)</td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Stores.EntityFrameworkCore</code></td><td>Infrastructure</td><td>Server</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Stores.EntityFrameworkCore.PostgreSql</code></td><td>Infrastructure</td><td>Stores.EntityFrameworkCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Stores.EntityFrameworkCore.Sqlite</code></td><td>Infrastructure</td><td>Stores.EntityFrameworkCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Stores.EntityFrameworkCore.SqlServer</code></td><td>Infrastructure</td><td>Stores.EntityFrameworkCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Stores.Cosmos</code></td><td>Infrastructure</td><td>Server</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Push.Receiver</code></td><td>Infrastructure</td><td>Client (no Server, no AspNetCore)</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td><td>no</td><td>M1</td></tr><tr><td><code>Ambinder.A2A.Cluster</code></td><td>Infrastructure</td><td>Server, AspNetCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td><td>no</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Cluster.Entra</code></td><td>Infrastructure</td><td>Cluster, AspNetCore.Entra, Client.Entra</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td><td>no</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Extensions.AI</code></td><td>Bridges</td><td>Server, Client</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td><td>yes</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Extensions.AI.AgentFramework</code></td><td>Bridges</td><td>Extensions.AI</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td><td>no</td><td>M2 (preview if not GA, C12)</td></tr><tr><td><code>Ambinder.A2A.Compat.V0_3</code></td><td>Bridges</td><td>Client</td><td><a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td><td>yes for JSON-RPC and REST</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Compat.V0_3.AspNetCore</code></td><td>Bridges</td><td>Compat.V0_3, AspNetCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td><td>yes for JSON-RPC and REST</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Testing</code></td><td>Tools</td><td>Server, Client, Protocol, AspNetCore</td><td><a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a></td><td>no</td><td>M2 (internal slice in M1, B2)</td></tr><tr><td><code>Ambinder.A2A.Testing.AI</code></td><td>Tools</td><td>Testing, Extensions.AI</td><td><a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a></td><td>no</td><td>M2</td></tr><tr><td><code>Ambinder.A2A.Testing.Conformance</code></td><td>Tools</td><td>Testing</td><td><a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a> (cases: <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>)</td><td>no</td><td>M2</td></tr></tbody></table></div>
+<p>A server installs one package (<code>Ambinder.A2A.AspNetCore</code>), a client one (<code>Ambinder.A2A.Client</code>) <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>.</p>
+<p>Dependency rules <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a>:</p>
+<ul><li><strong>Core means no host.</strong> <code>Protocol</code>, <code>Server</code> and <code>Client</code> reference no ASP.NET Core, gRPC, Azure, EF or database package. <code>Protocol</code> has no package dependencies at all.</li><li><strong>Allow-list test.</strong> CI compares each <code>.nupkg</code> with <code>eng/package-dependencies.json</code>. A new dependency must be added to that file in the same PR.</li><li>**No <code>InternalsVisibleTo</code> between shipped assemblies.** Only to the matching test assemblies and to <code>Ambinder.A2A.Benchmarks</code>.</li><li><strong>Shared code is shared by source.</strong> Small helpers (page tokens, task state rules, request validation) live in <code>src/Shared/</code>, and the gRPC proto and mapper in <code>src/Grpc.Shared/</code>. Each package compiles them as <code>internal</code> (B12). Hot paths use the public typed <code>JsonTypeInfo&lt;T&gt;</code> accessors on <code>A2AJson</code>.</li><li><strong>gRPC is opt-in.</strong> A card that offers only gRPC gives an error that names the package to add.</li><li><strong>No foreign types in public signatures</strong>, except in the bridge packages (<code>PublicSurfaceTests</code>) <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a>.</li><li><strong>Ranges, not pins.</strong> Our packages depend on each other with <code>&gt;=</code> ranges. All packages share one version (MinVer, tag <code>vX.Y.Z</code>).</li><li>The core has no 0.3 names (a purity test, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a>) and does not reference <code>Ambinder.A2A.Cluster</code> <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li></ul>
+<h2 id="3-extension-points">3. Extension points</h2>
+<p>Every infrastructure seam is an interface with a default <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>. After 1.0, new members on these interfaces get a default implementation, or come as a new interface <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a>.</p>
+<div class="table-wrap"><table><thead><tr><th>Interface or seam</th><th>Package</th><th>Purpose</th><th>Default</th><th>Spec</th></tr></thead><tbody><tr><td><code>ITaskStore</code>, <code>IPushConfigStore</code>, <code>IOutboxStore</code>, <code>IInstanceStore</code></td><td>Server</td><td>Tasks, push configs, outbox rows, instance leases</td><td>Bounded in-memory stores; EF Core and Cosmos packages</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td><code>ITaskWriteContributor</code></td><td>Server</td><td>Add outbox rows in the same write as the task</td><td><code>PushOutboxContributor</code> (push)</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IStoreHealthProbe</code></td><td>Server</td><td>Store readiness</td><td>EF and Cosmos stores implement it</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td><code>ITaskEventBus</code></td><td>Server</td><td>Live events of a task</td><td>Local broker (internal)</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td><code>ITaskRouter</code></td><td>Server</td><td>Decide where an operation runs</td><td><code>LocalTaskRouter</code>; <code>ClusterTaskRouter</code> in Cluster</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td><code>ITaskForwarder</code></td><td>Server</td><td>Run an operation on another pod</td><td>Not registered; <code>HttpTaskForwarder</code> in Cluster</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td><code>IClusterPeerAuthentication</code></td><td>Cluster</td><td>Pod-to-pod credentials</td><td>Entra workload identity (<code>Cluster.Entra</code>)</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td><code>IOwnerResolver</code></td><td>Server</td><td>Caller to owner key</td><td><code>DefaultOwnerResolver</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>ITenantResolver</code></td><td>Server</td><td>Trusted A2A tenant</td><td><code>DefaultTenantResolver</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>ITaskContinuationPolicy</code></td><td>Server</td><td>Who may continue an interrupted task</td><td>Owner, or a grant holder for <code>AUTH_REQUIRED</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>ISecurityRequirementEvaluator</code></td><td>Server</td><td>Check one card security scheme</td><td><code>openIdConnect</code> built in; Entra evaluator in <code>AspNetCore.Entra</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>ISkillAuthorizer</code></td><td>Server</td><td>Per-skill authorization</td><td>Card skill requirements</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>IAgentCardSigningKeySource</code>, <code>A2ASigningKey</code></td><td>Protocol</td><td>Card signing keys</td><td>Local or development key; Key Vault package</td><td><a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a></td></tr><tr><td><code>IAgentCardVerifier</code></td><td>Client</td><td>Verify card signatures</td><td>Policy <code>IfPresent</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>, <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td></tr><tr><td><code>IPushSigningKeySource</code></td><td>Server</td><td>Push signature keys and JWKS</td><td>Ephemeral in Development; local keys; Key Vault</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IPushPayloadFormatter</code></td><td>Server</td><td>Webhook body per protocol version</td><td>1.0 <code>StreamResponse</code>; 0.3 formatter in compat</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td></tr><tr><td><code>IPushCredentialProtector</code></td><td>Server</td><td>Protect push credentials at rest</td><td>Data Protection (AspNetCore); pass-through in the core</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IPushRequestAuthenticator</code></td><td>Server</td><td>Computed webhook credentials</td><td>No-op</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IPushDeadLetters</code></td><td>Server</td><td>List, requeue, purge dead letters</td><td>Outbox-backed</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IPushSubscriptionRegistry</code>, <code>IPushDeduplicator</code>, <code>IPushBodyConverter</code></td><td>Push.Receiver</td><td>Receiver task match, dedupe, legacy bodies</td><td>In-memory registry and LRU dedupe; no converter</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td></tr><tr><td><code>IA2APushWaiter</code>, <code>PushSubscription</code></td><td>Client</td><td>Wait for a task by push</td><td>Implemented by Push.Receiver</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td><code>IA2AMiddleware</code></td><td>Server</td><td>Pipeline around every operation</td><td>Tracing, limits, auth checks, extensions</td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td>Per-request card factory (<code>AgentCardRequest</code>, <code>CardVariesBy</code>)</td><td>Server</td><td>Cards per host, tenant or caller</td><td>Static card</td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td><code>IAgentCardContributor</code></td><td>Server</td><td>Add members to card JSON</td><td>None in core; Entra, push, extensions, compat add some</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a></td></tr><tr><td><code>IA2AVersionDispatcher</code></td><td>AspNetCore</td><td>Serve other protocol versions</td><td>None; 0.3 in <code>Compat.V0_3.AspNetCore</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td></tr><tr><td><code>IGrpcAgentRouter</code></td><td>AspNetCore.Grpc</td><td>Pick the agent for a gRPC call</td><td><code>Auto</code>: one agent, else <code>Tenant</code></td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td><code>IA2AShutdownParticipant</code></td><td>Server</td><td>Steps in graceful shutdown</td><td>Cluster adds its steps</td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td><code>IAgentHandler</code>, <code>IAgentEventSink</code></td><td>Server</td><td>Agent logic</td><td>Helpers: <code>TaskUpdater</code>, delegate agents</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td></tr><tr><td><code>A2AExtension</code></td><td>Server</td><td>A2A extensions: card entry, request and outgoing hooks</td><td>None</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td></tr><tr><td><code>IA2AInterceptor</code></td><td>Client</td><td>Before and after every call</td><td>None</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td></tr><tr><td><code>IA2ACredentialProvider</code></td><td>Client</td><td>Auth headers per attempt</td><td><code>DelegateCredentialProvider</code>; Entra providers</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td><code>IA2ATransportFactory</code>, <code>IA2ATransport</code></td><td>Client</td><td>Wire transports</td><td>JSON-RPC and REST; gRPC and 0.3 as add-ons</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td></tr><tr><td><code>IAgentCardReader</code></td><td>Client</td><td>Parse card JSON into a 1.0 card</td><td>1.0 reader; 0.3 reader in compat</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td></tr><tr><td><code>IA2AAuthRequiredHandler</code>, <code>IA2AInputRequiredHandler</code></td><td>Client</td><td>Step-up and input during a wait</td><td>None: the wait returns</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td></tr></tbody></table></div>
+<p>Where the seams plug in:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    subgraph ServerSide["Server request path"]
+        direction TB
+        Ep["Transport endpoint<br/>JSON-RPC, REST, gRPC"] --> Ver["Version gate<br/>IA2AVersionDispatcher"]
+        Ver --> Pipe["IA2AMiddleware pipeline<br/>A2AExtension hooks at step 4"]
+        Pipe --> TM["TaskManager"]
+        TM --> Rt["ITaskRouter, ITaskForwarder<br/>IClusterPeerAuthentication"]
+        TM --> Run["IAgentHandler<br/>IAgentEventSink"]
+        Run --> TW["TaskWriter<br/>ITaskWriteContributor"]
+        TW --> St[("ITaskStore, IOutboxStore<br/>IPushConfigStore, IInstanceStore")]
+        TW --> Bus["ITaskEventBus"]
+        St --> Push["Push delivery<br/>IPushPayloadFormatter, IPushSigningKeySource<br/>IPushCredentialProtector, IPushRequestAuthenticator"]
+        Ep -.-> Sec["IOwnerResolver, ITenantResolver<br/>ISecurityRequirementEvaluator"]
+        Pipe -.-> Sec2["ITaskContinuationPolicy<br/>ISkillAuthorizer"]
+        Card["Card endpoint<br/>card factory, IAgentCardContributor<br/>IAgentCardSigningKeySource"]
+    end
+    subgraph ClientSide["Client call path"]
+        direction TB
+        Res["Card resolver<br/>IAgentCardVerifier, IAgentCardReader"] --> Sel["Interface selection<br/>IA2ATransportFactory"]
+        Sel --> Icp["IA2AInterceptor"]
+        Icp --> Cred["IA2ACredentialProvider"]
+        Cred --> Trn["IA2ATransport"]
+        Trn --> Wait["Wait helpers<br/>IA2AAuthRequiredHandler, IA2APushWaiter"]
+    end
+    Trn -->|"A2A request"| Ep
+    Res -->|"card fetch"| Card
+</pre></div>
+<h2 id="4-server-request-flow">4. Server request flow</h2>
+<p>All three transports and in-process calls go through one <code>A2APipelineRequestHandler</code>. No transport calls <code>TaskManager</code> directly <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>. The order below follows <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a> section 7.11, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a> and <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>.</p>
+<div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant T as Transport endpoint<br/>JSON-RPC, REST or gRPC
+    participant V as Version gate
+    participant P as IA2AMiddleware pipeline
+    participant M as TaskManager
+    participant H as AgentExecutionHost and agent
+    participant W as TaskWriter and store
+    participant B as ITaskEventBus
+    participant O as Push outbox
+    C->>T: request with A2A-Version and Authorization
+    Note over T: ASP.NET Core rate limit and body size limit<br/>decode, resolve agent, authenticate<br/>IOwnerResolver gives A2ACaller, ITenantResolver gives tenant<br/>access mode<br/>transports only authenticate, they never authorize
+    T->>V: negotiate version (header, query or gRPC metadata)
+    alt version 1.0
+        V->>P: A2AOperationContext
+    else empty header (0.3) or other version
+        V->>P: IA2AVersionDispatcher converts to 1.0 models, ProtocolVersion 0.3
+        V-->>C: else VersionNotSupported with supportedVersions
+    end
+    Note over P: 1 tracing, 2 limits (busy gives 503 or UNAVAILABLE)<br/>3 authorization: agent-level and skill-level card requirements, continuation policy<br/>4 extension negotiation and A2A-Extensions echo<br/>5 app middleware
+    P->>M: typed request
+    M->>W: new task (dedupe by messageId) or load task scoped by tenant, agent, owner
+    opt M2 cluster mode
+        M->>M: ITaskRouter forwards cancel, subscribe and continuation to the runner pod
+    end
+    M->>H: start run, Runner set to this instance
+    loop each agent event
+        H->>W: TaskUpdater or IAgentEventSink event
+        W->>W: ITaskWriteContributor adds outbox rows
+        W->>W: one atomic store write, Sequence plus 1
+        W->>B: Publish(task, sequence, event)
+        W-->>O: outbox rows committed with the task
+    end
+    alt blocking SendMessage
+        M-->>C: Task at terminal or interrupted state, or a direct Message
+    else returnImmediately
+        M-->>C: Task after the first event or after ReturnImmediatelyGrace (100 ms)
+    else SendStreamingMessage or SubscribeToTask
+        B-->>C: Task first, then events in order<br/>SSE heartbeat every 15 s, close at terminal or interrupted
+    end
+    O-->>O: PushDeliveryService claims rows and calls webhooks
+</pre></div>
+<p>Key rules:</p>
+<ul><li><strong>Blocking</strong> <code>SendMessage</code> waits until a terminal or interrupted state, as the spec requires. <code>MaxBlockingWait</code> can cap it, but it is off by default because it deviates from the spec <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Non-blocking</strong> (<code>returnImmediately</code>) returns within <code>ReturnImmediatelyGrace</code> (default 100 ms). With no agent event yet, the task is returned as <code>SUBMITTED</code> <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</li><li><strong>Streaming</strong> sends the task first, then events in order, and closes at a terminal or interrupted state. SSE sends a comment heartbeat at least every 15 s, also before the first event <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Errors</strong> carry <code>google.rpc.ErrorInfo</code> on every transport <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>. An <code>A2AException</code> from the agent before its first event fails the call and stores nothing. After that, the task ends <code>FAILED</code> <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</li><li><strong>Authorization</strong> runs in the pipeline (step 3), not in the transport. Transports authenticate and build the caller only, so the checks are the same on every transport and in-process <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Rate-limit key</strong> is computed in ASP.NET Core before the body is read, from token claims only: tenant id plus app id (app-only) or user object id (delegated), the same claims <code>OwnerKey</code> uses. Anonymous requests partition by client IP. It does not wait for <code>A2ACaller</code> <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</li><li><strong>Early rejections</strong> (authentication failure, <code>VersionNotSupported</code>) never reach the pipeline, so they get no <code>a2a.server</code> span. They appear only as the ASP.NET Core request span with its HTTP status, enriched with <code>error.type</code> when telemetry is on <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Overload</strong>: busy gives HTTP 503 with <code>Retry-After</code> and reason <code>SERVER_BUSY</code>; rate limits give 429 with <code>RATE_LIMITED</code> <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Agent runs</strong> live in <code>AgentExecutionHost</code>, not in the request. Each execution and each cancel gets its own DI scope. <code>HttpContext</code> is null in agent code <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</li></ul>
+<h2 id="5-client-call-flow">5. Client call flow</h2>
+<p><code>IA2AClient</code> is the only client the SDK hands out. Tracing, interceptors, resilience, limits and auth always apply <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>.</p>
+<div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant App as App code
+    participant F as IA2AClientFactory or A2AClient.ConnectAsync
+    participant R as IA2ACardResolver
+    participant X as A2AClient pipeline
+    participant Cr as IA2ACredentialProvider
+    participant Tr as IA2ATransport
+    participant A as Remote agent
+    App->>F: CreateClient(billing) or ConnectAsync(url)
+    F-->>App: IA2AClient, card fetched on first call
+    App->>X: SendAndWaitAsync(text)
+    X->>R: resolve card
+    R->>A: GET /.well-known/agent-card.json with If-None-Match
+    Note over R,A: on 404 try /.well-known/agent.json once<br/>read at most 1 MiB, honor Cache-Control and ETag
+    R->>R: IAgentCardVerifier on raw bytes, then IAgentCardReader
+    R-->>X: ResolvedAgentCard
+    X->>X: first interface with a supported binding and version<br/>tenant and A2A-Version come from that interface
+    X->>X: IA2AInterceptor.OnSendingAsync in registration order
+    X->>Cr: ApplyAsync, for example an Entra token cached per scope
+    X->>Tr: send, marked Idempotent or NotSafe
+    Tr->>A: request
+    A-->>Tr: 401 with WWW-Authenticate
+    X->>Cr: ApplyAsync with ForceRefresh and the parsed challenge
+    X->>Tr: retry once
+    A-->>Tr: stream: Task, then events
+    X->>X: ArtifactAssembler, then OnCompletedAsync in reverse order
+    X-->>App: A2AResult with Task or Message, State, Artifacts, Text
+</pre></div>
+<p>Resilience rules <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>:</p>
+<ul><li>Idempotent operations (GetTask, ListTasks, CancelTask, push-config operations, card fetch) retry 3 times with jitter and honor <code>Retry-After</code>. A circuit breaker works per named client.</li><li><code>SendMessage</code> is never resent after bytes were sent, unless <code>AllowSendRetry</code> is set (C11). Then only a new-task send is resent, with the same <code>messageId</code>. Our servers dedupe it by <code>(tenant, agent, owner, messageId)</code> <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li><li><code>SERVER_BUSY</code> and <code>RATE_LIMITED</code> are retry-safe for every operation. <code>SERVER_SHUTTING_DOWN</code>, <code>TASK_STREAM_INTERRUPTED</code> and <code>SUBSCRIBER_TOO_SLOW</code> trigger a resubscribe, not a resend.</li><li>Per-operation timeouts replace the 100 s <code>HttpClient</code> default: 30 s unary, 10 min blocking send, 5 min stream idle, 30 min total wait.</li><li>Reads are bounded: 8 MiB unary body, 4 MiB SSE event, 8 MiB gRPC message, 1 MiB card.</li></ul>
+<p>Waiting for completion <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+    Start["SendAndWaitAsync"] --> Mode{"Mode Auto"}
+    Mode -->|"card says streaming"| S["Stream: SendStreamingMessage"]
+    Mode -->|"otherwise"| Poll["Poll: returnImmediately send,<br/>then GetTask with backoff 1 s to 30 s"]
+    S --> Ev{"What happened?"}
+    Ev -->|"Message first"| Done["Return A2AResult"]
+    Ev -->|"terminal or interrupted"| Hand
+    Ev -->|"drop after the task id"| Res["SubscribeToTask resume<br/>snapshot replaces local state"]
+    Ev -->|"drop before the task id"| Err["A2AStreamInterruptedException<br/>no resend unless AllowSendRetry"]
+    Res -->|"up to MaxResumes = 5"| Ev
+    Res -->|"more drops"| Poll
+    Poll --> Hand{"INPUT_REQUIRED or<br/>AUTH_REQUIRED?"}
+    Hand -->|"handler returns a continuation"| Cont["Send continuation on the same task and context"]
+    Cont --> S
+    Hand -->|"no handler, or terminal"| Done
+</pre></div>
+<ul><li><code>Push</code> mode needs <code>PushWebhookUrl</code> and an <code>IA2APushWaiter</code> (implemented by <code>Ambinder.A2A.Push.Receiver</code>), and it still polls as a safety net. <code>Blocking</code> mode is one blocking send.</li><li><code>CancelRemoteOnCallerCancel</code> and <code>CancelRemoteOnTimeout</code> default to false (C11).</li><li><code>A2AConversation</code> keeps <code>ContextId</code> and the open <code>TaskId</code> across turns. The server mints all ids. The task id is cleared on a terminal state <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>.</li><li>After a step-up continuation, the wait stays on the continuation's own stream. A later resubscribe or poll uses the original caller's credentials (B6).</li><li>The extended card is cached per credential identity, never across identities (B11).</li></ul>
+<h2 id="6-task-lifecycle-and-events">6. Task lifecycle and events</h2>
+<p>Task states and who triggers each transition <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>:</p>
+<div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+    [*] --> SUBMITTED: new-task message, server mints the id
+    SUBMITTED --> WORKING: agent StartWorkAsync
+    SUBMITTED --> INPUT_REQUIRED: agent RequireInputAsync
+    SUBMITTED --> AUTH_REQUIRED: agent RequireAuthAsync
+    SUBMITTED --> COMPLETED: late reply or agent CompleteAsync
+    SUBMITTED --> FAILED: agent FailAsync or recovery
+    SUBMITTED --> REJECTED: agent RejectAsync
+    WORKING --> COMPLETED: agent CompleteAsync
+    WORKING --> FAILED: agent FailAsync, agent exception, or recovery and shutdown with policy Fail
+    WORKING --> REJECTED: agent RejectAsync, or skill check fails after the first event
+    WORKING --> INPUT_REQUIRED: agent RequireInputAsync
+    WORKING --> AUTH_REQUIRED: agent RequireAuthAsync with an optional grant
+    INPUT_REQUIRED --> WORKING: continuation by the owner
+    INPUT_REQUIRED --> SUBMITTED: server sets it when a continuation arrives
+    AUTH_REQUIRED --> SUBMITTED: server sets it when a continuation arrives
+    AUTH_REQUIRED --> WORKING: continuation by the owner or a grant holder
+    WORKING --> WORKING: policy Restart, runner released, recovery sweep re-runs
+    SUBMITTED --> CANCELED: CancelTask
+    WORKING --> CANCELED: CancelTask
+    INPUT_REQUIRED --> CANCELED: CancelTask
+    AUTH_REQUIRED --> CANCELED: CancelTask
+    COMPLETED --> [*]
+    FAILED --> [*]
+    CANCELED --> [*]
+    REJECTED --> [*]
+    note right of AUTH_REQUIRED
+        Interrupted states end the execution.
+        Runner is cleared, LastRunnerInstanceId is kept.
+        The grant is cleared when the task leaves AUTH_REQUIRED.
+    end note
+</pre></div>
+<p>The full table of allowed transitions, with who may trigger each, is in <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a> section D13 (the spec-conformance package owns <code>TaskStateRules</code>):</p>
+<div class="table-wrap"><table><thead><tr><th>From</th><th>Allowed to</th><th>Who</th></tr></thead><tbody><tr><td><code>SUBMITTED</code></td><td><code>WORKING</code>, <code>INPUT_REQUIRED</code>, <code>AUTH_REQUIRED</code>, terminal states</td><td>agent; <code>CANCELED</code> by cancel; <code>FAILED</code> by recovery</td></tr><tr><td><code>WORKING</code></td><td><code>WORKING</code>, <code>INPUT_REQUIRED</code>, <code>AUTH_REQUIRED</code>, terminal states</td><td>agent; <code>CANCELED</code> by cancel; <code>FAILED</code> by recovery</td></tr><tr><td><code>INPUT_REQUIRED</code>, <code>AUTH_REQUIRED</code></td><td><code>SUBMITTED</code>, <code>WORKING</code> (on continuation), <code>CANCELED</code></td><td>server on a continuation (<code>AUTH_REQUIRED</code> only for callers the continuation policy allows); cancel</td></tr><tr><td><code>COMPLETED</code>, <code>FAILED</code>, <code>REJECTED</code>, <code>CANCELED</code></td><td>none</td><td>terminal states are final</td></tr></tbody></table></div>
+<p>The agent never sets <code>SUBMITTED</code>; the server does <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</p>
+<ul><li><strong>Agent</strong> transitions go through <code>TaskUpdater</code> or the raw sink. A reply (<code>ReplyAsync</code>) creates no task <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>. With <code>returnImmediately</code>, a late reply moves a <code>SUBMITTED</code> task to <code>COMPLETED</code>.</li><li><strong>Cancel</strong> always ends in <code>CANCELED</code>, even if the agent ignores the token. Cancel of a <code>CANCELED</code> task returns it; cancel of another terminal state is <code>TaskNotCancelable</code> <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</li><li><strong>Recovery</strong> applies the agent's policy: <code>Fail</code> (default) or <code>Restart(n)</code> (opt-in, <code>[IdempotentAgent]</code> gives <code>Restart(1)</code>) (C10) <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Limits</strong>: <code>MaxArtifactBytesPerTask</code> fails the task as <code>InvalidAgentResponse</code> <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>A follow-up on a terminal task is <code>UnsupportedOperation</code>; the client starts a new task in the same context <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>.</li><li>Finished tasks are deleted after <code>TerminalTaskTtl</code> (30 days on durable stores, 1 h in memory). Interrupted tasks expire after <code>InterruptedTaskTtl</code> (C5) <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li><li>Unknown states from newer agents read as <code>Unspecified</code> on the client. They are neither terminal nor interrupted, so a wait goes on <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>.</li></ul>
+<p>How events fan out <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    Agent["Agent through TaskUpdater"] --> TW["TaskWriter<br/>per-task lock, ref-counted"]
+    TW --> Contrib["ITaskWriteContributor<br/>one outbox row per push config"]
+    Contrib --> Store[("ITaskStore<br/>task and outbox rows in one write<br/>Sequence plus 1, version check")]
+    Store --> Bus["ITaskEventBus.Publish<br/>never blocks"]
+    Store --> Obs["ITaskEventObserver<br/>in-process notices"]
+    Bus --> Ch1["subscriber channel<br/>256 slots"]
+    Ch1 --> S1["SSE or gRPC stream<br/>on the runner pod"]
+    Bus --> Ch2["subscriber channel"]
+    Ch2 --> Proxy["internal SSE to the receiving pod<br/>M2 cluster"]
+    Proxy --> S2["client stream on another pod"]
+    Store --> Out[("IOutboxStore<br/>lane per task and push config")]
+    Out --> PDS["PushDeliveryService<br/>claims lane heads"]
+    PDS --> Hook["Webhook<br/>Authorization and token headers<br/>optional X-A2A-Push-Signature"]
+</pre></div>
+<p>Ordering guarantees:</p>
+<ul><li>Every committed event gets the task's next <code>Sequence</code>. The event is saved before it is published, so a resubscribe snapshot matches the live stream <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li><li><code>SubscribeToTask</code> registers before it takes the snapshot, under the task lock. The client gets the snapshot, then every later event, with no gap or duplicate <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li><code>Publish</code> never waits. A full subscriber channel drops only that subscriber, with reason <code>SUBSCRIBER_TOO_SLOW</code>. Other subscribers are not slowed <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>A cross-pod proxy checks that <code>Sequence</code> goes up by one. A gap ends the stream with <code>TASK_STREAM_INTERRUPTED</code>, so the client resubscribes <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>Push is at-least-once. Each push config is its own lane, delivered in event order. A failing webhook never delays other configs. After the retry budget, the row is dead-lettered and the lane moves on <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>There is no replay of missed events (<code>Last-Event-ID</code>). The spec defines none. Recovery is a resubscribe with a fresh snapshot <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li></ul>
+<h2 id="7-deployment-on-aks">7. Deployment on AKS</h2>
+<p>The SDK does not depend on AKS or Kubernetes APIs. AKS is the tested target <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>. The sample is in <code>deploy/aks/</code> (Kustomize).</p>
+<p><strong>M1: one replica.</strong> The base runs 1 replica with <code>strategy: Recreate</code> (B1). Graceful shutdown and crash recovery already work on one pod <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    Cl["A2A clients"] -->|"HTTPS"| GW["Gateway API<br/>HTTPRoute and GRPCRoute<br/>TLS at the ingress, cert from Key Vault"]
+    subgraph AKS["AKS cluster"]
+        Svc["Service ClusterIP<br/>8080 http, 8081 grpc"]
+        Pod["agent-server pod<br/>1 replica, strategy Recreate<br/>probes /health/live, /health/ready, /health/startup<br/>terminationGracePeriodSeconds 35"]
+        SA["ServiceAccount<br/>workload identity label"]
+        NP["NetworkPolicy<br/>ingress only from the ingress namespace"]
+        Cfg["ConfigMap with A2A__ settings"]
+    end
+    GW --> Svc
+    Svc --> Pod
+    SA -.-> Pod
+    NP -.-> Pod
+    Cfg -.-> Pod
+    Pod --> DB[("PostgreSQL overlay<br/>or in-memory store")]
+    Pod -->|"workload identity token"| Entra["Entra ID"]
+    Pod -->|"sign card and push"| KV["Azure Key Vault"]
+    Pod -.->|"OTLP, optional otel overlay sets OTEL_EXPORTER_OTLP_ENDPOINT"| OTel["OTLP collector the team runs"]
+</pre></div>
+<ul><li>The pod listens on 8080 and 8081. Public URLs come from <code>PublicBaseUrl</code> and <code>PublicUrls</code>, never from the bind ports. gRPC serves all agents on one port and picks the agent by the interface <code>tenant</code> or by host <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>TLS mode <code>TerminatedAtProxy</code> needs trusted forwarded headers and turns on HSTS. Mode <code>None</code> fails startup outside Development <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>Shutdown: drain 5 s, grace 20 s, then <code>Fail</code> or release per agent policy. A restarted pod's recovery sweep handles the previous process's tasks within 30 s <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>An NGINX ingress variant is documented, with long read timeouts and buffering off for SSE and gRPC (C10).</li><li>OTLP: the SDK does not ship a collector. The optional <code>overlays/otel/</code> sets <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> to a collector the team runs, and the production docs page points to it <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-13-docs-design.md">[13]</a>.</li><li>Data Protection keys are not needed in M1 (single replica) <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>Stores: PostgreSQL is the primary durable store. Cosmos DB is supported, but not for cluster mode in 1.0 (B3) <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li></ul>
+<p><strong>M2: several pods with owner-pod forwarding.</strong> <code>AddA2ACluster()</code> with the EF Core store and Entra pod authentication <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    GW["Gateway API"] --> Svc["Service"]
+    subgraph Pods["overlays/cluster: 3 replicas, rolling update, PDB, HPA"]
+        PA["pod A<br/>runner of task t1"]
+        PB["pod B"]
+        PC["pod C"]
+    end
+    Svc --> PA
+    Svc --> PB
+    Svc --> PC
+    PB -->|"internal port 8090, h2c<br/>forward cancel, subscribe, continue<br/>Entra token with role A2A.Cluster.Peer"| PA
+    PA --> PG[("PostgreSQL via EF Core<br/>tasks with Runner and Sequence<br/>instance leases: heartbeat 5 s, lease 20 s")]
+    PB --> PG
+    PC --> PG
+    Hl["optional headless Service, only for the DNS address template<br/>NetworkPolicy: internal port only from same app label"] -.-> Pods
+    KR["Data Protection key ring<br/>Azure Blob Storage, protected by a Key Vault key"] -.-> Pods
+</pre></div>
+<p>A subscribe that lands on a pod that does not run the task:</p>
+<div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant B as Pod B, receiving
+    participant S as Shared EF Core store
+    participant A as Pod A, runner
+    C->>B: SubscribeToTask
+    B->>B: full middleware pipeline, owner and tenant checks
+    B->>S: load task, read runner lease from the instance cache
+    B->>A: POST /_a2a/cluster/v1/subscribe with HopCount 1 and reduced caller
+    A->>A: peer auth, tracing, handler with IsForwarded
+    A-->>B: internal SSE: snapshot, then events with Sequence
+    B-->>C: same events on the client transport, B sends its own heartbeats
+    alt pod A dies or the link drops
+        B->>S: re-read the task
+        B-->>C: final status if terminal, else TASK_STREAM_INTERRUPTED
+        C->>B: client resubscribes automatically
+    end
+    Note over S: TaskRecoveryService on any pod claims orphaned tasks<br/>worst case 20 s lease plus 10 s sweep
+</pre></div>
+<ul><li>Reads (<code>GetTask</code>, <code>ListTasks</code>, push-config CRUD, extended card) and new tasks always run locally. Cancel and subscribe go to the live runner. A continuation goes to the previous runner by default (<code>PreferPreviousRunner</code>, C7) <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>A forwarded call is never forwarded again (<code>HopCount</code>). A pod that is no longer the runner answers 409 and the sender retries once <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>Cancel has a fast path (forward) and a durable path (<code>CancelRequestedAt</code> in the store, polled every 2 s) <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>The default internal address is the pod IP from the downward API. The headless Service is used only when the DNS-based address template is configured <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li><code>overlays/cluster/</code> configures a shared Data Protection key ring (Azure Blob Storage, protected with a Key Vault key), so any pod can unprotect push credentials <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>Without <code>AddA2ACluster()</code> there is no internal port and no extra store call (Goal 10 of <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>).</li><li>Internal endpoints are mapped only on the internal port. A request without a valid pod credential gets 401 and never runs <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li></ul>
+<h2 id="8-security-model">8. Security model</h2>
+<p>Entra ID is the only auth scheme that ships. Other schemes plug in through <code>IOwnerResolver</code>, <code>ISecurityRequirementEvaluator</code>, <code>IAgentCardContributor</code> and <code>IA2ACredentialProvider</code> <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</p>
+<p>From token to task access:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart TD
+    Tok["Request"] --> HasTok{"Bearer token?"}
+    HasTok -->|"no"| Anon{"Agent AllowAnonymous?"}
+    Anon -->|"no"| E401["401 with challenge"]
+    Anon -->|"yes"| AnonC["owner anonymous<br/>ListTasks is empty, task id acts as a capability"]
+    HasTok -->|"yes"| Val{"JwtBearer valid?<br/>issuer, audience, tenant allow-list, RS256"}
+    Val -->|"no"| E401
+    Val -->|"yes"| Res["DefaultOwnerResolver"]
+    Res -->|"has scp: delegated"| User["OwnerKey.ForUser<br/>tid:TID/user:OID"]
+    Res -->|"no scp: app-only"| App["OwnerKey.ForApp<br/>tid:TID/app:APPID"]
+    Res -->|"no tid claim"| E401
+    User --> Caller["A2ACaller<br/>owner, kind, tenant id, app id, user object id"]
+    App --> Caller
+    AnonC --> Caller
+    Caller --> Ten["ITenantResolver<br/>trusted A2A tenant: route, or allow-listed request tenant"]
+    Ten --> Reqs{"Pipeline step 3: card securityRequirements met?<br/>agent level, then skill level"}
+    Reqs -->|"no"| E403["403, or REJECTED after the first event"]
+    Reqs -->|"yes"| Scope{"Task in scope?<br/>tenant, agent, owner"}
+    Scope -->|"no"| NF["TaskNotFound, existence never revealed"]
+    Scope -->|"yes"| Ok["Operation runs"]
+</pre></div>
+<ul><li><strong>Owner keys.</strong> App-only token: <code>tid:{tid}/app:{appid}</code>. Delegated token: <code>tid:{tid}/user:{oid}</code>. Built with <code>OwnerKey.ForApp</code> and <code>OwnerKey.ForUser</code>. The string format is frozen at 1.0, because every stored task holds it (B7) <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li><li><strong>Anonymous</strong> is off by default. In Development with no auth scheme registered, agents with no access mode run anonymous, with one warning each (C8). In other environments, an agent that needs auth with no scheme registered fails startup.</li><li><strong>Transports authenticate, the pipeline authorizes.</strong> Transports build the principal and <code>A2ACaller</code>. Agent-level and skill-level checks run in the <code>IA2AMiddleware</code> pipeline (step 3) <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li><strong>Rate-limit key</strong> uses the same token claims as <code>OwnerKey</code>, read before the body, so it needs no <code>A2ACaller</code>. Anonymous requests use the client IP <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</li><li><strong>Card is the source of truth.</strong> Requirements are OR across the list and AND within one requirement. Startup fails if a requirement names a scheme without an evaluator <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</li><li><strong>Tenant isolation.</strong> The A2A tenant (routing tenant) is not the Entra <code>tid</code>. Every store key holds the tenant <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>.</li></ul>
+<p><code>AUTH_REQUIRED</code> step-up with a grant (B6):</p>
+<div class="diagram"><pre class="mermaid">
+sequenceDiagram
+    participant U as Owner client app
+    participant S as Agent server
+    participant Ag as Agent
+    participant P as Approval app named in the grant
+    U->>S: SendMessage
+    S->>Ag: ExecuteAsync
+    Ag->>S: RequireAuthAsync with status message and TaskContinuationGrant<br/>AllowedOwners = OwnerKey.ForApp(tid, approvalAppId), ExpiresAt
+    S-->>U: Task in AUTH_REQUIRED with status message
+    Note over U,P: credentials travel out of band
+    P->>S: SendMessage with taskId
+    S->>S: ITaskContinuationPolicy: listed owner, before ExpiresAt, same A2A tenant
+    S->>Ag: new execution, grant cleared when the task leaves AUTH_REQUIRED
+    S-->>P: response of this call only
+    P->>S: later GetTask, ListTasks, SubscribeToTask or CancelTask
+    S-->>P: TaskNotFound, only the owner may do this
+</pre></div>
+<p>Reduced caller and pod-to-pod auth (B8, C6):</p>
+<ul><li>A task stores a reduced caller (<code>StoredCaller</code>): owner key, Entra tenant id, app id, user object id, roles and scopes. It never stores a token.</li><li>Runs on another pod and recovered runs rebuild <code>A2ACaller</code> from it, with <code>AccessToken = null</code>. On-behalf-of works only on the pod that received the request, during that request's run.</li><li>Forwarded calls carry <code>ClusterCallContext</code> with the reduced caller and no raw token. The receiving pod already ran every check (B5).</li><li>Pods authenticate to each other with Entra workload identity tokens that need the app role <code>A2A.Cluster.Peer</code>. <code>SharedKey</code> exists only in test code <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li><code>A2AAgentTool</code> calls remote agents with the agent's app identity by default. OBO is opt-in. It refuses task ids it did not create for the parent caller's owner (B9) <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>.</li></ul>
+<p>Signing and verification <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>:</p>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+    subgraph Srv["Agent server"]
+        KS["IAgentCardSigningKeySource<br/>local, development or Key Vault key"]
+        Sign["Sign once per card variant<br/>JCS payload, JWS with alg and kid"]
+        PK["IPushSigningKeySource<br/>ephemeral in Development, local, Key Vault"]
+        PSig["X-A2A-Push-Signature JWT<br/>iss, aud, jti, task_id, body_sha256"]
+        CJ["Card JWKS endpoint"]
+        PJ["Push JWKS at a2a-push-jwks.json"]
+        KS --> Sign
+        PK --> PSig
+    end
+    Sign --> Card["Served card with ETag<br/>hash of unsigned payload plus key ids"]
+    Card --> Ver["Client IAgentCardVerifier<br/>policy IfPresent by default<br/>keys: pinned, pinned JWKS, same-origin jku"]
+    CJ -.-> Ver
+    PSig --> Recv["Push.Receiver<br/>credentials, signature if present,<br/>task id match, dedupe by jti"]
+    PJ -.-> Recv
+</pre></div>
+<ul><li>Card signing follows spec 8.4 with RFC 8785 (JCS). Allowed algorithms: ES256 (default), ES384, PS256, RS256. Expired keys are skipped <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>.</li><li>The client verifies by policy <code>Off</code>, <code>IfPresent</code> (default) or <code>Required</code>. Known canonicalization variants of other SDKs are accepted with a warning until A2A #2122 is settled (C4) <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>.</li><li>A <code>jku</code> is trusted only on the same origin as the card. Keys are never fetched from an arbitrary <code>jku</code> <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>.</li><li>The push signature extension URI is <code>https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1</code>. Package 01 owns it, and it changes if the repo moves before 1.0 <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>Push always sends the spec-standard <code>Authorization</code> and token headers. The signature is an optional A2A extension. It is on when a key source is configured, and in Development (C9) <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>The receiver takes the JWKS location only from trusted agents. It checks the signature when one is present <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>Key Vault keys never leave the vault. A new key version is published before it signs (<code>PublishLead</code>), and an old one stays published for <code>RetireGrace</code> <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a>.</li><li>Push credentials are protected at rest through <code>IPushCredentialProtector</code>. Outbox rows never hold credentials <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>Tokens, assertions and <code>Authorization</code> values never appear in logs, traces, stores or exception messages <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</li></ul>
+<h2 id="9-key-decisions">9. Key decisions</h2>
+<p>"Owner" means the owner decided. "Claude" means Claude's call, recorded in the work plan <a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>.</p>
+<div class="table-wrap"><table><thead><tr><th>Decision</th><th>Why, in a few words</th><th>Who</th><th>Spec</th></tr></thead><tbody><tr><td>Keep and grow this SDK; do not fork the official <code>a2a-dotnet</code></td><td>The official SDK is still preview and in-memory only</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a></td></tr><tr><td>IDs and namespaces <code>Ambinder.A2A.*</code></td><td>The NuGet ID <code>A2A</code> belongs to the official SDK</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>Target .NET 10 only</td><td>Not stated</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a></td></tr><tr><td>Public on nuget.org, Apache 2.0, reserved <code>Ambinder</code> prefix</td><td>Open-source SDK</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a>, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>Abstract store; in-memory, EF Core and Cosmos in v1, one conformance suite</td><td>Durable stores without each team writing one</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td>EF Core: PostgreSQL first, SQLite for dev, SQL Server tested less</td><td>Not stated</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td>Multi-instance by HTTP owner-pod forwarding; Redis later</td><td>No Redis or message bus needed</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td>Entra ID is the only shipped auth</td><td>Other schemes plug in</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td>Owner key: tenant plus app, or tenant plus user; anonymous off</td><td>Users of one app must not share tasks</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td>0.3 compat ships in 1.0 GA</td><td>Owner moved it up because of the evidence</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a></td></tr><tr><td>Missing <code>A2A-Version</code> means 0.3, answered <code>VersionNotSupported</code> until compat</td><td>Spec 3.6: empty header is 0.3</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a></td></tr><tr><td>Spec A2A v1.0.1; proto pinned to the <code>v1.0.1</code> tag</td><td>A fixed target, drift check in CI</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a></td></tr><tr><td>Milestones M1 (single instance) and M2 (scale-out)</td><td>Early teams first</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a></td></tr><tr><td>O1: repo stays at <code>roman-ambinder/a2a-starter</code></td><td>Package URLs use it</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>O2: one builder; automated gates plus owner release approval</td><td>No second reviewer</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a></td></tr><tr><td>O3: no cloud resources yet; live tests skip visibly</td><td>Fakes, emulator and <code>kind</code> meet exit criteria</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-00-work-plan.md">[00]</a></td></tr><tr><td>O4: previews unsigned; Trusted Signing before 1.0.0</td><td>Owner action needed first</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>O5: author and copyright Roman Ambinder</td><td>Package metadata</td><td>Owner</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>C1: High or Critical advisories fail a PR; Windows tests nightly</td><td>New low advisories never block PRs</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a></td></tr><tr><td>C2: latest minor supported, previous minor gets security fixes for 3 months</td><td>Support window</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a></td></tr><tr><td>C3: only TCK-bug SHOULD failures may go on the known-issues list</td><td>MUST failures never hidden</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a></td></tr><tr><td>C4: card verify <code>IfPresent</code>, accept known canonicalization variants</td><td>A2A #2122 is open</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a></td></tr><tr><td>C5: 30-day retention, Cosmos key (tenant, agent, owner), messageId dedupe on</td><td>Data minimization, single-partition lists, safe retries</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td>C6: pod auth ships Entra workload identity only, in <code>Cluster.Entra</code></td><td>No Azure in <code>Cluster</code>; <code>SharedKey</code> test-only</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>C7: continuation affinity <code>PreferPreviousRunner</code>; interrupted streams resubscribe</td><td>Agents keep pod-local state</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td>C8: OBO checked by fake authority and manual device code; Dev-only anonymous</td><td>No user sign-in in CI</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td>C9: push signature on with a key source or in Dev; receiver verifies when present</td><td>No silent per-pod keys</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a></td></tr><tr><td>C10: Gateway API sample ingress; 200 runs per pod; recovery <code>Fail</code>, <code>Restart(1)</code> opt-in</td><td>Portable ingress; re-runs only for idempotent agents</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td>C11: <code>AllowSendRetry</code> and <code>CancelRemoteOnCallerCancel</code> default false</td><td>Other servers may not dedupe; a caller cancel is often a shutdown</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a></td></tr><tr><td>C12: Agent Framework bridge in 1.0, preview if its library is not GA</td><td>Dependency maturity</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a>, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>C13: MockEntra repo-only; <code>tck</code> and <code>interop</code> advisory for 2 weeks; 12 is size L</td><td>Teams use <code>TestIdentity</code></td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a></td></tr><tr><td>C14: 0.3 split into <code>Compat.V0_3</code> and <code>Compat.V0_3.AspNetCore</code></td><td>Client-only apps skip ASP.NET Core</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-15-compat-v03-design.md">[15]</a>, <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a></td></tr><tr><td>C15: <code>interop-smoke</code> on every PR, <code>interop-full</code> nightly and before release</td><td>Fast PRs, full matrix before shipping</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-16-interop-design.md">[16]</a></td></tr><tr><td>B1: M1 single replica with <code>Recreate</code>; rolling restart test in M2</td><td>Scale-out needs the cluster layer</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td>B2: internal test-harness slice in M1; no fixed ports or sleeps</td><td>05 and 09 need it early</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a></td></tr><tr><td>B3: cluster mode is EF Core only in 1.0; Cosmos fails fast</td><td>Cosmos cluster support after 1.0</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td>B4: released tasks found by <code>ListReleasedAsync</code>, swept after one lease length</td><td>One recovery rule for 06 and 09</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td>B5: full middleware runs only on the receiving pod</td><td>Every check runs once, none skipped</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a></td></tr><tr><td>B6: grant holder gets its own response, nothing more</td><td>Step-up is single-use</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td></tr><tr><td>B7: typed <code>OwnerKey</code>; format frozen at 1.0</td><td>Stored in every row</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a></td></tr><tr><td>B8: reduced caller across pods and recovery, no token</td><td>Tokens never stored</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-05-stores-design.md">[05]</a>, <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a></td></tr><tr><td>B9: <code>A2AAgentTool</code> uses app identity, binds ids to the owner</td><td>Prompt-injection guard</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a></td></tr><tr><td>B10: push-wait types in Client; OBO takes an assertion delegate</td><td>Receiver and client need no Server reference</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>, <a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td>B11: extended card cached per credential identity</td><td>The server filters it by caller</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-10-client-design.md">[10]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a></td></tr><tr><td>B12: shared helpers as linked internal source; typed <code>A2AJson</code> accessors</td><td>No <code>InternalsVisibleTo</code></td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a>, <a href="../superpowers/specs/2026-11-03-sdk-14-performance-design.md">[14]</a></td></tr><tr><td>B13: card ETag = hash of unsigned canonical payload plus key ids</td><td>Same ETag on every pod and after re-signing</td><td>Claude</td><td><a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-04-card-signing-design.md">[04]</a></td></tr></tbody></table></div>
+<p>Who made the 46 decisions in this table:</p>
+<div class="diagram"><pre class="mermaid">
+pie showData
+    title Who decided
+    "Owner" : 14
+    "Claude's call" : 32
+</pre></div>
+<h2 id="10-resolved-during-architecture-review">10. Resolved during architecture review</h2>
+<p>Nine points where the specs disagreed or were silent. Each was settled as Claude's call and written into the spec named below.</p>
+<ol><li>Agent-level and skill-level security checks run in the <code>IA2AMiddleware</code> pipeline (step 3). Transports only authenticate and never authorize: <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>The rate-limit key is computed in ASP.NET Core before the body is read, from token claims only (tenant id plus app id or user object id). Anonymous requests use the client IP: <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-07-security-entra-design.md">[07]</a>.</li><li>Requests rejected before the pipeline get no <code>a2a.server</code> span, only the ASP.NET Core request span with <code>error.type</code>: <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a>, <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>.</li><li>The task state transition table, with who may trigger each transition, lives in <a href="../superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md">[03]</a> (D13), and is referenced from <a href="../superpowers/specs/2026-11-03-sdk-11-authoring-ai-design.md">[11]</a> and <a href="../superpowers/specs/2026-11-03-sdk-02-public-api-design.md">[02]</a>.</li><li>The SDK ships no OTLP collector. The optional <code>overlays/otel/</code> sets <code>OTEL_EXPORTER_OTLP_ENDPOINT</code>: <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-13-docs-design.md">[13]</a>.</li><li>The Data Protection key ring is not needed in M1. In M2 the cluster overlay shares one (Blob Storage plus a Key Vault key): <a href="../superpowers/specs/2026-11-03-sdk-09-hosting-design.md">[09]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li>The headless Service is optional, used only with the DNS-based internal address template: <a href="../superpowers/specs/2026-11-03-sdk-06-cluster-design.md">[06]</a>.</li><li>The push signature extension URI is <code>https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1</code>: <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-08-push-design.md">[08]</a>.</li><li><code>Ambinder.A2A.Testing</code> depends on Server, Client, Protocol and AspNetCore: <a href="../superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md">[01]</a>, <a href="../superpowers/specs/2026-11-03-sdk-12-testing-quality-design.md">[12]</a>.</li></ol>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  (function () {
+    var forced = document.documentElement.getAttribute('data-theme');
+    var dark = forced ? forced === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default' });
+  })();
+</script>
+</body>
+</html>
