@@ -4,6 +4,8 @@ One sequence diagram per flow. Each flow lists where the agent code is, the cons
 
 Shorthand: `Client` is `samples/AgentClient` (library `src/A2A.Client`), `Server` is `samples/AgentServer` (library `src/A2A.Server`). Every request carries `A2A-Version: 1.0` unless noted. Run any command with `dotnet run --project samples/AgentClient -- <command>` after `./run-all.sh`. Back to the [README](../README.md).
 
+Each flow is also one trace when telemetry is on: the AgentClient runs a flow under a root span `flow <name>`. See [production.md](production.md#6-observability-otlp) and the [AppHost](../samples/AppHost/README.md).
+
 The task manager is `src/A2A.Server/Tasks/TaskManager.cs`. The three transports are in `src/A2A.Server/Transports/` (`JsonRpc`, `Rest`, `Grpc`). Client flows are in `samples/AgentClient/FlowRunner.Basics.cs` and `FlowRunner.Advanced.cs`.
 
 ## 1. Discovery

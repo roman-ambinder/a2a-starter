@@ -78,9 +78,9 @@
     <h1>A2A Reference Architecture</h1>
     <p class="lede">A reference repo your team copies from to build A2A agents and the clients that call them. Phase 1 runs entirely on one laptop: fake agents, a mock Entra, and in-memory state. It needs no keys, no cloud, and no Docker.</p>
     <div class="status" aria-label="Build status">
-      <span class="chip on">Task 1 scaffold + gRPC codegen: built</span>
-      <span class="chip on">Task 2 models + JSON: built, in review</span>
-      <span class="chip">Tasks 3–20: planned</span>
+      <span class="chip on">Phase 1: built</span>
+      <span class="chip on">Telemetry: built, off by default</span>
+      <span class="chip">Phase 2: not built</span>
     </div>
   </header>
 
@@ -131,7 +131,7 @@
           <line class="ln" x1="715" y1="230" x2="715" y2="248" marker-end="url(#a1)"/>
 
           <rect class="bx" x="350" y="250" width="430" height="36" rx="4"/>
-          <text class="t" x="565" y="273" text-anchor="middle">IA2ARequestHandler → TaskManager · event broker · auth</text>
+          <text class="t" x="565" y="273" text-anchor="middle">TracingRequestHandler → TaskManager · event broker · auth</text>
 
           <line class="ln" x1="565" y1="286" x2="565" y2="308" marker-end="url(#a1)"/>
           <text class="t-mono" x="573" y="301">IAgentHandler</text>
@@ -176,7 +176,7 @@
           <text class="t-label" x="113" y="338">⑤ register, read</text>
         </svg>
       </div>
-      <figcaption>The client gets a token from MockEntra (①) and reads the agent card (②). It then makes the A2A call (③) over whichever of the three transports it picks. All three transports go into one request handler, so every agent behaves the same on every transport. Long tasks push signed updates to the webhook receiver (④). The receiver checks the signature against the server's published keys, and the client reads what arrived (⑤).</figcaption>
+      <figcaption>The client gets a token from MockEntra (①) and reads the agent card (②). It then makes the A2A call (③) over whichever of the three transports it picks. All three transports go into one request handler, so every agent behaves the same on every transport. Long tasks push signed updates to the webhook receiver (④). The receiver checks the signature against the server's published keys, and the client reads what arrived (⑤). The request handler is a <code>TracingRequestHandler</code> around the task manager; see the telemetry figure below.</figcaption>
     </figure>
   </section>
 
@@ -184,30 +184,33 @@
     <h2>Code: what you copy</h2>
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 820 380" role="img" aria-label="Project dependencies. Samples depend on the src libraries. A2A.Client and A2A.Server depend on A2A.Protocol.Grpc, which is generated from a2a.proto and maps to the plain A2A.Protocol records. MockEntra uses nothing from src.">
+        <svg viewBox="0 0 820 380" role="img" aria-label="Project dependencies. AgentClient depends on A2A.Client and AgentServer on A2A.Server. AgentServer, WebhookReceiver and MockEntra also use SampleTelemetry, which uses A2A.Protocol for the telemetry names. A2A.Client and A2A.Server depend on A2A.Protocol.Grpc, which is generated from a2a.proto and maps to the plain A2A.Protocol records.">
           <defs>
             <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
           </defs>
 
           <text class="t-mono" x="20" y="22">samples/ · demo logic, not copied</text>
-          <rect class="bx-planned" x="40" y="34" width="170" height="54" rx="5"/>
+          <rect class="bx" x="40" y="34" width="170" height="54" rx="5"/>
           <text class="t" x="125" y="58" text-anchor="middle">AgentClient</text>
-          <text class="t-sub" x="125" y="75" text-anchor="middle">Task 18</text>
-          <rect class="bx-planned" x="230" y="34" width="170" height="54" rx="5"/>
+          <text class="t-sub" x="125" y="75" text-anchor="middle">console · all flows</text>
+          <rect class="bx" x="230" y="34" width="170" height="54" rx="5"/>
           <text class="t" x="315" y="58" text-anchor="middle">AgentServer</text>
-          <text class="t-sub" x="315" y="75" text-anchor="middle">Tasks 14–16</text>
-          <rect class="bx-planned" x="420" y="34" width="170" height="54" rx="5"/>
+          <text class="t-sub" x="315" y="75" text-anchor="middle">four demo agents</text>
+          <rect class="bx" x="420" y="34" width="170" height="54" rx="5"/>
           <text class="t" x="505" y="58" text-anchor="middle">WebhookReceiver</text>
-          <text class="t-sub" x="505" y="75" text-anchor="middle">Task 17</text>
-          <rect class="bx-planned" x="610" y="34" width="170" height="54" rx="5"/>
+          <text class="t-sub" x="505" y="75" text-anchor="middle">verifies push</text>
+          <rect class="bx" x="610" y="34" width="170" height="54" rx="5"/>
           <text class="t" x="695" y="58" text-anchor="middle">MockEntra</text>
-          <text class="t-sub" x="695" y="75" text-anchor="middle">Task 13 · no src refs</text>
+          <text class="t-sub" x="695" y="75" text-anchor="middle">fake Entra · no A2A code</text>
 
           <text class="t-mono" x="20" y="146">src/ · copy these</text>
-          <rect class="bx-planned" x="40" y="158" width="210" height="58" rx="5"/>
+          <rect class="bx-accent" x="40" y="158" width="210" height="58" rx="5"/>
           <text class="t" x="145" y="182" text-anchor="middle">A2A.Client</text>
           <text class="t-sub" x="145" y="200" text-anchor="middle">IA2AClient × 3 transports</text>
-          <rect class="bx-planned" x="300" y="158" width="210" height="58" rx="5"/>
+          <rect class="bx-accent" x="300" y="158" width="210" height="58" rx="5"/>
+          <rect class="bx" x="620" y="158" width="170" height="58" rx="5"/>
+          <text class="t" x="705" y="182" text-anchor="middle">SampleTelemetry</text>
+          <text class="t-sub" x="705" y="200" text-anchor="middle">OTLP setup · samples only</text>
           <text class="t" x="405" y="182" text-anchor="middle">A2A.Server</text>
           <text class="t-sub" x="405" y="200" text-anchor="middle">IAgentHandler · transports</text>
 
@@ -223,7 +226,10 @@
 
           <line class="ln" x1="125" y1="88" x2="140" y2="156" marker-end="url(#a2)"/>
           <line class="ln" x1="315" y1="88" x2="395" y2="156" marker-end="url(#a2)"/>
-          <line class="ln" x1="505" y1="88" x2="590" y2="276" marker-end="url(#a2)"/>
+          <line class="ln" x1="360" y1="88" x2="640" y2="156" marker-end="url(#a2)"/>
+          <line class="ln" x1="505" y1="88" x2="685" y2="156" marker-end="url(#a2)"/>
+          <line class="ln" x1="720" y1="88" x2="730" y2="156" marker-end="url(#a2)"/>
+          <line class="ln" x1="690" y1="216" x2="640" y2="276" marker-end="url(#a2)"/>
           <line class="ln" x1="145" y1="216" x2="285" y2="276" marker-end="url(#a2)"/>
           <line class="ln" x1="405" y1="216" x2="345" y2="276" marker-end="url(#a2)"/>
           <line class="ln" x1="160" y1="307" x2="218" y2="307" marker-end="url(#a2)"/>
@@ -231,15 +237,70 @@
           <line class="ln" x1="420" y1="307" x2="498" y2="307" marker-end="url(#a2)"/>
           <text class="t-label" x="459" y="298" text-anchor="middle">maps to</text>
 
-          <rect class="bx-accent" x="560" y="170" width="16" height="12" rx="2"/>
-          <text class="t-label" x="584" y="180">built</text>
-          <rect class="bx-planned" x="630" y="170" width="16" height="12" rx="2"/>
-          <text class="t-label" x="654" y="180">planned</text>
-          <line class="ln" x1="560" y1="204" x2="592" y2="204" marker-end="url(#a2)"/>
-          <text class="t-label" x="600" y="208">project reference</text>
+          <rect class="bx-accent" x="560" y="350" width="16" height="12" rx="2"/>
+          <text class="t-label" x="584" y="360">copy these</text>
+          <line class="ln" x1="670" y1="356" x2="702" y2="356" marker-end="url(#a2)"/>
+          <text class="t-label" x="710" y="360">project reference</text>
         </svg>
       </div>
       <figcaption>Only <code>src/</code> is meant to be copied. Demo logic stays in <code>samples/</code>. The wire format comes from the official <code>a2a.proto</code>. Tests send our JSON through Google's proto parser, which rejects unknown fields, so any drift from the spec fails a test.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Telemetry: where spans and metrics come from</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 820 340" role="img" aria-label="Telemetry. The client wraps each call in an a2a.client span under a per-flow root span. The trace context goes to the server, where the TracingRequestHandler records an a2a.server span, with the agent run and push delivery spans below it. The push request carries the trace context to the webhook receiver. The sample hosts export everything over OTLP, only when OTEL_EXPORTER_OTLP_ENDPOINT is set.">
+          <defs>
+            <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="a4x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-accent"/></marker>
+          </defs>
+
+          <!-- Client -->
+          <rect class="bx-strong" x="20" y="50" width="200" height="160" rx="5"/>
+          <text class="t-title" x="120" y="76" text-anchor="middle">AgentClient</text>
+          <text class="t-mono" x="120" y="104" text-anchor="middle">flow &lt;name&gt;</text>
+          <text class="t-sub" x="120" y="120" text-anchor="middle">root span, one per flow</text>
+          <text class="t-mono" x="120" y="146" text-anchor="middle">a2a.client &lt;Method&gt;</text>
+          <text class="t-sub" x="120" y="162" text-anchor="middle">TracingA2AClient</text>
+          <text class="t-sub" x="120" y="186" text-anchor="middle">plus the HTTP client span</text>
+
+          <!-- Server -->
+          <rect class="bx-group" x="300" y="30" width="280" height="220" rx="6"/>
+          <text class="t-title" x="316" y="54">AgentServer</text>
+          <rect class="bx" x="316" y="66" width="248" height="30" rx="4"/>
+          <text class="t-mono" x="440" y="86" text-anchor="middle">ASP.NET Core request span</text>
+          <rect class="bx-accent" x="316" y="104" width="248" height="44" rx="4"/>
+          <text class="t-mono" x="440" y="124" text-anchor="middle">a2a.server &lt;Method&gt;</text>
+          <text class="t-sub" x="440" y="140" text-anchor="middle">TracingRequestHandler</text>
+          <rect class="bx" x="316" y="156" width="248" height="30" rx="4"/>
+          <text class="t-mono" x="440" y="176" text-anchor="middle">a2a.agent.run · event a2a.task.state</text>
+          <rect class="bx" x="316" y="194" width="248" height="44" rx="4"/>
+          <text class="t-mono" x="440" y="214" text-anchor="middle">a2a.push.deliver</text>
+          <text class="t-sub" x="440" y="230" text-anchor="middle">PushNotificationSender</text>
+
+          <!-- Receiver -->
+          <rect class="bx-strong" x="662" y="185" width="138" height="60" rx="5"/>
+          <text class="t-title" x="731" y="211" text-anchor="middle">WebhookReceiver</text>
+          <text class="t-sub" x="731" y="229" text-anchor="middle">request span</text>
+
+          <!-- Trace context -->
+          <line class="ln-accent" x1="220" y1="125" x2="298" y2="125" marker-end="url(#a4x)"/>
+          <text class="t-accent" x="226" y="117">traceparent</text>
+          <line class="ln-accent" x1="580" y1="216" x2="660" y2="216" marker-end="url(#a4x)"/>
+          <text class="t-accent" x="584" y="208">traceparent</text>
+
+          <!-- Export -->
+          <rect class="bx-planned" x="270" y="282" width="530" height="46" rx="5"/>
+          <text class="t" x="535" y="302" text-anchor="middle">OTLP exporter, only when OTEL_EXPORTER_OTLP_ENDPOINT is set</text>
+          <text class="t-sub" x="535" y="319" text-anchor="middle">OpenTelemetry Collector, or the Aspire dashboard from samples/AppHost</text>
+          <path class="ln-dash" d="M120,210 V305 H268" marker-end="url(#a4)"/>
+          <line class="ln-dash" x1="440" y1="250" x2="440" y2="280" marker-end="url(#a4)"/>
+          <line class="ln-dash" x1="731" y1="245" x2="731" y2="280" marker-end="url(#a4)"/>
+        </svg>
+      </div>
+      <figcaption>The libraries only create spans and metrics through <code>System.Diagnostics</code>; they reference no OpenTelemetry package. The sample hosts add the OpenTelemetry SDK and an OTLP exporter, and only when <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> is set (dashed box). A flow becomes one trace, from the client's root span down to the webhook request. The server also records the metrics <code>a2a.server.tasks.completed</code>, <code>a2a.server.streams.active</code> and <code>a2a.server.push.deliveries</code>. Names, attributes and what is never recorded: <a href="production.md#6-observability-otlp">production.md, section 6</a>.</figcaption>
     </figure>
   </section>
 
@@ -306,7 +367,8 @@
       <dt>:5200</dt><dd>AgentServer HTTP: cards at <code>/.well-known/agent-card.json</code>, JSON-RPC at <code>/agents/{name}/jsonrpc</code>, REST under <code>/agents/{name}/rest</code>.</dd>
       <dt>:5201–5204</dt><dd>gRPC, one port per agent (echo, report, booking, secure). gRPC has no path to route on, so each agent gets its own port.</dd>
       <dt>:5300</dt><dd>WebhookReceiver: checks the bearer credentials, the notification token, and the server's signed JWT on every push.</dd>
-      <dt>Phase 2</dt><dd>Real Entra, real LLM providers, durable storage, TLS, telemetry, and multiple instances. All of these change config only; Phase 1 leaves the extension points in place.</dd>
+      <dt>:18888</dt><dd>Aspire dashboard, only when you run <code>samples/AppHost</code> (OTLP on :18889). Local use only; the apps keep their ports above.</dd>
+      <dt>Phase 2</dt><dd>Real Entra, real LLM providers, durable storage, TLS, and multiple instances. These need configuration and, for storage, your own <code>ITaskStore</code> and <code>IPushConfigStore</code>; Phase 1 leaves the extension points in place. See <a href="production.md">production.md</a>.</dd>
     </dl>
   </section>
 </main>
