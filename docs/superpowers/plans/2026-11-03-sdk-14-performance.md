@@ -1061,8 +1061,9 @@ Today the flow is: `ReadAsync`, then `byte[]`, then `ParseBody` (`bytes.All(...)
 
 **Files:**
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseWriter.cs`
-- Create: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseFrameWriter.cs`
-- Create: `src/Ambinder.A2A.AspNetCore/Transports/Sse/ISseFrameFormat.cs` (with `JsonRpcFrameFormat` and `RestFrameFormat` implementations)
+- Create: `src/Shared/Sse/SseFrameWriter.cs`
+- Create: `src/Shared/Sse/ISseFrameFormat.cs`. `JsonRpcFrameFormat` and `RestFrameFormat` stay in `src/Ambinder.A2A.AspNetCore/Transports/Sse/`, because they use AspNetCore's JSON-RPC and REST writers.
+- **Package 15 plan D3 (owner decision 2026-11-03):** the frame writer, `ISseFrameFormat` and the "flush when idle" write loop live in `src/Shared/Sse/` and are linked as `internal` source into `Ambinder.A2A.AspNetCore` (01 rule 10, B12). Package 15 links the same files into `Ambinder.A2A.Compat.V0_3.AspNetCore` and supplies its own `ISseFrameFormat`, so there is one SSE loop and one heartbeat implementation. The shared files reference no type outside the BCL, `Microsoft.AspNetCore.Http` and `System.IO.Pipelines`.
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseStreaming.cs`
 - Modify: `JsonRpcEndpoint` (stream branch), `RestEndpoints.StreamAsync`, `JsonRpcMessages` (add `WriteResult(Utf8JsonWriter, JsonElement id, …)` and `WriteError(...)` that write into a given writer)
 - Test: `tests/Ambinder.A2A.AspNetCore.Tests/Sse/SseWireCharacterizationTests.cs`
