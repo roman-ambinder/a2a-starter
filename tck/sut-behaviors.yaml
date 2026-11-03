@@ -1,0 +1,51 @@
+# Behaviours the TCK SUT (tests/A2A.Tck.Sut/TckAgent.cs) implements, in match order.
+# id = messageId prefix; response = task|message; terminal = completed|input-required|rejected|none.
+behaviors:
+  - id: tck-stream-artifact-chunked
+    response: task
+    terminal: completed
+  - id: test-resubscribe-message-id
+    response: task
+    terminal: completed
+  - id: tck-stream-artifact-text
+    response: task
+    terminal: completed
+  - id: tck-stream-artifact-file
+    response: task
+    terminal: completed
+  - id: tck-stream-ordering-001
+    response: task
+    terminal: completed
+  - id: tck-artifact-file-url
+    response: task
+    terminal: completed
+  - id: tck-message-response
+    response: message
+    terminal: none
+  - id: tck-input-required
+    response: task
+    terminal: input-required
+  - id: tck-complete-task
+    response: task
+    terminal: completed
+  - id: tck-artifact-text
+    response: task
+    terminal: completed
+  - id: tck-artifact-file
+    response: task
+    terminal: completed
+  - id: tck-artifact-data
+    response: task
+    terminal: completed
+  - id: tck-reject-task
+    response: task
+    terminal: rejected
+  - id: tck-stream-001
+    response: task
+    terminal: completed
+  - id: tck-stream-002
+    response: task
+    terminal: completed
+  - id: tck-stream-003
+    response: task
+    terminal: completed

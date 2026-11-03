@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/*.cs" />
+    <Compile Include="..\A2A.Tck.Sut\TckAgent.cs" Link="TckSut\TckAgent.cs" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
