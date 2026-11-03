@@ -10,9 +10,9 @@ internal static class ClientSupport
 {
     /// <summary>Adds A2A-Version, Accept, A2A-Extensions and the credential headers.</summary>
     public static async ValueTask ApplyHeadersAsync(HttpRequestMessage request, A2AClientOptions options, AgentCard card,
-        string accept, CancellationToken ct)
+        string protocolVersion, string accept, CancellationToken ct)
     {
-        AddHeader(request, A2AConstants.VersionHeader, options.ProtocolVersion);
+        AddHeader(request, A2AConstants.VersionHeader, protocolVersion);
         AddHeader(request, "Accept", accept);
         if (options.Extensions.Count > 0)
             AddHeader(request, A2AConstants.ExtensionsHeader, string.Join(',', options.Extensions));

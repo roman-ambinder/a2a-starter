@@ -36,7 +36,8 @@ public sealed class JsonRpcClientTests(MinimalServer server)
         {
             Credentials = credentials,
             Extensions = extensions ?? [],
-            ProtocolVersion = version,
+            // The client sends the interface version; a test that needs another one rewrites the header.
+            HttpClient = version == "1.0" ? null : VersionRewriteHandler.CreateClient(version),
         });
     }
 

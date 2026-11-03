@@ -34,7 +34,9 @@ public static class A2AClientFactory
                 ? "The agent card lists no supported interfaces."
                 : $"None of the agent card's interfaces is supported ({string.Join(", ", interfaces.Select(i => $"{i.ProtocolBinding}/{i.ProtocolVersion}"))}); " +
                   $"this client supports {string.Join(", ", SupportedBindings)} at A2A version {A2AConstants.ProtocolVersion}." +
-                  (interfaces.Any(i => IsMinor(i.ProtocolVersion, "0.3")) ? " Add the Ambinder.A2A.Compat.V0_3 package to talk to A2A 0.3 agents." : ""));
+                  (interfaces.Any(i => IsMinor(i.ProtocolVersion, "0.3"))
+                      ? " This card offers A2A 0.3 only for some interfaces; add the Ambinder.A2A.Compat.V0_3 package to call them."
+                      : ""));
         }
 
         var address = Is(chosen, A2AConstants.BindingGrpc) ? GrpcAddress(chosen.Url, options.GrpcUseTls) : chosen.Url;
@@ -42,11 +44,13 @@ public static class A2AClientFactory
             throw new NotSupportedException($"The agent card's {chosen.ProtocolBinding} interface has an invalid URL: '{chosen.Url}'.");
         // The interface's tenant is the default for requests that do not set one.
         var tenant = string.IsNullOrEmpty(chosen.Tenant) ? null : chosen.Tenant;
+        // The version header is the selected interface's Major.Minor; an empty interface version means the current one.
+        var version = MajorMinor(chosen.ProtocolVersion) ?? A2AConstants.ProtocolVersion;
         if (Is(chosen, A2AConstants.BindingRest))
-            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportRest, tenant);
+            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant, version), card.Name, A2ATelemetryNames.TransportRest, tenant);
         if (Is(chosen, A2AConstants.BindingGrpc))
-            return new TracingA2AClient(new GrpcA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportGrpc, tenant);
-        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportJsonRpc, tenant);
+            return new TracingA2AClient(new GrpcA2AClient(url, card, options, tenant, version), card.Name, A2ATelemetryNames.TransportGrpc, tenant);
+        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant, version), card.Name, A2ATelemetryNames.TransportJsonRpc, tenant);
     }
 
     /// <summary>
@@ -75,6 +79,18 @@ public static class A2AClientFactory
     {
         var parts = version?.Trim().Split('.');
         return parts is { Length: 2 or 3 } && $"{parts[0]}.{parts[1]}" == majorMinor;
+    }
+
+    /// <summary><c>Major.Minor</c> of a version (a patch part is dropped), or null for an empty or unparseable value.</summary>
+    private static string? MajorMinor(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+        var parts = version.Trim().Split('.');
+        return parts.Length is 2 or 3
+               && int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var major)
+               && int.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var minor)
+            ? $"{major}.{minor}"
+            : null;
     }
 
     /// <summary>True for an empty version or one whose <c>Major.Minor</c> equals <see cref="A2AConstants.ProtocolVersion"/>.</summary>

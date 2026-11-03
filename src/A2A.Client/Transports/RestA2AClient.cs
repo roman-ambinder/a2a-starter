@@ -21,12 +21,16 @@ public sealed class RestA2AClient : IA2AClient
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly string? _defaultTenant;
+    private readonly string _protocolVersion;
 
     /// <param name="baseUrl">The REST base URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
     /// <param name="defaultTenant">Tenant used when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
-    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
+    /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>A2A-Version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
+    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
+        string? protocolVersion = null)
     {
+        _protocolVersion = string.IsNullOrWhiteSpace(protocolVersion) ? A2AConstants.ProtocolVersion : protocolVersion;
         _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         ArgumentNullException.ThrowIfNull(baseUrl);
         _baseUrl = baseUrl.AbsoluteUri.TrimEnd('/');
@@ -211,7 +215,7 @@ public sealed class RestA2AClient : IA2AClient
             message.Content = new ByteArrayContent([]);
             message.Content.Headers.ContentType = new MediaTypeHeaderValue(A2AConstants.ContentType);
         }
-        await ClientSupport.ApplyHeadersAsync(message, _options, _card, accept, ct).ConfigureAwait(false);
+        await ClientSupport.ApplyHeadersAsync(message, _options, _card, _protocolVersion, accept, ct).ConfigureAwait(false);
 
         var response = await _http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         try

@@ -16,9 +16,6 @@ public sealed class A2AClientOptions
     /// <summary>Extension URIs sent in <c>A2A-Extensions</c> on every call.</summary>
     public IReadOnlyList<string> Extensions { get; init; } = [];
 
-    /// <summary>Value of the <c>A2A-Version</c> header.</summary>
-    public string ProtocolVersion { get; init; } = A2AConstants.ProtocolVersion;
-
     /// <summary>Preferred binding (<c>JSONRPC</c>, <c>HTTP+JSON</c>, <c>GRPC</c>) for the client factory.</summary>
     public string? PreferredBinding { get; init; }
 

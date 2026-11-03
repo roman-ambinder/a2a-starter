@@ -58,7 +58,7 @@ public sealed class ClientSelectionTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             A2AClientFactory.Create(Card(Interface("JSONRPC", "0.3"), Interface("HTTP+JSON", "0.3.0")), new A2AClientOptions()));
         Assert.Contains("JSONRPC/0.3", ex.Message);
-        Assert.EndsWith(" Add the Ambinder.A2A.Compat.V0_3 package to talk to A2A 0.3 agents.", ex.Message);
+        Assert.EndsWith(" This card offers A2A 0.3 only for some interfaces; add the Ambinder.A2A.Compat.V0_3 package to call them.", ex.Message);
     }
 
     [Fact]
