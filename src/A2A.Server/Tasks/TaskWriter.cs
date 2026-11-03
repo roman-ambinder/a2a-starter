@@ -64,8 +64,9 @@ internal sealed class TaskWriter(
         var state = evt.StatusUpdate?.Status.State ?? evt.Task?.Status.State;
         if (state is null) return;
         var value = A2ATelemetryNames.StateValue(state.Value);
-        // Only on a recorded span: an unrecorded one (such as ASP.NET Core's logging activity) would just allocate the event.
-        if (Activity.Current is { IsAllDataRequested: true } span)
+        // Only on a recorded span. ASP.NET Core's logging-only activity has IsAllDataRequested true (the Activity constructor's
+        // default) but is not recorded, unless the caller's traceparent was sampled.
+        if (Activity.Current is { IsAllDataRequested: true, Recorded: true } span)
             span.AddEvent(new ActivityEvent(A2ATelemetryNames.TaskStateEvent,
                 tags: new ActivityTagsCollection { { A2ATelemetryNames.TaskState, value } }));
         if (TaskStateRules.IsTerminal(state.Value))
