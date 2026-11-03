@@ -53,6 +53,9 @@ public sealed class MinimalServer : IAsyncLifetime
     /// <summary>Every call the transports made into the request handler: operation name and <see cref="A2ACallContext.Tenant"/>.</summary>
     public ConcurrentQueue<(string Operation, string? Tenant)> HandlerCalls { get; } = new();
 
+    /// <summary>The server's clock. Follows the system clock until a test calls <see cref="TestClock.Freeze"/>.</summary>
+    public TestClock Clock { get; } = new();
+
     public WebApplication App => _app ?? throw new InvalidOperationException("Server not started.");
 
     public async ValueTask InitializeAsync()
@@ -69,6 +72,8 @@ public sealed class MinimalServer : IAsyncLifetime
             .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(InvokerPolicy, p => p.RequireAuthenticatedUser().RequireRole(InvokerRole));
+
+        builder.Services.AddSingleton<TimeProvider>(Clock);
 
         // Registered before AddA2AServer (which uses TryAdd), so the transports call the recorder, which calls TaskManager.
         builder.Services.AddSingleton<IA2ARequestHandler>(sp => new RecordingHandler(sp.GetRequiredService<TaskManager>(), HandlerCalls));
@@ -123,6 +128,20 @@ public sealed class MinimalServer : IAsyncLifetime
         DefaultOutputModes = ["text/plain"],
         Skills = [new AgentSkill { Id = "echo", Name = "Echo", Description = "Echoes the text back." }],
     };
+}
+
+/// <summary>A clock that reads the system time until a test freezes it at an instant of its choice.</summary>
+public sealed class TestClock : TimeProvider
+{
+    private DateTimeOffset? _frozen;
+
+    /// <summary>Makes <see cref="GetUtcNow"/> return <paramref name="instant"/> until <see cref="Release"/>.</summary>
+    public void Freeze(DateTimeOffset instant) => _frozen = instant;
+
+    /// <summary>Back to the system clock.</summary>
+    public void Release() => _frozen = null;
+
+    public override DateTimeOffset GetUtcNow() => _frozen ?? base.GetUtcNow();
 }
 
 [CollectionDefinition(Name)]
