@@ -1,15 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-  <ItemGroup>
+    <!-- Dependency floor (spec 01 rule 7): the lowest .NET 10 version; Directory.Packages.props keeps the newest for tests and samples. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="10.0.0" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
-    <PackageReference Include="Grpc.AspNetCore" />
-    <PackageReference Include="Grpc.StatusProto" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
-    <ProjectReference Include="../Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/RequestValidator.cs" Link="Shared/RequestValidator.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Server.Tests" />

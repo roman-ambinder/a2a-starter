@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Tasks;

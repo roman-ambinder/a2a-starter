@@ -3,6 +3,8 @@
     <Project Path="src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
     <Project Path="src/Ambinder.A2A.Protocol.Grpc/Ambinder.A2A.Protocol.Grpc.csproj" />
     <Project Path="src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <Project Path="src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <Project Path="src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
     <Project Path="src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
   </Folder>
   <Folder Name="/samples/">

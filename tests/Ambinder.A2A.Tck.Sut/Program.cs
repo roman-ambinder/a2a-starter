@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.AspNetCore.Grpc;
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 
 // System under test for the official A2A TCK (https://github.com/a2aproject/a2a-tck). Public SDK APIs only.
@@ -19,6 +21,7 @@ builder.Services
         o.DefaultAgent = TckAgent.Name;
         o.GrpcPorts[TckAgent.Name] = grpcPort;
     })
+    .AddA2AGrpc()
     .AddAgent<TckAgent>(TckAgent.Name, _ => TckAgent.Card);
 builder.ConfigureA2AKestrel();
 

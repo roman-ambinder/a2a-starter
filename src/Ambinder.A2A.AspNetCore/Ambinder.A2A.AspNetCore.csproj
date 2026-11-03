@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/RequestValidator.cs" Link="Shared/RequestValidator.cs" />
+    <Compile Include="../Shared/TransportErrors.cs" Link="Shared/TransportErrors.cs" />
+    <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,8 @@ using System.Text.Encodings.Web;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.AspNetCore.Grpc;
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.Server.Tasks;
 using Microsoft.AspNetCore.Authentication;
@@ -81,6 +83,7 @@ public sealed class MinimalServer : IAsyncLifetime
                 o.GrpcPorts[ProtectedAgentName] = ProtectedGrpcPort;
                 o.Push.AllowPrivateNetworks = true;
             })
+            .AddA2AGrpc()
             .AddAgent<EchoAgent>(EchoAgentName, _ => Card(EchoAgentName, extended: true), _ => Card(EchoAgentName, extended: true) with
             {
                 Description = "Extended echo card",

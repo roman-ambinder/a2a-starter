@@ -1,6 +1,7 @@
 using Ambinder.A2A.Integration.Tests.Fixtures;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Tasks;

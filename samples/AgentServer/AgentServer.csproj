@@ -5,6 +5,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
     <ProjectReference Include="../SampleTelemetry/SampleTelemetry.csproj" />
   </ItemGroup>
   <ItemGroup>

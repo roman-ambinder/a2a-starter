@@ -13,6 +13,10 @@
     <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Shared with Ambinder.A2A.AspNetCore.Grpc (which compiles it internal). Public here until the client split removes this project. -->
+    <Compile Include="../Grpc.Shared/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" />
   </ItemGroup>
 </Project>

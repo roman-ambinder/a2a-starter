@@ -54,7 +54,9 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 |---|---|
 | [src/Ambinder.A2A.Protocol](src/Ambinder.A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
 | [src/Ambinder.A2A.Protocol.Grpc](src/Ambinder.A2A.Protocol.Grpc/README.md) | Generated gRPC code and the model-to-proto mapper. |
-| [src/Ambinder.A2A.Server](src/Ambinder.A2A.Server/README.md) | Hosting library: JSON-RPC, REST and gRPC endpoints, task manager, push delivery. |
+| [src/Ambinder.A2A.Server](src/Ambinder.A2A.Server/README.md) | Server core without a web host: agents, task manager, push delivery, `AddA2AServerCore`. |
+| [src/Ambinder.A2A.AspNetCore](src/Ambinder.A2A.AspNetCore/README.md) | ASP.NET Core hosting: JSON-RPC, REST and SSE endpoints, `AddA2AServer`, `MapA2A`. |
+| [src/Ambinder.A2A.AspNetCore.Grpc](src/Ambinder.A2A.AspNetCore.Grpc/README.md) | gRPC server endpoint (opt-in): `AddA2AGrpc`, `MapA2AGrpc`. |
 | [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over all three transports. |
 | [samples/AgentServer](samples/AgentServer/README.md) | Four demo agents. |
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
@@ -158,9 +160,9 @@ Every public test class under `tests/Ambinder.A2A.Integration.Tests/Flows/` is n
 
 ## Copy the server side
 
-1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Protocol.Grpc` and `src/Ambinder.A2A.Server` ([details](src/Ambinder.A2A.Server/README.md)), plus `proto/` (`Ambinder.A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Server`, `src/Ambinder.A2A.AspNetCore` and, to serve gRPC, `src/Ambinder.A2A.AspNetCore.Grpc` with `src/Grpc.Shared` ([details](src/Ambinder.A2A.Server/README.md)), plus `proto/` (`Ambinder.A2A.AspNetCore.Grpc` compiles `proto/a2a.proto`).
 2. Write an `IAgentHandler` (see `samples/AgentServer/Agents/EchoAgent.cs` for the smallest one).
-3. Register it with `AddA2AServer(...).AddAgent<THandler>(name, publicCard, extendedCard, policy)`, then call `MapA2A()` and `MapA2AGrpc()`.
+3. Register it with `AddA2AServer(...).AddA2AGrpc().AddAgent<THandler>(name, publicCard, extendedCard, policy)` (`AddA2AGrpc()` only when serving gRPC), then call `MapA2A()` and `MapA2AGrpc()`.
 4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
 5. Swap `ITaskStore` and `IPushConfigStore` for durable ones before production.
 

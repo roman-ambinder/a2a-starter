@@ -52,9 +52,11 @@ public sealed class HelloAgent : IAgentHandler
 
 For a task instead of a direct reply, call `sink.UpdateStatusAsync(TaskState.Working, null, ct)`, then `sink.AddArtifactAsync(artifact, append: false, lastChunk: true, ct)`, then `sink.UpdateStatusAsync(TaskState.Completed, null, ct)`. A terminal or interrupted state (`INPUT_REQUIRED`, `AUTH_REQUIRED`) ends the execution.
 
-The host:
+The host (needs `Ambinder.A2A.AspNetCore` and, for gRPC, `Ambinder.A2A.AspNetCore.Grpc`; this package itself has no web host and registers the host-neutral core with `AddA2AServerCore`):
 
 ```csharp
+using Ambinder.A2A.AspNetCore.Grpc;    // MapA2AGrpc, AddA2AGrpc
+using Ambinder.A2A.AspNetCore.Hosting;  // AddA2AServer, ConfigureA2AKestrel, MapA2A
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.Server.Push;
@@ -72,7 +74,8 @@ builder.Services.AddA2AServer(o =>
     o.PublicBaseUrl = "http://localhost:5200";
     o.DefaultAgent = "hello";            // served at /.well-known/agent-card.json
     o.GrpcPorts["hello"] = 5201;
-}).AddAgent<HelloAgent>("hello", _ => new AgentCard
+}).AddA2AGrpc()                      // opt in to gRPC
+  .AddAgent<HelloAgent>("hello", _ => new AgentCard
 {
     Name = "hello",
     Description = "Says hello.",

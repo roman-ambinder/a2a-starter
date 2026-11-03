@@ -6,7 +6,7 @@ The proto is pinned to A2A commit `4735f4876449c6f381825d8a841b31b16c6ad0c4`. Se
 
 ## What to copy
 
-Reference or copy the whole project, together with the `proto/` folder. Both [Ambinder.A2A.Server](../Ambinder.A2A.Server/README.md) and [Ambinder.A2A.Client](../Ambinder.A2A.Client/README.md) need it.
+Reference or copy the whole project, together with the `proto/` folder. The shared mapper source now lives in `src/Grpc.Shared`, which [Ambinder.A2A.AspNetCore.Grpc](../Ambinder.A2A.AspNetCore.Grpc/README.md) also compiles. [Ambinder.A2A.Client](../Ambinder.A2A.Client/README.md) needs it.
 The project sets `IncludeGoogleApiCommonProtos=true` so the `google/api` imports resolve.
 
 ## Extension points

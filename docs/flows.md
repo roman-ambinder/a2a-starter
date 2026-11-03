@@ -6,7 +6,7 @@ Shorthand: `Client` is `samples/AgentClient` (library `src/Ambinder.A2A.Client`)
 
 Each flow is also one trace when telemetry is on: the AgentClient runs a flow under a root span `flow <name>`. See [production.md](production.md#6-observability-otlp) and the [AppHost](../samples/AppHost/README.md).
 
-The task manager is `src/Ambinder.A2A.Server/Tasks/TaskManager.cs`. The three transports are in `src/Ambinder.A2A.Server/Transports/` (`JsonRpc`, `Rest`, `Grpc`). Client flows are in `samples/AgentClient/FlowRunner.Basics.cs` and `FlowRunner.Advanced.cs`.
+The task manager is `src/Ambinder.A2A.Server/Tasks/TaskManager.cs`. The transports are in `src/Ambinder.A2A.AspNetCore/Transports/` (`JsonRpc`, `Rest`) and `src/Ambinder.A2A.AspNetCore.Grpc/Transports/`. Client flows are in `samples/AgentClient/FlowRunner.Basics.cs` and `FlowRunner.Advanced.cs`.
 
 ## 1. Discovery
 
@@ -59,7 +59,7 @@ sequenceDiagram
     Note over C,S: stream closes after a terminal or interrupted state
 ```
 
-- Agent code: `ReportAgent.cs` (`sink.AddArtifactAsync(..., append, lastChunk, ct)`), SSE in `src/Ambinder.A2A.Server/Transports/Sse/`
+- Agent code: `ReportAgent.cs` (`sink.AddArtifactAsync(..., append, lastChunk, ct)`), SSE in `src/Ambinder.A2A.AspNetCore/Transports/Sse/`
 - Command: `stream`
 - Test: `ReportFlowTests.Report_stream_emits_working_chunks_and_completed_in_order`
 
@@ -215,7 +215,7 @@ sequenceDiagram
     S-->>C: error UnsupportedOperation (echo does not declare an extended card)
 ```
 
-- Code: `samples/AgentServer/Cards/AgentCards.cs` (`HasExtendedCard`), `src/Ambinder.A2A.Server/Hosting/AgentCardEndpoints.cs`
+- Code: `samples/AgentServer/Cards/AgentCards.cs` (`HasExtendedCard`), `src/Ambinder.A2A.AspNetCore/Hosting/AgentCardEndpoints.cs`
 - Command: `extended-card`
 - Tests: `DiscoveryAndAuthTests.Extended_card_requires_auth_and_adds_skills`, `Echo_extended_card_not_offered_is_unsupported_operation`
 
@@ -263,6 +263,6 @@ sequenceDiagram
 
 The same error maps to a JSON-RPC code, an HTTP status and a gRPC status with `ErrorInfo` (domain `a2a-protocol.org`). Auth failures are not A2A errors: they are HTTP 401 or 403 (gRPC `UNAUTHENTICATED` or `PERMISSION_DENIED`). The client throws `A2AException` for protocol errors and `A2AAuthException` for 401 and 403.
 
-- Code: `src/Ambinder.A2A.Protocol/Errors/`, `src/Ambinder.A2A.Server/Transports/TransportErrors.cs`, `Grpc/GrpcErrorMapper.cs`, `Rest/RestErrorWriter.cs`
+- Code: `src/Ambinder.A2A.Protocol/Errors/`, `src/Shared/TransportErrors.cs`, `src/Ambinder.A2A.AspNetCore.Grpc/Transports/GrpcErrorMapper.cs`, `src/Ambinder.A2A.AspNetCore/Transports/Rest/RestErrorWriter.cs`
 - Command: `errors`
 - Tests: `ReportFlowTests` (`Report_rejects_image_input_with_content_type_not_supported`), `SecureFlowTests`, `EchoFlowTests`, and all of them together in `ConsoleFlowRunnerTests.All_flows_pass_against_test_host`

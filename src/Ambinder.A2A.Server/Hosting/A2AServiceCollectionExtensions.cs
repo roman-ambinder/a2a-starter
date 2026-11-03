@@ -3,7 +3,6 @@ using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
 using Ambinder.A2A.Server.Tasks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -14,13 +13,13 @@ namespace Ambinder.A2A.Server.Hosting;
 public static class A2AServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, <see cref="TaskManager"/>
-    /// wrapped in <see cref="TracingRequestHandler"/> as <see cref="IA2ARequestHandler"/>, push delivery (config store, signing key, sender) gRPC services, <see cref="IAgentAuthorizer"/>,
-    /// <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>) and a startup check
-    /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).
-    /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
+    /// Registers the host-neutral A2A server core: options, agent catalog, in-memory task store, event broker,
+    /// <see cref="TaskManager"/> wrapped in <see cref="TracingRequestHandler"/> as <see cref="IA2ARequestHandler"/>,
+    /// push delivery (config store, signing key, sender) and <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>).
+    /// A web app calls <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c> instead, which calls this and adds the
+    /// ASP.NET Core parts.
     /// </summary>
-    public static A2AServerBuilder AddA2AServer(this IServiceCollection services, Action<A2AServerOptions> configure)
+    public static A2AServerBuilder AddA2AServerCore(this IServiceCollection services, Action<A2AServerOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
@@ -53,11 +52,7 @@ public static class A2AServiceCollectionExtensions
             sp.GetRequiredService<IOwnerResolver>()));
         services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
 
-        services.AddGrpc();
-        services.AddAuthorization();
-        services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
-        services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;
     }
 }
