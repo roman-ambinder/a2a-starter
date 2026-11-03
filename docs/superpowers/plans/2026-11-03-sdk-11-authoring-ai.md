@@ -49,8 +49,8 @@ Package 11 is M2, so most M1 packages should be merged when this runs. Task 0 re
 | Seam | Owner | Needed by | If missing |
 |---|---|---|---|
 | `IA2AMiddleware`, `A2AOperationContext.ResponseMetadata`, the extension-negotiation middleware in step 4 (slot 400) with its internal `IExtensionHook` list and `A2AExtensionsKeys.Active` (09 plan Task 6) | 09 (+03 D5) | Tasks 11, 12 | Stop before Task 11. |
-| `AgentOptions` and the `AddAgent(…, Action<AgentOptions>)` overload (09 plan Task 4) | 09 | Tasks 4, 6, 11 | Stop before Task 4. |
-| Zero-argument `AddA2AServer()` (09 plan, §7.2 task) | 09 | Tasks 4, 22 | Tasks 4 and 22 use `AddA2AServer(o => {})` and record the gap in the PR body. |
+| `AgentOptions` and the `AddAgent(…, Action<AgentOptions>)` overload (09 plan Task 3) | 09 | Tasks 4, 6, 11 | Stop before Task 4. |
+| Zero-argument `AddA2AServer()` (09 plan Task 9) | 09 | Tasks 4, 22 | Tasks 4 and 22 use `AddA2AServer(o => {})` and record the gap in the PR body. |
 | `AgentExecutionHost` (run scope, shutdown token and grace) | 09 | Tasks 6, 8 | Implement in `TaskManager` where the run is started today. |
 | `AgentRequestContext.Recovery` (09) | 09 | Task 1 | Keep whatever exists; nothing to add. |
 | `ITaskStore.ListAsync(TaskQuery)` with `ContextId` inside `OwnerScope`, `AgentTask.Metadata` kept by every store, new-task `messageId` dedupe | 05 | Tasks 2 (merge patch round-trip), 9, 10 | Stop before Task 9. Task 2's metadata test runs on the in-memory store only. |
@@ -75,6 +75,26 @@ Package 11 is M2, so most M1 packages should be merged when this runs. Task 0 re
 6. **Tool id binding storage** (B9): in the parent task's metadata under the key `ambinder.a2a.tools` (written through `AgentEventOptions.TaskMetadata`, so it survives pods and recovery): `{ "<remote agent url>": { "owner": "<parent owner key>", "contextId": "...", "taskIds": ["..."] } }`, keeping the last 50 task ids per remote agent. Outside an agent run (no ambient scope) the bindings are kept in the tool instance.
 7. **`ScriptedChatClient` test double** (see §0.2): test code only, never shipped.
 8. **Docs pages** use package 13's tree (see Task 25 for the mapping from the spec's section names to files).
+9. **Provisional task record (05).** 05's plan (Task 12 step 8) creates the `SUBMITTED` record *before* the handler runs, for the dedupe check, and deletes it when the agent's first event is a direct reply. This plan keeps that and adds two more deletions: an `A2AException` or `A2AAuthException` thrown before the first event also deletes the record, so "stores no task" holds (Task 5). `returnImmediately` returns that record after the grace window instead of creating one (Task 7).
+10. **Extension card entries on the extended card.** 03's `IAgentCardContributor` runs on the public card endpoints only (03 plan Task 13: `IsExtended` is always `false`). So the registry adds the same `capabilities.extensions` entries to the extended card model too, on the `GetExtendedAgentCard` path (Task 11).
+
+### 0.4 Changes after the cross-plan review (2026-11-03)
+
+This plan was checked against the plans merged after it (03, 05, 06, 07, 09, 10, 12, 13, 14, 16). These edits came out of that review. Each is marked in its task:
+
+| # | Gap | Fix | Task |
+|---|---|---|---|
+| 1 | 05 creates the `SUBMITTED` record before the handler runs, so "an error before the first event stores no task" and the `returnImmediately` rule needed restating | §0.3 item 9; tests that `GetTask` gives `TaskNotFound` after an early error | 5, 7 |
+| 2 | 07 turns `A2AAuthException` before the first event into 403, and after it into `REJECTED`; the error contract did not mention it | 07's rule takes precedence over the `A2AException` rules | 5 |
+| 3 | 03 D13 forbids the agent moving the task out of `INPUT_REQUIRED`/`AUTH_REQUIRED` in the same run | `TaskUpdater` test and a note for the sample rewrite | 3, 20 |
+| 4 | 03's card contributor does not reach the extended card | §0.3 item 10 | 11 |
+| 5 | 05's writer re-applies an event after a version conflict; a merge patch done outside that step would be lost or applied twice | merge and coalescing go inside the writer's `apply` function | 2 |
+| 6 | 12 moves `ScriptedChatClient` with `git mv` and no renames | namespace `Ambinder.A2A.Testing.AI`, no test-framework reference, members from 12 §4 | 15 |
+| 7 | 14 groups benchmarks by `[BenchmarkCategory]`; the plan had no category | add `Authoring` to 14's `Categories.cs` | 24 |
+| 8 | wrong 09 task numbers in §0.2 | fixed | §0.2 |
+| 9 | 16's interop SUT agent lives in `tests/Ambinder.A2A.Interop.Tests`, not in `samples/AgentServer` | wording fixed; 16's interop run is still a gate for the rewrite | 20 |
+| 10 | the forwarded-run half of B8 was left to 06, but 06's plan has no such test | added here, run when 06 has landed | 10 |
+| 11 | ordering of the outgoing hook versus 08's push contributor was unstated | the hook runs first, so push payloads carry extension metadata | 12 |
 
 ---
 
@@ -207,7 +227,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - After CancelTask, `UpdateStatusAsync` and `AddArtifactAsync` on the run's sink throw `OperationCanceledException` whose `CancellationToken` is the execution token. After the task reached a terminal state by another path, the same.
   - Illegal use (reply after a task event; a bad transition) still throws `A2AException(InvalidAgentResponse)`.
 - [ ] **Step 2:** Run the filters. Expected: FAIL.
-- [ ] **Step 3: Implement.** `public sealed record AgentEventOptions { public JsonElement? EventMetadata { get; init; } public JsonElement? TaskMetadata { get; init; } }`. New sink members exactly as spec §4; the old overloads become default methods on the interface. Merge and coalescing happen under the task lock in the writer path. Do not touch 07's `RequireAuthAsync(Message, TaskContinuationGrant?, CancellationToken)`; add no options overload to it unless 02 asks.
+- [ ] **Step 3: Implement.** `public sealed record AgentEventOptions { public JsonElement? EventMetadata { get; init; } public JsonElement? TaskMetadata { get; init; } }`. New sink members exactly as spec §4; the old overloads become default methods on the interface. Merge and coalescing happen under the task lock, **inside the `apply` function that 05's `TaskWriter.CommitAsync(current, apply, evt, execution)` takes** (05 plan Task 11). 05 re-applies `apply` to the reloaded record after a version conflict, so the patch and the coalescing are applied exactly once to the record that is finally written (review item 5). Add a test: a spy store throws `Conflict` once on the update that carries a `TaskMetadata` patch; the stored metadata has the patch applied once. Do not touch 07's `RequireAuthAsync(Message, TaskContinuationGrant?, CancellationToken)`; add no options overload to it unless 02 asks.
 - [ ] **Step 4:** Run the full suite. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(server): event and task metadata, text-part coalescing, cancel-safe sink`.
 
@@ -226,6 +246,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - `NewMessage(parts)` builds an agent message with the right ids.
   - `ReplyTextAsync(context, text, ct)` on `IAgentEventSink` replies with a text message.
   - `TaskUpdater` holds no lock and no state beyond the context and sink (two updaters on one context interleave correctly).
+  - After `RequireInputAsync` or `RequireAuthAsync`, a further `StartWorkAsync` or `CompleteAsync` in the same run fails the task with `InvalidAgentResponse`. This is 03's D13 rule (03 plan Task 17): only a continuation or a cancel may move a task out of an interrupted state. The XML docs of both methods say "return from `ExecuteAsync` after this call" (review item 3).
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement exactly the API in spec §3 (namespace `Ambinder.A2A.Server`).
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -260,6 +281,8 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - After the task exists, `InvalidOperationException("secret detail")` → task `FAILED` with text matching `^Agent error \(ref [0-9a-f]{32}\)$`, and the captured error log has the same ref in `ErrorRef`; `secret detail` is not in the task.
   - With an `Activity` running, the ref equals its trace id.
   - Reaching the end without a final state still fails the task (unchanged behavior, keep the existing test).
+  - **Provisional record (§0.3 item 9).** 05 creates a `SUBMITTED` record before the handler runs. After an `A2AException` before the first event, that record is deleted: `GetTask` of its id gives `TaskNotFound`, and the dedupe index no longer holds the `messageId`, so a retry of the same message runs the handler again.
+  - **`A2AAuthException` (07 plan Task 12) wins over the rules above.** Before the first event: 403 (blocking and streaming), and the provisional record is deleted. After the first event: `REJECTED` with "Not authorized for skill '<id>'.". It is never turned into `FAILED` (review item 2).
 - [ ] **Step 2:** Run. Expected: FAIL (at least the ref text and the streaming-before-first-byte case).
 - [ ] **Step 3:** Implement per §0.3 item 4.
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -288,7 +311,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
 **Files:** Modify `A2AServerOptions.cs` (`ReturnImmediatelyGrace`, default 100 ms), `TaskManager.cs`, `AgentEventSink.cs`. Test: `tests/Ambinder.A2A.Integration.Tests/Authoring/ReturnImmediatelyTests.cs`.
 
 - [ ] **Step 1: Write failing tests** (acceptance "`returnImmediately` tests"), using `FakeTimeProvider` (the spec's "sleeps 5 s, returns within grace + 200 ms" becomes: the agent waits on a gate, the test advances the fake clock by the grace, and the call returns before the gate is released):
-  - Agent emits nothing → SendMessage with `returnImmediately: true` returns a task in `SUBMITTED`, stored, visible to `GetTask`.
+  - Agent emits nothing → SendMessage with `returnImmediately: true` returns a task in `SUBMITTED`, stored, visible to `GetTask`. This is 05's provisional record (§0.3 item 9). Once it has been returned to the client it is never deleted: a later reply follows the coercion rule below, not 05's "delete on reply-first" rule.
   - Agent emits `WORKING` inside the grace → that task is returned.
   - Agent later calls `ReplyAsync` → the task becomes `COMPLETED` with the reply as status message.
   - Without `returnImmediately`, a reply after a task event is still `InvalidAgentResponse`.
@@ -343,6 +366,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   7. covered by Task 7.
   8. Mismatching `contextId`/`taskId` rejected before the agent runs.
   - B8: in a recovered run (09 `Restart` policy, if present), `context.Caller` is the reduced caller and `AccessToken` is null. If 09's recovery is not merged, list this test as blocked.
+  - B8, forwarded half (review item 10): if package 06 has landed, a continuation forwarded to the previous runner (06's `ClusterTestHarness`, two hosts, `ContinuationAffinity = PreferPreviousRunner`) gives the owner pod's handler a `context.Caller` with the same owner key, roles and scopes, and `AccessToken` null. If 06 has not landed, list it as an M2 follow-up for 06's cluster suite.
 - [ ] **Step 2:** Run. Expected: PASS, or fix the cause.
 - [ ] **Step 3:** Commit `test(server): multi-turn contract`.
 
@@ -359,6 +383,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - `AddAgent(…, o => o.UseExtension<T>())` → only that agent's card has it.
   - A hand-written card entry with the same URI is kept and not duplicated.
   - The extension is a singleton (same instance across calls).
+  - The extended card (`GetExtendedAgentCard`, all three transports) has the same entries. 03's contributor does not run there, so `ExtensionRegistry` adds them to the extended card model before it is returned (§0.3 item 10). Same no-duplicate rule.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement `A2AExtension` exactly as spec §7 (abstract `Uri`; virtual `Required`, `Description`, `CardParams`, `OnRequestAsync`, `OnOutgoingAsync`).
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -376,6 +401,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - Hooks of an inactive extension do not run.
   - Outgoing hook: `SetMetadata<T>` on a status message, an artifact and a reply merges into `metadata[Uri]` and adds `Uri` to that message's or artifact's `extensions`; hooks run in registration order.
   - `context.Extension<T>()` returns the instance when active, null otherwise; `ActivatedExtensions` lists instances; `ActiveExtensions` (URIs) unchanged.
+  - The outgoing hook runs in the sink **before** `TaskWriter.CommitAsync`, so 08's `PushOutboxContributor` (an `ITaskWriteContributor`, run inside the commit) sees the hook's metadata. Test: with push configured, the delivered push payload carries `metadata[Uri]` set by the hook (review item 11). Skip this case if 08 has not landed, and list it.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement per §0.3 item 1. Typed metadata access uses only `JsonTypeInfo<T>`.
 - [ ] **Step 4:** Run the full suite (03's extension tests must stay green). Expected: PASS.
@@ -413,6 +439,11 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
 ### Task 15: `ScriptedChatClient` test double (test-only, §0.2)
 
 **Files:** Create `tests/Ambinder.A2A.Extensions.AI.Tests/Fakes/ScriptedChatClient.cs` (skip if `Ambinder.A2A.Testing.AI` exists; use it instead).
+
+Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and no renames (12 plan Task 13). So, from the start (review item 6):
+- namespace `Ambinder.A2A.Testing.AI`;
+- no xUnit or other test-framework reference; failures throw a plain exception;
+- the shape from spec 12 §4: answers scripted by turn or by predicate, streamed word by word, a scripted exception, a wait hook (a `TaskCompletionSource` the test completes; 12 swaps in its `Gate` later), and a record of the received `ChatMessage`s and the cancellation token.
 
 - [ ] **Step 1:** Write a test: a scripted client returns a fixed response, a fixed stream of updates with explicit "flush points" (a callback the test controls), throws a scripted exception, and records the messages it received and the cancellation token.
 - [ ] **Step 2:** Run. Expected: FAIL.
@@ -500,7 +531,8 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
 
 - [ ] **Step 1:** Run the flow tests to record the green baseline.
 - [ ] **Step 2:** Rewrite with `TaskUpdater` (spec §10 table): `BookingAgent` uses `GetConversationAsync`/task metadata instead of regex over history; `ReportAgent` keeps `IChatClient` and streams through `ArtifactWriter`; `SecureAgent` uses `RequireAuthAsync` (with a grant where the flow needs one).
-- [ ] **Step 3:** Run the flow tests. Expected: PASS with unchanged wire behavior (these agents are package 16's interop SUT agents).
+- [ ] **Step 3:** Run the flow tests. Expected: PASS with unchanged wire behavior. Package 16's interop agent lives in `tests/Ambinder.A2A.Interop.Tests`, not in the sample (review item 9). Still, run 16's `self` peer interop tests if present; they exercise the same `TaskManager` and sink paths.
+  - Each rewritten agent returns from `ExecuteAsync` right after `RequireInputAsync`/`RequireAuthAsync` (03 D13, review item 3). Today's `BookingAgent` already returns after every `INPUT_REQUIRED`; keep that in the rewrite.
 - [ ] **Step 4:** Commit `refactor(samples): sample agents on TaskUpdater`.
 
 ### Task 21: Remaining API and docs-comment pass
@@ -532,7 +564,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
 
 ### Task 24: Benchmarks (principle 4) — needs 14
 
-**Files:** `benchmarks/Ambinder.A2A.Benchmarks/Authoring/TaskUpdaterBenchmarks.cs`, `StreamedArtifactBenchmarks.cs`; baseline per 14.
+**Files:** `benchmarks/Ambinder.A2A.Benchmarks/Authoring/TaskUpdaterBenchmarks.cs`, `StreamedArtifactBenchmarks.cs`; baseline per 14. Add `public const string Authoring = "Authoring";` to 14's `benchmarks/Ambinder.A2A.Benchmarks/Categories.cs` and put `[BenchmarkCategory(Categories.Authoring)]` on both classes (review item 7).
 
 - [ ] **Step 1:** Add: (a) 1,000 events through `TaskUpdater` vs the raw sink — target overhead under 5%; (b) a streamed answer of 10 KB vs 100 KB through `ArtifactWriter` — target time ratio under 15 (linear, not quadratic).
 - [ ] **Step 2:** Run `dotnet run -c Release --project benchmarks/Ambinder.A2A.Benchmarks -- --filter "*TaskUpdater*" "*StreamedArtifact*"`. Record results.
@@ -573,7 +605,7 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
 |---|---|
 | `AgentRequestContext` members and unit tests | 1 |
 | `GetConversationAsync` tests | 9 |
-| Recovered/forwarded run's `Caller` is the reduced caller (B8) | 10 (forwarded: package 06, M2 follow-up) |
+| Recovered/forwarded run's `Caller` is the reduced caller (B8) | 10 (the forwarded case runs when 06 has landed) |
 | `TaskUpdater` tests incl. `RequireAuthAsync` grant and `ArtifactWriter` | 3 |
 | Sink tests | 2 |
 | Error tests | 5 |
