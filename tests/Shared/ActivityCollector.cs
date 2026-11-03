@@ -12,6 +12,9 @@ public sealed class ActivityCollector : IDisposable
     private readonly ActivityListener _listener;
     private readonly ConcurrentQueue<Activity> _stopped = new();
 
+    /// <summary>Pass as the only source to listen to every source (still limited to Root's trace).</summary>
+    public const string AllSources = "*";
+
     public ActivityCollector(params string[] sources)
     {
         // A fresh W3C trace ID per collector.
@@ -23,7 +26,7 @@ public sealed class ActivityCollector : IDisposable
         var names = new HashSet<string>(sources);
         _listener = new ActivityListener
         {
-            ShouldListenTo = source => names.Contains(source.Name),
+            ShouldListenTo = source => names.Contains(AllSources) || names.Contains(source.Name),
             Sample = (ref ActivityCreationOptions<ActivityContext> options) =>
                 options.Parent.TraceId == traceId ? ActivitySamplingResult.AllDataAndRecorded : ActivitySamplingResult.None,
             ActivityStopped = _stopped.Enqueue,
