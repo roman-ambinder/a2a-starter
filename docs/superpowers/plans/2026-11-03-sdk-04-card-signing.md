@@ -65,7 +65,7 @@ Package 04 depends on 03, 07, 10 and 16 (spec "Dependencies"). They may or may n
 | 03 card pipeline (`IAgentCardContributor`, per-version card bytes cache) | Task 9 | Branch A: sign inside 03's cache, after the contributors run | Branch B: sign in the card endpoint's serializer; implement B13 there |
 | 03 `docs/spec-decisions.md` | Task 19 | add rows | the file already exists on `master` today; add rows |
 | 07 credential helper | Task 16 | reuse it only if it is public in a package that `Ambinder.A2A.Azure.KeyVault` may reference (it may reference `Ambinder.A2A.Server` and Azure packages only) | implement the same rule as an internal helper |
-| 10 resolver (`ResolvedAgentCard`, `AddA2AClient`, `ConnectAsync`) | Task 14 | Branch A: wire the verifier into 10's resolver and DI | Branch B: wire it into the existing `A2ACardResolver`; add `ResolvedAgentCard` in 10's shape |
+| 10 resolver (`IA2ACardResolver`, `ResolvedAgentCard`, `AddA2AClient`, `A2AClient`; plan `2026-11-03-sdk-10-client.md`) | Task 14 | Branch A: wire the verifier into 10's resolver, options and DI | Branch B: verify inside the existing `A2ACardResolver` only; 10's types and DI are left to 10, with a hand-off |
 | 02 PublicAPI files | every task with public API | add lines to `PublicAPI.Unshipped.txt` | nothing |
 | 14 benchmarks project | Task 18 | add benchmarks | record a hand-off in the PR body |
 | 16 interop harness | Task 15 | consume `python/` and `js/` vectors | ship empty folders with README; the test skips visibly |
@@ -154,7 +154,6 @@ src/Ambinder.A2A.Client/Signing/
   JwksCache.cs                                  (internal)
   CardVerificationPolicyEnforcer.cs             (internal) accept / warn / reject
   A2ACardVerificationException.cs
-  (Branch B only) ../ResolvedAgentCard.cs
 
 src/Ambinder.A2A.Azure.KeyVault/
   Ambinder.A2A.Azure.KeyVault.csproj
@@ -187,6 +186,8 @@ src/Ambinder.A2A.AspNetCore/.../AgentCardEndpoints.cs  (Branch B) sign + B13 ETa
 src/Ambinder.A2A.Server/Tasks/TaskManager.cs         extended card is signed
 src/Ambinder.A2A.AspNetCore/.../A2AEndpointRouteBuilderExtensions.cs  map card JWKS
 src/Ambinder.A2A.Client/A2ACardResolver.cs           (Branch B) verify raw bytes
+src/Ambinder.A2A.Client/Cards/{A2ACardResolver,A2ACardResolverOptions,ResolvedAgentCard}.cs, A2AClient.cs,
+  DependencyInjection/A2AClientServiceCollectionExtensions.cs   (Branch A) package 10's files, see Task 14
 docs/spec-decisions.md                               rows (Task 19)
 ```
 
@@ -221,7 +222,7 @@ git grep -n "interface IAgentCardContributor" -- src     # 03 card pipeline -> T
 ```
 
 ```bash
-git grep -n "record ResolvedAgentCard" -- src            # 10 resolver -> Task 14 Branch A if found
+git grep -n "interface IA2ACardResolver" -- src         # 10 resolver -> Task 14 Branch A if found
 ```
 
 ```bash
@@ -1447,23 +1448,63 @@ Required message texts (tests assert the quoted parts):
 
 - [ ] **Step 2: Fail. Step 3: Implement the enforcer.** Logging uses `LoggerMessage` source generation, with event ids in a new range that does not collide with existing client ids (check the file for the highest one in use). The warned-URL set is bounded (1024 entries).
 
-- [ ] **Step 4: Wire it in.** Check Task 0's answer for `ResolvedAgentCard`.
+- [ ] **Step 4: Wire it in.** Check Task 0's answer for `interface IA2ACardResolver`. Package 10's plan (`docs/superpowers/plans/2026-11-03-sdk-10-client.md`) owns the resolver, `ResolvedAgentCard`, `A2AClient` and `AddA2AClient`. This step only calls into them, and never defines 10's types. 10's plan follows the same rule in reverse ("Do not define 04's types here").
 
-  **Branch A: package 10 has landed.** Register `DefaultAgentCardVerifier` with `TryAddSingleton<IAgentCardVerifier>` and the options inside `AddA2AClient(name, ...)`. Expose `CardVerificationOptions` through the client builder (follow 10's options pattern). In 10's resolver, after its bounded read and before the card readers, call `VerifyAsync(rawBytes, cardUrl)` and then the enforcer. Store the result in `ResolvedAgentCard.Verification` and in `A2AClient.CardVerification`.
+  **Branch A: package 10 has landed** (10's Tasks 11, 12 and 17).
 
-  **Branch B: package 10 has not landed.**
-  - Add `src/Ambinder.A2A.Client/ResolvedAgentCard.cs` with exactly 10's shape: `public sealed record ResolvedAgentCard(AgentCard Card, CardVerificationResult Verification, Uri Source, DateTimeOffset FetchedAt, string? ETag);`.
-  - In `A2ACardResolver`: add the optional constructor parameters `IAgentCardVerifier? verifier = null, CardVerificationOptions? verification = null, ILoggerFactory? loggerFactory = null`. With no verifier, create a `DefaultAgentCardVerifier` with default options (verify by default, `IfPresent`). Its JWKS fetches use the resolver's `HttpClient` through a one-client `IHttpClientFactory` adapter.
-  - Add `ResolveAsync(Uri, CancellationToken)`, which returns `ResolvedAgentCard`: it verifies the raw bytes, enforces the policy, then deserializes. `GetAgentCardAsync` returns `(await ResolveAsync(...)).Card`. The cache stores `ResolvedAgentCard`.
-  - Add an internal `CardVerificationServiceCollectionExtensions.AddA2ACardVerificationCore(IServiceCollection, Action<CardVerificationOptions>?)` for package 10 to call later.
-  - Record in the PR body: "package 10 must call `AddA2ACardVerificationCore` from `AddA2AClient`, and expose `A2AClient.CardVerification`."
+  Files:
+  - `src/Ambinder.A2A.Client/Cards/A2ACardResolver.cs`
+  - `Cards/A2ACardResolverOptions.cs`
+  - `Cards/ResolvedAgentCard.cs`
+  - `A2AClient.cs`
+  - `DependencyInjection/A2AClientServiceCollectionExtensions.cs`
 
-- [ ] **Step 5: Resolver tests (both branches).**
-  - The verifier receives the **raw** response bytes. A fake verifier records them; assert they are byte-equal to what the server sent, including member order and whitespace.
-  - A tampered card from a test server makes `ResolveAsync` throw `A2ACardVerificationException(BadSignature)`.
-  - An unsigned card under the default options resolves, with `Verification.Status == NotSigned`.
-  - `Required` with an unsigned card throws.
-  - The end-to-end test (server from Task 9 with a JWKS from Task 10, client resolver with `TrustSameOriginJku`) gives `Verified` with no pinned keys. Use https URLs through the test handler, or pin the JWKS URL if the test host is http-only.
+  Changes:
+  - **Options home.** Add `public CardVerificationOptions Verification { get; } = new();` to `A2ACardResolverOptions`. Non-DI callers set it through `A2AClientOptions.CardResolver` (10's Task 12), for example `o.CardResolver.Verification.Policy = CardSignaturePolicy.Required`. In DI, find how 10 passes `A2ACardResolverOptions` to its single per-provider `IA2ACardResolver` (`git grep -n "A2ACardResolverOptions" -- src`) and use the same route. Do not add a second options path for verification. The card cache is per provider (10's Task 17), so verification settings are per provider too.
+  - **DI** (inside `AddA2AClient`, next to 10's `TryAddSingleton<IA2ACardResolver, A2ACardResolver>`):
+    - `TryAddSingleton<IAgentCardVerifier, DefaultAgentCardVerifier>`. A team's own `services.AddSingleton<IAgentCardVerifier, X>()` wins in either order (principle 5).
+    - `services.AddHttpClient("Ambinder.A2A.CardJwks")` with a 10-second timeout and a primary `SocketsHttpHandler` that has `AllowAutoRedirect = false` and `UseCookies = false`. No redirects matters for security: a redirect would move a same-origin `jku` fetch to another origin.
+  - **Resolver.** The constructor takes `IAgentCardVerifier`. In 10's fetch path:
+    1. Read the body with 10's `BoundedContent`.
+    2. Call `VerifyAsync(bytes, fetchedUrl)`. `fetchedUrl` is the URL actually fetched, which is the legacy `/.well-known/agent.json` when 10's probe was used.
+    3. Run the enforcer. A rejected card throws here and is **not** cached.
+    4. Run 10's card readers.
+    5. Store the result in the cache entry.
+
+    A 304 revalidation keeps the cached `Verification` and does not verify again, because the bytes did not change.
+  - **`ResolvedAgentCard.Verification` becomes non-nullable**, as 10's Task 11 says ("nullable only until 04 lands"). `Policy = Off` gives `NotChecked` (P2), so it always has a value.
+  - **`A2ACardResolver.Default`** (non-DI) uses a `DefaultAgentCardVerifier` with default options. Its JWKS fetches use an `HttpClient` over `NonDisposingHandler(A2AClient.SharedHandler)` (10's Task 17), whose `AllowAutoRedirect = false` already applies.
+  - **`A2AClient.CardVerification`** keeps 10's type, `CardVerificationResult?`. `EnsureCardAsync` sets it from `ResolvedAgentCard.Verification`. It stays `null` before the card is fetched, and for `A2AClient.Create(card)`, which fetches nothing. Document both cases in its XML doc.
+  - **Errors.** `A2ACardVerificationException` comes out of `ConnectAsync`, `CreateClientAsync` and a lazy first call unchanged. It is not wrapped in `A2ATransportException`, and 10's resilience never retries it, because it is not a transport error.
+  - **Turn on 10's skipped test** `Verifier_runs_on_raw_bytes_and_result_is_kept` in `tests/Ambinder.A2A.Client.Tests/CardResolverTests.cs`: remove `Skip = "needs package 04"` and implement it.
+
+  **Branch B: package 10 has not landed.** Change the existing resolver only. Leave the types and DI to 10.
+  - In `src/Ambinder.A2A.Client/A2ACardResolver.cs` (post-01 path), add an optional constructor parameter `IAgentCardVerifier? verifier = null`. With no verifier, create a `DefaultAgentCardVerifier` with default options (`IfPresent`). Its JWKS fetches use the resolver's `HttpClient` through a one-client `IHttpClientFactory` adapter.
+  - Verify the raw bytes before deserializing, then run the enforcer. A rejected card throws and is not cached.
+  - Do **not** add `ResolvedAgentCard`, `ResolveAsync` or any DI method. 10's Task 0 will find `interface IAgentCardVerifier`, and its Task 11 then calls the verifier itself.
+  - Write this hand-off for package 10 in the PR body, because 10's plan does not list it:
+    - **10 Task 11:** make `ResolvedAgentCard.Verification` non-nullable, add `A2ACardResolverOptions.Verification`, keep the cached verification on 304, do not cache a rejected card, and pass the actually fetched URL.
+    - **10 Task 12:** set `A2AClient.CardVerification` in `EnsureCardAsync`.
+    - **10 Task 17:** register `TryAddSingleton<IAgentCardVerifier, DefaultAgentCardVerifier>` and the `"Ambinder.A2A.CardJwks"` named client (no redirects).
+    - **All of 10:** do not wrap or retry `A2ACardVerificationException`.
+
+  **Both branches: extended card.** 10's Task 18 fetches the extended card through the `GetExtendedAgentCard` operation, not through the resolver. Neither spec 04 nor spec 10 says it must be verified, so this task does not verify it. Raise it in the PR body as an open question for the owner. Do not add it here.
+
+- [ ] **Step 5: Resolver tests.** Branch A: put them in `tests/Ambinder.A2A.Client.Tests/Signing/ResolverVerificationTests.cs`, using 10's `StubHandler`, `FakeTimeProvider` and its loopback host (or the B2 harness), and call `IA2ACardResolver.GetAsync`. Branch B: put them in the client test location from the file map, and call `GetAgentCardAsync`.
+  - Both branches:
+    - The verifier receives the **raw** response bytes. A fake verifier records them; assert they are byte-equal to what the server sent, including member order and whitespace.
+    - A tampered card throws `A2ACardVerificationException` with status `BadSignature`, not wrapped. It is not cached: the next call fetches again, and `StubHandler` counts one request per call, so there is no retry.
+    - `Required` with an unsigned card throws.
+    - The end-to-end test (server from Task 9 with the JWKS from Task 10, client with `TrustSameOriginJku`) gives `Verified` with no pinned keys. Use https URLs through the test handler, or pin the JWKS URL if the test host is http-only.
+  - Branch A only:
+    - An unsigned card under the default options resolves with `ResolvedAgentCard.Verification.Status == NotSigned`, and after the first call `A2AClient.CardVerification` has the same result.
+    - `Policy = Off` gives `NotChecked`.
+    - ETag revalidation with a 304 calls the verifier once in total and keeps the result.
+    - After 10's legacy probe (404, then `/.well-known/agent.json`), the verifier receives the `agent.json` URL.
+    - `A2AClient.Create(card)` has `CardVerification == null`.
+    - A `jku` JWKS URL that answers 302 to another host gives `UnknownKey`, and the redirect target receives no request.
+    - `ConnectAsync` on a tampered card throws `A2ACardVerificationException`, not `A2ATransportException`.
+  - Branch B only: an unsigned card under the default options resolves.
 
 - [ ] **Step 6: Pass. Step 7: Commit.** `feat(signing): verification policy, metric and resolver integration`
 
