@@ -179,7 +179,7 @@ builder.Services.AddA2AServer(...)
 | Option | Default | Meaning |
 |---|---|---|
 | `InternalPort` | 8090 | HTTP/2 cleartext (h2c) listener for internal calls only. Not in the public Service or ingress. |
-| `InternalAddress` | `http://{POD_IP}:{InternalPort}` | What other pods use to reach this one. Written to the instance lease (05 `InstanceLease.InternalAddress`). `POD_IP` comes from the downward API. A template like `http://{POD_NAME}.{HEADLESS_SERVICE}.{NAMESPACE}.svc.cluster.local:8090` is also allowed (StatefulSet, or pods with `subdomain` set). |
+| `InternalAddress` | `http://{POD_IP}:{InternalPort}` | What other pods use to reach this one. Written to the instance lease (05 `InstanceLease.InternalAddress`). `POD_IP` comes from the downward API. A template like `http://{POD_NAME}.{HEADLESS_SERVICE}.{NAMESPACE}.svc.cluster.local:8090` is also allowed (StatefulSet, or pods with `subdomain` set). The headless Service is optional: it is used only when this DNS-based template is configured. The default address is the pod IP. |
 | (pod auth) | none (must be registered) | An `IClusterPeerAuthentication`. The only shipped one is Entra workload identity (`AddEntraPodAuthentication()`, package `Ambinder.A2A.Cluster.Entra`, §7.8). Startup fails without it. |
 | `ForwardTimeout` | 10 s | Time limit for a unary forward, including connect. |
 | `StreamIdleTimeout` | 3 × heartbeat (45 s) | No bytes from the owner pod for this long means the upstream is dead. |
@@ -454,7 +454,7 @@ Provides:
   - [ ] forward loop impossible: `HopCount` 2 is rejected
 - [ ] Nightly `kind` job with 3 replicas and pod deletion every 30 s passes the flow suite.
 - [ ] M2 exit: the `kind` job passes, and the real-AKS job with Entra workload identity pod auth is written. It runs only when its secrets exist and is skipped visibly otherwise; until then the manual pre-release checklist covers it (O3). When it runs, the result is linked in the release notes.
-- [ ] `deploy/aks/overlays/cluster/`: 3 replicas with a rolling update strategy, headless Service, internal port, `NetworkPolicy`, `preStop`, PDB, HPA, downward-API env (09's M1 base is single-replica, B1).
+- [ ] `deploy/aks/overlays/cluster/`: 3 replicas with a rolling update strategy, internal port, an optional headless Service, `NetworkPolicy`, `preStop`, PDB, HPA, downward-API env (09's M1 base is single-replica, B1).
 - [ ] Docs (13): "Scale out on AKS", "How the cluster routes calls", "Streams across pods and what clients see", "Pod-to-pod authentication", "Cluster troubleshooting". Until 1.0 the hosting docs say "do not scale out before 1.0" (B1); this package replaces that line with the scale-out guide. `docs/production.md` §8 is replaced.
 
 ## 11. Left to the builder

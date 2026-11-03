@@ -50,7 +50,7 @@ Other auth schemes plug in through small interfaces, but none ship.
 - The authoring API that exposes `A2ACaller` and the "name who may continue" option on the event sink. That is package 11. This package defines the data types and the rules, and ships a minimal sink method so M1 can test the rule.
 - Store schema and persistence of owner, tenant and continuation grants. That is package 05. This package states which fields it needs.
 - Routing by tenant or metadata for gRPC, and public versus bind URLs. That is package 09.
-- Rate limiting per caller. That belongs to package 09, which can use `A2ACaller.Owner` as the partition key.
+- Rate limiting per caller. That belongs to package 09. It partitions by the same token claims `OwnerKey` uses, read before the body (see "Rate-limit key" below), not by `A2ACaller`.
 - A trust model for agent identity, actor chains or delegation tokens beyond OBO. The spec has not settled these (pain point 15).
 
 ## Anti-goals
@@ -86,7 +86,7 @@ Other auth schemes plug in through small interfaces, but none ship.
 | Package | Contents | New dependencies |
 |---|---|---|
 | `Ambinder.A2A.Server` (core, package 01; no ASP.NET Core) | `A2ACaller`, `IOwnerResolver`, `DefaultOwnerResolver`, `ITenantResolver`, `ITaskContinuationPolicy`, `TaskContinuationGrant`, `ISecurityRequirementEvaluator`, `ISkillAuthorizer`, `IA2ACallerAccessor`, `A2ASecurityOptions` | none |
-| `Ambinder.A2A.AspNetCore` (package 01) | transport-side caller resolution, access modes (`AllowAnonymous`), agent-level requirement checks | none beyond 01 |
+| `Ambinder.A2A.AspNetCore` (package 01) | transport-side authentication (builds the principal and the `A2ACaller`), access modes (`AllowAnonymous`). It never authorizes: requirement checks run in the `IA2AMiddleware` pipeline. | none beyond 01 |
 | `Ambinder.A2A.AspNetCore.Entra` | `AddEntraAuthentication`, `A2AEntraServerOptions`, `EntraSecurityRequirementEvaluator`, `EntraCardSecurityContributor`, Entra policies, metadata-outage handling, `AddCallerAssertionForOnBehalfOf()` (the adapter from `IA2ACallerAccessor` to the OBO user-assertion delegate, B10) | `Microsoft.AspNetCore.Authentication.JwtBearer`, `Microsoft.IdentityModel.Validators`, `Ambinder.A2A.Client.Entra` |
 | `Ambinder.A2A.Client.Entra` | `AddEntraCredentials`, `EntraCredentialProvider`, `EntraOnBehalfOfCredentialProvider`, `A2AEntraClientOptions`. No dependency on `Ambinder.A2A.Server` (B10). | `Azure.Identity` |
 
@@ -119,7 +119,8 @@ public sealed record A2ACaller(
 }
 ```
 
-- The transport resolves the caller once per request, after authentication and before the handler. `A2ACallContext.Owner` (`src/A2A.Server/A2ACallContext.cs:17`) is replaced by `A2ACallContext.Caller`.
+- Rate-limit key *(Claude's call)*: ASP.NET Core computes it before the body is read, from token claims only: tenant id plus app id (app-only tokens) or user object id (delegated tokens). These are the claims `OwnerKey` uses. Anonymous requests partition by client IP. It does not wait for `A2ACaller` or `ITenantResolver`. Package 09 §7.6 owns the limiter.
+- The transport authenticates and resolves the caller once per request, after authentication and before the handler. `A2ACallContext.Owner` (`src/A2A.Server/A2ACallContext.cs:17`) is replaced by `A2ACallContext.Caller`.
 - `Principal` is a deep copy of `HttpContext.User`, made at request time. The agent run outlives the request (R36), so it must not hold `HttpContext`.
 - Reduced caller across pods and recovery *(Claude's call, B8)*: the task stores a documented reduced caller (05 `StoredCaller`): owner key, Entra tenant id, app id, user object id, roles and scopes. No access token. A run on another pod (06, forwarded continuation) or a recovered run (09) gets an `A2ACaller` rebuilt from it; its `Principal` holds only those claims and `AccessToken` is null. On-behalf-of therefore works only on the pod that received the request, during that request's run. The docs say so.
 - `IA2ACallerAccessor.Current` returns the caller of the agent run in progress (an `AsyncLocal`, set by the task manager around each run and cancel). Deep services in the agent use it, and so does the OBO provider. *(writer's call)*
@@ -236,7 +237,7 @@ public interface ISkillAuthorizer
 
 - Semantics follow OpenAPI, as the spec models them: the list of requirements is OR. Within one requirement, all schemes are AND. An empty list means no requirement.
 - At startup, every scheme name used in any requirement (agent or skill, public or extended card) must exist in the card's `securitySchemes`. It must also have a registered evaluator. Otherwise startup fails with the agent, skill and scheme named.
-- Agent level: checked on every operation except card fetch, after the access-mode check and before the handler. Failure → 403. This replaces the "one ASP.NET policy per agent" model (`src/A2A.Server/Agents/AgentRegistration.cs:10-16`) as the main path.
+- Agent level: checked on every operation except card fetch, in the `IA2AMiddleware` pipeline (package 09 §7.11, step 3), after the access-mode check and before the handler. Transports only authenticate and build the caller; they never authorize *(Claude's call)*. So the check is the same on JSON-RPC, REST, gRPC and in-process calls, and the skill-level checks use the same path. Failure → 403. This replaces the "one ASP.NET policy per agent" model (`src/A2A.Server/Agents/AgentRegistration.cs:10-16`) as the main path.
 - Skill level: a message does not name a skill, so the SDK cannot know the skill up front.
   - If the agent's card has exactly one skill, that skill's requirements are checked with the agent-level ones. *(writer's call)*
   - Otherwise the agent (or package 11's skill router) calls `context.AuthorizeSkillAsync("skill-id")`, backed by `ISkillAuthorizer`.
@@ -420,7 +421,7 @@ Provides:
 - To 06: the reduced caller (B8) and the tenant, which are forwarded between pods as data (no re-resolution on the owner pod; the receiving pod already ran the checks, B5).
 - To 05: `OwnerKey` (B7) and the reduced-caller fields (B8).
 - To 09: the reduced caller for recovered runs (B8).
-- To 09: `A2ACaller.Owner` as the rate-limit partition key.
+- To 09: the claim rules behind `OwnerKey` (tenant id plus app id, or user object id) so the rate limiter can build its partition key from the token alone, before the body is read *(Claude's call)*. No dependency on `A2ACaller` resolution.
 - To 12: `FakeEntraAuthority` (repo test fixture only, C13), and the claims shape `TestIdentity` must produce.
 - To 13: the security model section, the Entra runbook, and the "other schemes" guide.
 

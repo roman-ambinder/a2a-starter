@@ -86,7 +86,7 @@ The target: a working agent in about 20 lines, an LLM agent in about 10.
   - Cancel is idempotent. (spec 3.4)
   - `AUTH_REQUIRED` needs a Task, a state, and a status message; the state alone is not authorization. (spec 7)
   - `A2A-Extensions` is a comma-separated header (HTTP) or metadata key `a2a-extensions` (gRPC). A card extension with `required: true` that the client did not request gives `ExtensionSupportRequiredError`. An unsupported or unknown requested extension is ignored unless required. A breaking change needs a new URI, so URIs are matched exactly with no fallback to an older version. (spec 4.6, 3.2.6)
-- Errors keep the codes of the error catalog (`A2AErrorCode`). Terminal-state rules stay in `TaskStateRules`.
+- Errors keep the codes of the error catalog (`A2AErrorCode`). Terminal-state rules stay in `TaskStateRules`; the allowed transitions are the table in package 03 D13 (who may trigger each one included).
 - Public API: every new public member has XML docs and is added to the API tracking files (package 02).
 
 ## Design

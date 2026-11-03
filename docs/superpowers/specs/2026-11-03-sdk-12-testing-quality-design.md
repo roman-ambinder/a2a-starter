@@ -71,7 +71,7 @@ Two jobs.
 
 | Package | Contents | Depends on |
 |---|---|---|
-| `Ambinder.A2A.Testing` | `AgentHarness`, `A2ATestServer`, `ScriptedAgent`, `FakeRemoteAgent`, `RecordingA2AClient`, `PushReceiverDouble`, `TestIdentity`, assertions, telemetry collectors, waiters | Server, Client, Protocol, ASP.NET Core TestHost, TimeProvider.Testing |
+| `Ambinder.A2A.Testing` | `AgentHarness`, `A2ATestServer`, `ScriptedAgent`, `FakeRemoteAgent`, `RecordingA2AClient`, `PushReceiverDouble`, `TestIdentity`, assertions, telemetry collectors, waiters | Server, Client, Protocol, AspNetCore (`A2ATestServer` uses ASP.NET Core TestServer), ASP.NET Core TestHost, TimeProvider.Testing |
 | `Ambinder.A2A.Testing.AI` | `ScriptedChatClient`, `FakeChatClient` | Testing, Extensions.AI, Microsoft.Extensions.AI.Abstractions |
 | `Ambinder.A2A.Testing.Conformance` | The four suites from package 05: `TaskStoreConformanceTests`, `PushConfigStoreConformanceTests`, `OutboxStoreConformanceTests`, `InstanceStoreConformanceTests`, and their case catalogs | Testing, `xunit.v3.extensibility.core` |
 

@@ -264,7 +264,7 @@ Capability rules for the extended card stay as today (`TaskManager.cs:209-215`).
 Rate limiting:
 
 - `AddA2ARateLimiting(o => o.PerOwner(permitLimit: 60, window: TimeSpan.FromMinutes(1)))` registers an ASP.NET Core rate limiter policy `"a2a"`.
-- It is partitioned by tenant + `A2ACaller.Owner` (package 07), with anonymous callers partitioned by client IP. ASP.NET Core's limiters keep their own clock; that is the one documented exception to Goal 12.
+- The partition key is computed in ASP.NET Core before the body is read, from token claims only: tenant id plus app id (app-only) or user object id (delegated), the same claims `OwnerKey` uses (package 07). Anonymous callers partition by client IP. It does not depend on `A2ACaller` or `ITenantResolver` *(Claude's call)*. ASP.NET Core's limiters keep their own clock; that is the one documented exception to Goal 12.
 - `MapA2A` and `MapA2AGrpc` apply the policy when it is registered. The app adds `UseRateLimiter()` after `UseAuthentication()`, and startup warns when the order is wrong.
 - Rejected calls get HTTP 429 with `Retry-After` and reason `RATE_LIMITED`, or gRPC `RESOURCE_EXHAUSTED`.
 - Cards and health endpoints are excluded.
@@ -377,7 +377,9 @@ Fencing: if a pod that was thought dead writes again, its write fails with `Conf
   - `ConfigMap` for `A2A__*` settings
   - `NetworkPolicy`: ingress only from the ingress controller namespace
 - `overlays/single-instance/`: in-memory store (M1 shape; the base is already single-replica).
-- `overlays/postgres/`: connection string from a Secret (or Key Vault CSI), store set to PostgreSQL. Package 06 adds `overlays/cluster/` (headless service, cluster port).
+- `overlays/postgres/`: connection string from a Secret (or Key Vault CSI), store set to PostgreSQL. Package 06 adds `overlays/cluster/` (cluster port, optional headless service).
+- `overlays/otel/` (optional) *(Claude's call)*: sets `OTEL_EXPORTER_OTLP_ENDPOINT` to a collector the team runs. The SDK does not ship a collector. Package 13's production page points here.
+- Data Protection keys *(Claude's call)*: not needed in M1 (single replica). In M2, `overlays/cluster/` configures a shared key ring (Azure Blob Storage, protected with a Key Vault key) so any pod can unprotect push credentials (package 08).
 - Ingress manifests for two controllers, both in docs:
   - Gateway API: `HTTPRoute` for HTTP and `GRPCRoute` for gRPC. This is the primary, tested target: it is portable and works with Application Gateway for Containers *(Claude's call, C10)*
   - NGINX `Ingress` variant (the AKS application routing add-on uses NGINX), with:
@@ -429,10 +431,11 @@ Rules *(writer's call on the shape)*:
 - **Built-in middleware, in this order:**
   1. Tracing: today's `TracingRequestHandler` becomes middleware (no behavior change in spans).
   2. Limits: busy and per-owner checks (§7.6).
-  3. 07's authorization checks that need the typed request (skill security requirements, task continuation policy), when 07 registers them.
+  3. 07's authorization checks, when 07 registers them: the agent-level requirement check, skill security requirements and the task continuation policy. Transports only authenticate (build the principal); they never authorize, so every check runs here once *(Claude's call)*.
   4. Extension negotiation: activation, the required-extension check and the echo (package 03 D5, in M1, from the card's declared extensions); package 11 extends this same step with `A2AExtension` request hooks in M2.
   5. App middleware.
 - **Not for transport concerns.** Rate limiting and body size stay in ASP.NET Core, because they must run before the body is read.
+- **Early rejections get no `a2a.server` span** *(Claude's call)*. A request rejected before the pipeline (authentication failure, `VersionNotSupported`) is not traced by step 1. It shows only as the ASP.NET Core request span with its HTTP status, enriched with `error.type` when telemetry is on.
 - **Forwarded calls (06)** *(Claude's call, B5)*. The full pipeline runs only on the pod that received the client request. Forwarding to the owner pod happens after the pipeline. The owner pod runs only peer authentication, tracing and the request handler, and marks the context `A2ACallContext.IsForwarded = true`. Response metadata (for example the `A2A-Extensions` echo) comes from the receiving pod.
 - **Cost.** With no app middleware the pipeline allocates nothing per call beyond the context object. Checked by package 14's benchmark against today's direct call: under 1 µs and one allocation added.
 

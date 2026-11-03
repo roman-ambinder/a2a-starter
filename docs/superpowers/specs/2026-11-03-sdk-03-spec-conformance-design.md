@@ -103,7 +103,7 @@ Server (all three transports, in one shared place, today `src/A2A.Server/Transpo
 - Else, ask the registered `IA2AVersionDispatcher` instances (seam below). If none claims it, throw `VersionNotSupported`.
 - Error message for an empty header: "No A2A-Version header was sent, so the request is treated as A2A 0.3. This agent supports 1.0. Send the header `A2A-Version: 1.0`." For other versions: "A2A version 'X' is not supported. Supported: 1.0."
 - `ErrorInfo.metadata`: `supportedVersions` = `"1.0"` (comma-separated string, since ErrorInfo metadata values are strings). Current code puts a JSON array in `data` (`ServiceParameters.cs:10-11`); D4 replaces it.
-- The negotiated version goes on `A2ACallContext` as `ProtocolVersion` (already passed in, `JsonRpcEndpoint.cs:124`), so handlers and telemetry can read it.
+- The negotiated version goes on `A2ACallContext` as `ProtocolVersion` (already passed in, `JsonRpcEndpoint.cs:124`), so handlers and telemetry can read it. A request rejected here with `VersionNotSupported` never reaches package 09's pipeline, so it gets no `a2a.server` span. It appears only as the ASP.NET Core request span with its HTTP status, enriched with `error.type` when telemetry is on *(Claude's call)*. Authentication failures are treated the same way.
 
 Seam for package 15 (in `Ambinder.A2A.AspNetCore`, because it takes `HttpContext`; package 01's rule 2 keeps ASP.NET Core out of `Ambinder.A2A.Server`):
 
@@ -220,6 +220,27 @@ Each rule gets a test on all transports:
 ### D12. Spec decisions doc
 
 `docs/spec-decisions.md`: one row per open point, with spec section, the choice, and the reason. It starts with every *(writer's call)* above that touches wire behavior: patch in version header, integer enums, unknown enums to `Unspecified`, card caching values, the card ETag rule (hash of the unsigned canonical card payload plus the signing key ids, B13), tenant mismatch error code, contextId limits, JSON-RPC error data shape. Each later package adds its own rows. Package 13 links it from the docs site.
+
+### D13. Task state transitions
+
+This package owns `TaskStateRules` (internal, shared as linked source, B12) and this table. It follows A2A v1.0.1. `research-spec.md` does not list a transition table and contradicts none of the rows below; the rows come from the spec's task lifecycle and from how it defines interrupted and terminal states.
+
+| From | Allowed to | Who may trigger it |
+|---|---|---|
+| (new task) | `SUBMITTED` | the server, when it creates the task |
+| `SUBMITTED` | `WORKING`, `INPUT_REQUIRED`, `AUTH_REQUIRED`, `COMPLETED`, `FAILED`, `REJECTED`, `CANCELED` | the agent; `CANCELED` also by a cancel request; `FAILED` also by recovery |
+| `WORKING` | `WORKING` (progress update), `INPUT_REQUIRED`, `AUTH_REQUIRED`, `COMPLETED`, `FAILED`, `REJECTED`, `CANCELED` | the agent; `CANCELED` also by a cancel request; `FAILED` also by recovery |
+| `INPUT_REQUIRED` | `SUBMITTED`, `WORKING`, `CANCELED` | the server, when a continuation message arrives (it sets `SUBMITTED`, then the new run moves to `WORKING`); `CANCELED` by a cancel request |
+| `AUTH_REQUIRED` | `SUBMITTED`, `WORKING`, `CANCELED` | the same as `INPUT_REQUIRED`, and only for a caller 07's `ITaskContinuationPolicy` allows |
+| `COMPLETED`, `FAILED`, `REJECTED`, `CANCELED` | nothing | terminal states are final; a follow-up message gives `UnsupportedOperation` (D9), a cancel gives `TaskNotCancelable` (a cancel of an already `CANCELED` task returns the task) |
+
+Rules:
+
+- The agent can never set `UNSPECIFIED` or `SUBMITTED`. The server sets `SUBMITTED`.
+- A move that is not in the table throws `A2AException(InvalidAgentResponse)` and the task ends `FAILED` (package 11 describes the agent side).
+- Recovery (package 09) is the only path that moves a `WORKING` or `SUBMITTED` task to `FAILED` without an agent event, unless `Restart(1)` is chosen.
+- An unknown `TaskState` from a remote agent reads as `Unspecified` (D3) and is never checked against this table.
+- Tests: one case for every row, including every illegal pair, on the in-memory and the EF Core stores.
 
 ## How it meets the six principles
 

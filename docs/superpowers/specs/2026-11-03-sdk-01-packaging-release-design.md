@@ -149,6 +149,7 @@ Rules:
 - Telemetry: the activity source and meter names follow the assembly names, which is the OpenTelemetry habit. `A2A.Server` becomes `Ambinder.A2A.Server`, `A2A.Client` becomes `Ambinder.A2A.Client`. Span, attribute and metric names (`a2a.server <Method>`, `a2a.agent`, `a2a.server.tasks.completed`) do not change. Constants stay in `A2ATelemetryNames`. This is a breaking change for anyone with a dashboard on the old names, so the Phase 1 migration page (package 13) lists it. *(writer's call)*
 - Configuration: the `A2A:` section prefix stays (`A2A:PublicBaseUrl`, `A2A:Push:...`). It is a protocol-named config key, not an assembly name, and it is shorter to type. Environment variables stay too. *(writer's call)*
 - Wire and protocol names do not change: `A2A-Version`, `A2A-Extensions`, `a2a.*` tags, the proto package `lf.a2a.v1`.
+- Extension URIs *(Claude's call)*: package 01 owns the names. The push signature extension URI is `https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1`. It follows owner decision O1 on the repo location, so it changes if the repo moves before 1.0. Package 08 uses it and package 13 hosts the page.
 
 ### 3. The rename (one mechanical PR, done first)
 

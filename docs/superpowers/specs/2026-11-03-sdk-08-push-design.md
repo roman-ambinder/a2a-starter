@@ -206,7 +206,7 @@ public interface IPushCredentialProtector
 ```
 
 - Default (`Ambinder.A2A.AspNetCore`): ASP.NET Core Data Protection, with purpose `Ambinder.A2A.Push.Credentials`. Without ASP.NET Core, the core default is a pass-through protector that logs a startup warning outside Development. Package 05's durable push-config stores call it for `authentication.credentials` and `token` before they write. *(writer's call)*
-- The docs tell teams that Data Protection keys must be shared across pods. On AKS that means Blob storage plus Key Vault, the standard ASP.NET Core setup. Package 09 covers this in the hosting guide.
+- The docs tell teams that Data Protection keys must be shared across pods. On AKS that means Blob storage plus Key Vault, the standard ASP.NET Core setup. Not needed in M1 (single replica). In M2, package 09's `overlays/cluster/` configures the shared key ring (Azure Blob Storage, protected with a Key Vault key), see 09 §7.10.
 - Outbox rows never contain credentials. They are read from the config at delivery time.
 
 ### Signature extension (`X-A2A-Push-Signature`)
@@ -216,12 +216,12 @@ Decision *(writer's call)*: keep the signature, but present it as an A2A extensi
 - It is declared on the card in `capabilities.extensions`:
 
   ```json
-  { "uri": "<push-signature extension URI>", "required": false,
+  { "uri": "https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1", "required": false,
     "description": "Webhook deliveries carry a JWS over the body; verify with the JWKS below.",
     "params": { "jwksUrl": "https://agents.contoso.com/.well-known/a2a-push-jwks.json", "header": "X-A2A-Push-Signature" } }
   ```
 
-  The URI is a stable https URL under the project docs site. Package 01 fixes the domain. The extension spec page (package 13) is versioned `v1`.
+  The URI is `https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1`. Package 01 owns it (it follows owner decision O1 on the repo location). The extension spec page (package 13) is versioned `v1`.
 - Receivers find the JWKS from the card's extension params. A receiver must not take the JWKS location from the token itself.
 - JWT shape (compact JWS):
   - Header: `alg` (RS256 or ES256), `kid`, `typ: "JWT"`.
@@ -383,7 +383,7 @@ Needs:
   - conformance cases for lane ordering, claim takeover, and dead-letter requeue.
 - 07: the tenant and owner scoping of push-config operations.
 - 09: health check wiring for `IPushOutboxHealth`, graceful-shutdown ordering (stop claiming first), and the Data Protection key setup on AKS.
-- 01: package names, including `Ambinder.A2A.Azure.KeyVault` and `Ambinder.A2A.Push.Receiver` (allow-list: Receiver depends on Client, B10), and the extension URI domain.
+- 01: package names, including `Ambinder.A2A.Azure.KeyVault` and `Ambinder.A2A.Push.Receiver` (allow-list: Receiver depends on Client, B10), and the extension URI (`https://github.com/roman-ambinder/a2a-starter/extensions/push-signature/v1`).
 - 10: `IA2APushWaiter` and `PushSubscription` in `Ambinder.A2A.Client` (B10).
 
 Provides:

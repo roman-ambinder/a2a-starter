@@ -186,7 +186,7 @@ The list below is the minimum. The owner package writes the page; 13 reviews it 
 
 **Operations on AKS (`operations/aks/`)** (the section R42 asks for)
 
-- `overview`: a one-page picture of a production deployment and the list of what must be set (public URL, store, auth, signing key, OTLP endpoint).
+- `overview`: a one-page picture of a production deployment and the list of what must be set (public URL, store, auth, signing key, OTLP endpoint). The SDK does not ship a collector: the page points to `deploy/aks/overlays/otel/` (package 09), which sets `OTEL_EXPORTER_OTLP_ENDPOINT` to a collector the team runs.
 - `deploy`: the Kustomize manifests and overlays from `deploy/aks/`, resource requests, the environment variables for each option.
 - `ingress-sse-grpc`: idle timeouts for SSE (the ingress default is 60 seconds, R24) and the heartbeat setting, buffering off, HTTP/2 and gRPC through ingress, the card URL when TLS ends at the ingress (R21, R25). The builder checks the current state of each ingress option at writing time (ingress-nginx's maintenance status in particular) and documents only supported ones.
 - `workload-identity`: the steps from a federated credential to a token for the agent. Verified against a real tenant once one exists (O3); until then stamped `unit-tests` with the note "not yet verified on a real tenant".

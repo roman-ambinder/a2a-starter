@@ -102,7 +102,7 @@ Disposition of the current public types:
 | `PushNotificationSender` | internal. The public seam is the sender interface and the push store, designed in package 08. |
 | `PushSigningKey` | internal. The public seam is a key-provider interface (package 08, R16). |
 | `TracingRequestHandler` | internal. Tracing is always on when the DI registration is used; users do not wrap handlers by hand. |
-| `PageToken`, `TaskStateRules`, `TaskWriter.Releaser` | internal. `PageToken`, `TaskStateRules` and `RequestValidation` are shared with other packages as linked source files compiled as `internal` into each one (package 01 rule 10, B12). |
+| `PageToken`, `TaskStateRules` (its transition table is package 03 D13), `TaskWriter.Releaser` | internal. `PageToken`, `TaskStateRules` and `RequestValidation` are shared with other packages as linked source files compiled as `internal` into each one (package 01 rule 10, B12). |
 | `RequestValidation`, `ServiceParameters`, `RestErrorWriter`, `GrpcErrorMapper`, `SseWriter`, `AgentCardInterfaces`, `WebhookUrlValidator`, `A2AGrpcService` | internal. (A public webhook URL validator may come back as part of package 08 if the receiver needs it; it is then listed there.) |
 | `SseReader` | internal. |
 | `RestA2AClient`, `GrpcA2AClient`, `JsonRpcA2AClient`, `TracingA2AClient` (and its `Inner`) | internal (R32). Created through DI or the factory; package 10 designs both. |
