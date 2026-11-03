@@ -5,3 +5,6 @@ obj/
 *.user
 .vs/
 .idea/
+
+# graphify knowledge graph output
+graphify-out/
