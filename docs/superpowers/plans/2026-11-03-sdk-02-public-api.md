@@ -69,6 +69,7 @@ These were checked in the repo when this plan was written. They drive several st
 - **Build rules stay:** `TreatWarningsAsErrors`, nullable on, central package management. Every new package version goes into `Directory.Packages.props`.
 - **Docs style:** short, plain sentences, no jargon (the repo style). This applies to XML docs too.
 - **Every made-internal or moved public type gets two records:** a line under "Breaking changes" in `CHANGELOG.md` (preview section), and a row in `docs/migration/phase1-map.csv` (format from spec 13 section 5: `old symbol,new symbol,package,change`; create the file with that header line if it does not exist yet).
+- **Package 03 runs alongside.** The package 03 plan (`docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md`, section 0.4) follows this plan's rules for its new public types (`IA2AVersionDispatcher`, `A2AAgentRoute`, `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants`). Either plan may land first. Where both change the same thing (`ProtoEnumConverter<T>` internal, `TaskStateRules` internal in `src/Shared`), do the change only if it is not already done, and keep the checks of both plans.
 - **Commands:** build with `dotnet build Ambinder.A2A.slnx -c Release`; test with `dotnet test Ambinder.A2A.slnx -c Release`. A step that says "build" means this command passes with zero warnings.
 
 ## Review focus
@@ -422,7 +423,7 @@ internal static class PublicSignatures
   - Add one `public static JsonTypeInfo<T> <TypeName> { get; }` per public protocol type, initialized from `Options`: `(JsonTypeInfo<AgentTask>)Options.GetTypeInfo(typeof(AgentTask))`. Name each property after the type (`A2AJson.AgentTask`, `A2AJson.Message`; spec leaves the exact names to the builder). Initialize lazily or in the static constructor after `Options`; static field order matters.
   - Add `[JsonSerializable]` lines to `A2AJsonContext` for any public protocol type the test finds missing (for example the security scheme and OAuth flow records that are not listed today). Run the golden JSON tests after this; they must not change.
   - XML doc on each accessor: one sentence, "Source-generated metadata for <see cref="AgentTask"/>, using <see cref="Options"/>."
-- [ ] **2.3** Make `A2AJsonContext`, `ProtoEnumConverter<T>` and `UtcTimestampConverter` `internal`. Keep `[JsonConverter(typeof(ProtoEnumConverter<TaskState>))]` on the public enums.
+- [ ] **2.3** Make `A2AJsonContext`, `ProtoEnumConverter<T>` and `UtcTimestampConverter` `internal`. The package 03 plan (Task 9) may already have made `ProtoEnumConverter<T>` internal; then leave it, but still run the step 2.5 test. Keep `[JsonConverter(typeof(ProtoEnumConverter<TaskState>))]` on the public enums.
 - [ ] **2.4** Replace `A2AJsonContext.Default.AgentCard` in `A2ACardResolver` with `A2AJson.AgentCard`. Search for any other use outside the Protocol project: `git grep -n "A2AJsonContext" -- src tests samples`. Tests that use it move to the accessors.
 - [ ] **2.5** Write `ConsumerJsonContextTests` in `tests/Ambinder.A2A.PublicApi.Tests` (this assembly has no `InternalsVisibleTo`, so it is a real consumer):
 
@@ -491,6 +492,7 @@ Types that stay public in this task (owned by 05, 07, 08, 11; spec 02 section 3)
 
 - [ ] **3.1** **Owner decision (2026-11-03): `InternalsVisibleTo` to `Ambinder.A2A.Integration.Tests` is allowed.** Spec 02 (Constraints) allows `InternalsVisibleTo` "only to the matching `*.Tests` assembly and to `Ambinder.A2A.Benchmarks`". The owner added this one exception. Reason: Phase 1 already gives the client's internals to `A2A.Integration.Tests` (`src/A2A.Client/A2A.Client.csproj:12`), the integration tests use about a dozen of the types made internal here (see Facts), and the assembly is a test assembly that is never shipped, so the rule's purpose (no `InternalsVisibleTo` between shipped assemblies, spec 01 rule 6) still holds. Rewriting those tests against public API stays with packages 10 (client) and 12 (test migration, C13). `PublicSurfaceTests` lists it in `ExtraFriendAssemblies`. Add the `InternalsVisibleTo` item for it to each shipped project whose internals the integration tests use, and to no other assembly. Record the exception in `CONTRIBUTING.md` (Task 13.3) next to the `InternalsVisibleTo` rule.
 - [ ] **3.2** Change the declarations in the table to `internal`. For a type in `src/Shared` or `src/Grpc.Shared`, first check (A4, A5) whether 01 already did it.
+- [ ] **3.2a** **Types used by two shipped assemblies.** `ServiceParameters` and `RequestValidation` (in the table), and the already-internal `TransportRequest` and `TransportErrors`, are used by both the JSON-RPC/REST endpoints (`Ambinder.A2A.AspNetCore`) and the gRPC service (`Ambinder.A2A.AspNetCore.Grpc`). In Phase 1, `A2AGrpcService` and `GrpcErrorMapper` call them. Check how package 01 shares them. If they are linked files in `src/Shared/` compiled into each assembly, making them `internal` is safe. If 01 left them as public types in `Ambinder.A2A.AspNetCore`, move them to `src/Shared/` as linked files (spec 01 rule 10) and link them into both projects; then make them `internal`. Never keep them public and never add `InternalsVisibleTo` between the two packages. Apply the same check to any other type in the table that a second shipped assembly uses (`git grep -lw <Type> -- src`).
 - [ ] **3.3** Add `InternalsVisibleTo` items only where a test needs them, using the item form in the `.csproj`:
 
 ```xml
@@ -828,7 +830,8 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - analyzer suppressions for public names from Task 7;
   - any public type 01 needed in `Client.Grpc` (Task 4.3);
   - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
-  - no new static singletons in public API (spec 02, "How it meets the six principles", item 6).
+  - no new static singletons in public API (spec 02, "How it meets the six principles", item 6);
+  - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public.
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
 
 ---
@@ -859,7 +862,7 @@ Spec 02 "How it meets the six principles", item 3: each options validation failu
   3. What counts as API: section 1, items 1 to 7, and the "Not API" line.
   4. Interfaces, classes, records, enums, methods, options, dependencies in the API: section 4 rules, short.
   5. Experimental API: section 4 text, plus an empty table `| Id | Feature | Since | Planned exit |` starting at `A2AEXP001`.
-  6. Deprecation: section 4 text, plus an empty table `| Id | Obsolete API | Replacement | Since | Removal |` starting at `A2AOBS001`.
+  6. Deprecation: section 4 text, plus a table `| Id | Obsolete API | Replacement | Since | Removal |`. If package 03's Task 16 has landed, the table starts with `A2AOBS001` (`ImplicitOAuthFlow`, `OAuthFlows.Implicit`) and `A2AOBS002` (`PasswordOAuthFlow`, `OAuthFlows.Password`), both "none: protocol field, kept while the A2A spec has it". Otherwise it starts empty at `A2AOBS001`, and package 03 adds those rows.
   7. Spec relation: section 8 bullet.
   8. Support: section 8 bullet (C2).
   9. Log EventId blocks per assembly (from Task 7).
