@@ -4,7 +4,7 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 
 | Topic | Spec | Choice | Reason |
 |---|---|---|---|
-| Patch in `A2A-Version` | 3.6 | `1.0.1` is accepted as `1.0`. Anything that is not `Major.Minor` or `Major.Minor.Patch` is unsupported. | The spec says patch must not be used in negotiation. Rejecting it would break clients that send the full version. |
+| Patch in `A2A-Version` | 3.6 | The header is trimmed (`" 1.0 "` is accepted). `1.0.1` is accepted as `1.0`. A leading `v` (`v1.0`) is not accepted. Anything that is not `Major.Minor` or `Major.Minor.Patch` is unsupported. | The spec says patch must not be used in negotiation. Rejecting it would break clients that send the full version. |
 | Empty `A2A-Version` | 3.6.2 | Treated as 0.3. The server does not serve 0.3, so it answers `VersionNotSupported`, with a message that says to send `A2A-Version: 1.0`. | The spec makes empty mean 0.3. 0.3 support is planned as a separate package. |
 | `supportedVersions` in errors | 3.3.2 | `VersionNotSupported` carries ErrorInfo metadata `supportedVersions` = `"1.0"` (comma-separated). | ErrorInfo metadata values are strings. |
 | Client interface selection | 3.6, 8.3.2 | The client takes the first card interface (or the preferred binding) whose binding is supported and whose `protocolVersion` Major.Minor is `1.0`. An empty `protocolVersion` is taken as `1.0`. | The field is required, but some cards omit it; skipping them would leave no usable interface. |
@@ -21,13 +21,23 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 | Deprecated OAuth flows | proto `OAuthFlows` | `implicit` and `password` flows are modeled and round-trip through JSON and proto. The client never uses them to get tokens. | Cards from other agents must not lose data. |
 | JSON-RPC batch | 9 | Rejected with `InvalidRequest`. | JSON-RPC batches are not part of A2A. |
 | SSE resume | 3.5.2 | Not supported (`Last-Event-ID` is ignored). | Not defined by the spec (open issue #1635). |
-| When streams close | 3.1.2, 3.1.6, 11.7 | A `SendStreamingMessage` stream closes at a terminal or interrupted state (`INPUT_REQUIRED`, `AUTH_REQUIRED`). A `SubscribeToTask` stream stays open through interrupted states and closes only at a terminal state. | 11.7 closes streams at interrupted states, but 3.1.6 allows subscribing to any non-terminal task and ends that stream at a terminal state. Closing at once would make subscribing to a waiting task useless. |
+| When streams close | 3.1.2, 3.1.6, 11.7 | A `SendStreamingMessage` stream closes at a terminal or interrupted state (`INPUT_REQUIRED`, `AUTH_REQUIRED`). A `SubscribeToTask` stream stays open through interrupted states and closes only at a terminal state. | 11.7 closes streams at interrupted states, but 3.1.6 allows subscribing to any non-terminal task and ends that stream at a terminal state. Closing at once would make subscribing to a waiting task useless. A `SubscribeToTask` stream on a waiting task stays open until the task ends or the client disconnects. There is no server idle limit yet. |
+| Server tenant check | 8.3.2 | Not enforced yet. No server interface declares a tenant (`AgentCardInterfaces.For`), so there is nothing to compare. | The check returns when packages 07 and 09 add interface tenants. |
+| Card ETag source | 8.6.1 | The ETag is a hash of the final card bytes. | Card signing does not exist yet. The rule "unsigned canonical payload plus key ids" (so re-signing with the same keys keeps the ETag) arrives with package 04. |
+| gRPC extended card | 3.3.4 | Top-level members that a card contributor adds are dropped from the gRPC extended card. | The proto `AgentCard` has no field for them. HTTP cards keep them. |
 
 ## Checking conformance
 
-`tests/A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files.
+`tests/A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files. It keeps the extended card off, because the TCK sends no auth token.
 
-1. Start it: `dotnet run --project tests/A2A.Tck.Sut -- --port 9999 --grpc-port 10000`
-2. In an `a2aproject/a2a-tck` checkout: `uv venv && uv pip install -e .`, then `./run_tck.py --sut-host http://localhost:9999 --level should`
+The TCK is pinned by commit in `tck/TCK_VERSION`. To run the same steps as CI (build and start the SUT, check out the TCK, run it, check the report):
 
-The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it.
+```
+RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh "$(cat tck/TCK_VERSION)"
+```
+
+The script leaves the reports in `$RUNNER_TEMP/a2a-tck/reports/` and the SUT log in `$RUNNER_TEMP/sut.log`. The exit code is the checker's. Create the `RUNNER_TEMP` folder first.
+
+The TCK runs once, with no `--level` and no `--transport`. The pinned TCK's `--level should` runs only SHOULD tests. One run covers MUST, SHOULD and MAY on every interface in the card, and `tck/check-report.py` grades each requirement by its own level.
+
+The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it. Known TCK bugs are listed in `tck/known-issues.json` (see spec 03, D1).

@@ -6,6 +6,10 @@ namespace A2A.Server.Tasks;
 public sealed record StoredTask(string AgentName, string Owner, string? Tenant, AgentTask Task);
 
 /// <summary>Stores tasks, keyed by agent name and task id.</summary>
+/// <remarks>
+/// Stored task history is append-only: a save may add history entries but never remove or change earlier ones.
+/// The server relies on this to detect late events from a paused run.
+/// </remarks>
 public interface ITaskStore
 {
     /// <summary>Returns a copy of the stored task, or null if it does not exist.</summary>

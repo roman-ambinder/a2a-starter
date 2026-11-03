@@ -189,4 +189,6 @@ Everything to change for Phase 2 is in [docs/production.md](docs/production.md).
 
 ## Conformance
 
-The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). That page also shows how to run the official A2A TCK against `tests/A2A.Tck.Sut`, a small server that serves all three transports. CI checks that `proto/a2a.proto` equals the `v1.0.1` release file; it does not run the TCK yet.
+The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). CI checks that `proto/a2a.proto` equals the `v1.0.1` release file.
+
+The `tck` job in [.github/workflows/ci.yml](.github/workflows/ci.yml) runs the official A2A TCK on every PR, over JSON-RPC, HTTP+JSON and gRPC, against `tests/A2A.Tck.Sut`. The TCK version is pinned in `tck/TCK_VERSION`. Accepted TCK failures are listed in [tck/known-issues.json](tck/known-issues.json). Today the job is advisory and red: the pinned TCK bundles spec v1.0.0, and 11 failures are TCK bugs that wait for upstream issues. To run it locally: `RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh "$(cat tck/TCK_VERSION)"` (create the folder first).
