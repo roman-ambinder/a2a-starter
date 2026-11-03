@@ -1482,7 +1482,7 @@ Required message texts (tests assert the quoted parts):
   - In `src/Ambinder.A2A.Client/A2ACardResolver.cs` (post-01 path), add an optional constructor parameter `IAgentCardVerifier? verifier = null`. With no verifier, create a `DefaultAgentCardVerifier` with default options (`IfPresent`). Its JWKS fetches use the resolver's `HttpClient` through a one-client `IHttpClientFactory` adapter.
   - Verify the raw bytes before deserializing, then run the enforcer. A rejected card throws and is not cached.
   - Do **not** add `ResolvedAgentCard`, `ResolveAsync` or any DI method. 10's Task 0 will find `interface IAgentCardVerifier`, and its Task 11 then calls the verifier itself.
-  - Write this hand-off for package 10 in the PR body, because 10's plan does not list it:
+  - Package 10's plan already has these steps, marked **(04)** in its Tasks 11, 12 and 17. List them in the PR body as the hand-off, so the person running package 10 can check them:
     - **10 Task 11:** make `ResolvedAgentCard.Verification` non-nullable, add `A2ACardResolverOptions.Verification`, keep the cached verification on 304, do not cache a rejected card, and pass the actually fetched URL.
     - **10 Task 12:** set `A2AClient.CardVerification` in `EnsureCardAsync`.
     - **10 Task 17:** register `TryAddSingleton<IAgentCardVerifier, DefaultAgentCardVerifier>` and the `"Ambinder.A2A.CardJwks"` named client (no redirects).
