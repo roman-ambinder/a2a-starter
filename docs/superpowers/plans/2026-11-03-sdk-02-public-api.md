@@ -71,6 +71,7 @@ These were checked in the repo when this plan was written. They drive several st
 - **Docs style:** short, plain sentences, no jargon (the repo style). This applies to XML docs too.
 - **Every made-internal or moved public type gets two records:** a line under "Breaking changes" in `CHANGELOG.md` (preview section), and a row in `docs/migration/phase1-map.csv` (format from spec 13 section 5: `old symbol,new symbol,package,change`; create the file with that header line if it does not exist yet).
 - **Package 03 runs alongside.** The package 03 plan (`docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md`, section 0.4) follows this plan's rules for its new public types (`IA2AVersionDispatcher`, `A2AAgentRoute`, `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants`). Either plan may land first. Where both change the same thing (`ProtoEnumConverter<T>` internal, `TaskStateRules` internal in `src/Shared`), do the change only if it is not already done, and keep the checks of both plans.
+- **Package 05 may land first.** The package 05 plan (`docs/superpowers/plans/2026-11-03-sdk-05-stores.md`) replaces the Phase 1 store contract: it deletes `PageToken` (now internal `PageTokens` in `src/Shared/Stores/`), replaces `ITaskStore`, `IPushConfigStore`, `StoredTask`, `InMemoryTaskStore` and `InMemoryPushConfigStore`, and adds `InMemoryOutboxStore` and `InMemoryInstanceStore` as `internal`. In Task 3, skip a row whose type no longer exists or is already internal, and do not recreate a deleted type.
 - **Commands:** build with `dotnet build Ambinder.A2A.slnx -c Release`; test with `dotnet test Ambinder.A2A.slnx -c Release`. A step that says "build" means this command passes with zero warnings.
 
 ## Review focus
@@ -255,7 +256,7 @@ public sealed class PublicSurfaceTests
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
         "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
         // Default implementations (spec 02 section 3, writer's call as a default):
-        "InMemoryTaskStore", "InMemoryPushConfigStore", "DefaultOwnerResolver", "AgentAuthorizer",
+        "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "DefaultOwnerResolver", "AgentAuthorizer",
     ];
 
     /// <summary>Allowed InternalsVisibleTo targets besides "&lt;assembly&gt;.Tests". Integration.Tests: owner decision 2026-11-03 (Task 3, step 3.1).</summary>
@@ -833,6 +834,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - any public type 01 needed in `Client.Grpc` (Task 4.3);
   - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
   - no new static singletons in public API (spec 02, "How it meets the six principles", item 6);
+  - the store key structs spec 05 keeps positional (owner decision 2026-11-03): `TaskKey`, `OwnerScope`, `TaskCursor`, `TaskRef`, `CreateResult`, `OutboxStats`. They are the only positional public types allowed; every other public record uses properties;
   - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public;
   - the server signer seam from the package 04 plan (decision P18, owner decision 2026-11-03): `IAgentCardSigner` and `SignedAgentCard` in `Ambinder.A2A.Server.Signing`.
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
