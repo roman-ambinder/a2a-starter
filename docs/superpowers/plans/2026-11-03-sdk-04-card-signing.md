@@ -1488,7 +1488,7 @@ Required message texts (tests assert the quoted parts):
     - **10 Task 17:** register `TryAddSingleton<IAgentCardVerifier, DefaultAgentCardVerifier>` and the `"Ambinder.A2A.CardJwks"` named client (no redirects).
     - **All of 10:** do not wrap or retry `A2ACardVerificationException`.
 
-  **Both branches: extended card.** 10's Task 18 fetches the extended card through the `GetExtendedAgentCard` operation, not through the resolver. Neither spec 04 nor spec 10 says it must be verified, so this task does not verify it. Raise it in the PR body as an open question for the owner. Do not add it here.
+  **Both branches: extended card.** 10's Task 18 fetches the extended card through the `GetExtendedAgentCard` operation, not through the resolver. Neither spec 04 nor spec 10 says it must be verified, so this task does not verify it. The owner decided on 2026-11-03 that the client does not verify the extended card. Do not add it here.
 
 - [ ] **Step 5: Resolver tests.** Branch A: put them in `tests/Ambinder.A2A.Client.Tests/Signing/ResolverVerificationTests.cs`, using 10's `StubHandler`, `FakeTimeProvider` and its loopback host (or the B2 harness), and call `IA2ACardResolver.GetAsync`. Branch B: put them in the client test location from the file map, and call `GetAgentCardAsync`.
   - Both branches:
