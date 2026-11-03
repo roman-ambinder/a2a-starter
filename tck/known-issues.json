@@ -74,7 +74,7 @@
       "kind": "tck-bug",
       "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
       "issue": "draft:tck-jsonrpc-snake-case",
-      "reason": "TCK JSON-RPC client sends task_id in params; the spec requires taskId.",
+      "reason": "TCK JSON-RPC client sends task_id in params; the spec requires taskId. The same client bug makes the TCK skip the other JSON-RPC push CRUD tests (PUSH-CREATE-002, PUSH-GET-001, PUSH-LIST-001, PUSH-DEL-001, PUSH-DEL-002), so JSON-RPC push CRUD is covered only by this repo's tests (JsonRpcTransportTests.Push_config_roundtrip_and_delete_returns_empty_object).",
       "expires": "2026-11-17"
     },
     {

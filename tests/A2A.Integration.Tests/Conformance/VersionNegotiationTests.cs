@@ -270,6 +270,71 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
         Assert.Empty(dispatcher.Calls);
     }
 
+    [Fact]
+    public async Task JsonRpc_dispatched_request_gets_the_interface_tenant()
+    {
+        var dispatcher = new FakeDispatcher();
+        await using var server = await StartExtraServerAsync(services => services.AddSingleton<IA2AVersionDispatcher>(dispatcher), interfaceTenant: "t1");
+        using var request = JsonRpcRequest("echo", JsonRpcListTasks, version: null, server: ExtraPortBase);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        using var response = await host.Http.SendAsync(request, Ct);
+
+        Assert.Equal(DispatcherStatus, (int)response.StatusCode);
+        Assert.Equal("t1", Assert.Single(dispatcher.Calls).Context.Tenant);
+    }
+
+    [Theory]
+    [InlineData("v1/tasks/t1")]
+    [InlineData("t1/v1/tasks/t1")]
+    public async Task Rest_dispatched_request_gets_the_interface_tenant(string path)
+    {
+        var dispatcher = new FakeDispatcher();
+        await using var server = await StartExtraServerAsync(services => services.AddSingleton<IA2AVersionDispatcher>(dispatcher), interfaceTenant: "t1");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{A2ATestHost.AgentServerBaseUrl(ExtraPortBase)}/agents/echo/rest/{path}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        using var response = await host.Http.SendAsync(request, Ct);
+
+        Assert.Equal(DispatcherStatus, (int)response.StatusCode);
+        var context = Assert.Single(dispatcher.Calls).Context;
+        Assert.Equal("t1", context.Tenant);
+        Assert.Equal("/v1/tasks/t1", context.RestPath.Value);
+    }
+
+    [Fact]
+    public async Task Rest_dispatched_request_with_another_tenant_gets_invalid_params_and_skips_the_dispatcher()
+    {
+        var dispatcher = new FakeDispatcher();
+        await using var server = await StartExtraServerAsync(services => services.AddSingleton<IA2AVersionDispatcher>(dispatcher), interfaceTenant: "t1");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{A2ATestHost.AgentServerBaseUrl(ExtraPortBase)}/agents/echo/rest/other/v1/tasks/t1");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        using var response = await host.Http.SendAsync(request, Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var body = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        var error = body.RootElement.GetProperty("error");
+        Assert.Equal("INVALID_ARGUMENT", error.GetProperty("status").GetString());
+        Assert.Contains("tenant 'other' does not match this interface (tenant 't1')", error.GetProperty("message").GetString(), StringComparison.Ordinal);
+        Assert.Empty(dispatcher.Calls);
+    }
+
+    [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
+    public async Task Caller_resolver_fills_and_checks_the_interface_tenant(string binding)
+    {
+        _ = binding; // the resolver is shared by the bindings
+        await using var server = await StartExtraServerAsync(_ => { }, interfaceTenant: "t1");
+        var resolver = server.Services.GetRequiredService<IA2ACallerResolver>();
+        var http = new DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity()) };
+
+        Assert.Equal("t1", (await resolver.ResolveAsync(http, "echo", null, Ct)).Tenant);
+        Assert.Equal("t1", (await resolver.ResolveAsync(http, "echo", "", Ct)).Tenant);
+        Assert.Equal("t1", (await resolver.ResolveAsync(http, "echo", "t1", Ct)).Tenant);
+        var error = await Assert.ThrowsAsync<A2AException>(async () => await resolver.ResolveAsync(http, "echo", "other", Ct));
+        Assert.Equal(A2AErrorCode.InvalidParams, error.Code);
+    }
+
     [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
     public async Task Version_the_dispatcher_does_not_claim_is_rejected(string binding)
     {
@@ -333,9 +398,13 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
 
     // ---------- helpers ----------
 
-    private Task<WebApplication> StartExtraServerAsync(Action<IServiceCollection> register)
+    private Task<WebApplication> StartExtraServerAsync(Action<IServiceCollection> register, string? interfaceTenant = null)
         => A2ATestHost.StartAgentServerAsync(ExtraPortBase, A2ATestHost.MockEntraBaseUrl,
-            b => b.Host.ConfigureServices((_, services) => register(services)));
+            b => b.Host.ConfigureServices((_, services) =>
+            {
+                register(services);
+                if (interfaceTenant is not null) services.Configure<A2AServerOptions>(o => o.InterfaceTenants["echo"] = interfaceTenant);
+            }));
 
     /// <summary>A client over the real card of <paramref name="agent"/> that sends <paramref name="version"/> instead of its own.</summary>
     private async Task<IA2AClient> CreateClientAsync(A2ATestHost testHost, string baseUrl, string binding, string version,

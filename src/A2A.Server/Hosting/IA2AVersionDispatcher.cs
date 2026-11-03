@@ -51,7 +51,10 @@ internal sealed class A2AVersionDispatchContext
     public required DispatchCaller Caller { get; init; }
 
     /// <summary>
-    /// The resolved tenant; empty when the agent has none. For REST on a version the core does not serve, a tenant prefix is read
+    /// The resolved tenant. When the agent has an interface tenant (<see cref="A2AServerOptions.InterfaceTenants"/>), it is that tenant:
+    /// an empty request tenant is filled with it and a different one fails with <c>InvalidParams</c> before the dispatcher runs.
+    /// A JSON-RPC request has no request tenant at this point (the body is not read), so it gets the interface tenant. Empty when
+    /// the agent has no interface tenant and the request names none. For REST on a version the core does not serve, a tenant prefix is read
     /// only from a path of the form <c>{tenant}/v1/...</c> (first segment not <c>v1</c>, second segment <c>v1</c>); other paths give an empty tenant.
     /// </summary>
     public required string Tenant { get; init; }

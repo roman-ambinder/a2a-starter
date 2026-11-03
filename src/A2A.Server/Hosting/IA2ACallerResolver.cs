@@ -14,6 +14,7 @@ internal interface IA2ACallerResolver
     /// <param name="requestTenant">The tenant the request names, or <see langword="null"/>.</param>
     /// <param name="ct">Cancels the call.</param>
     /// <returns>The caller and the resolved tenant (empty when there is none).</returns>
+    /// <exception cref="A2AException"><c>InvalidParams</c>: the request names a different tenant than the agent's interface tenant.</exception>
     /// <exception cref="A2AAuthException">The caller is not authenticated, or may not call this agent.</exception>
     ValueTask<(DispatchCaller Caller, string Tenant)> ResolveAsync(HttpContext http, string agentName, string? requestTenant, CancellationToken ct);
 }
