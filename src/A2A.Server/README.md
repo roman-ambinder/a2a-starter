@@ -15,9 +15,16 @@ Reference or copy the project (plus [A2A.Protocol](../A2A.Protocol/README.md) an
 | `ITaskStore` | Stores tasks (`GetAsync`, `SaveAsync`, `ListAsync`). | `InMemoryTaskStore` |
 | `IPushConfigStore` | Stores push notification configs. | `InMemoryPushConfigStore` |
 | `IAgentAuthorizer` | Checks the agent's policy before an operation. | `AgentAuthorizer` (ASP.NET Core policies) |
+| `IOwnerResolver` | Decides who owns a task (see the notes below). | `DefaultOwnerResolver` |
 | `ITaskEventObserver` | Sees every task event (the push sender is one). | push sender |
+| `IA2ARequestHandler` | The A2A operations that all three transports call. | `TracingRequestHandler` wrapping `TaskManager` |
 
 Replace a store by registering your type before `AddA2AServer`; the library uses `TryAdd`.
+
+## Telemetry
+
+The default `IA2ARequestHandler` is `TracingRequestHandler` (`Telemetry/`). It records one `a2a.server <Method>` span per operation, the same for all three transports (`A2ACallContext.Transport` carries the transport name). The task manager adds the `a2a.agent.run` span and task state events, and the push sender adds an `a2a.push.deliver` span. The library uses only `System.Diagnostics`: add the `A2A.Server` activity source and meter (`A2ATelemetryNames`) to your own exporter. Names, attributes, metrics and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp).
+If you register your own `IA2ARequestHandler`, wrap it in `TracingRequestHandler` to keep the spans.
 
 ## Minimal use
 
@@ -88,5 +95,5 @@ Notes:
 - `supportedInterfaces` on the cards is generated for you (JSON-RPC, REST, and gRPC when the agent is in `GrpcPorts`).
 - `AddAgent(name, publicCard, extendedCard, authorizationPolicy)`: the policy is an ASP.NET Core policy name; `null` means open. To serve an extended card, pass a factory and set `Capabilities.ExtendedAgentCard = true` on the public card.
 - Every request needs the `A2A-Version: 1.0` header. Cards are exempt.
-- The task owner comes from `IOwnerResolver` (default `DefaultOwnerResolver`): `tenant:{tid}/app:{azp}` for bearer tokens (one client app in one tenant), `apikey:{name}` for API keys, `anonymous` otherwise. Callers only see, list, cancel, subscribe to and configure push for their own tasks; other tasks are `TaskNotFound`. One exception: another app of the same tenant may continue an `AUTH_REQUIRED` task (step-up). Register your own `IOwnerResolver` before `AddA2AServer` to change this.
+- The task owner comes from `IOwnerResolver` (default `DefaultOwnerResolver`): `tenant:{tid}/app:{azp}` for bearer tokens (one client app in one tenant), `apikey:{name}` for API keys, `user:{sub}` for bearer tokens without a tenant, `anonymous` when not authenticated. Callers only see, list, cancel, subscribe to and configure push for their own tasks; other tasks are `TaskNotFound`. One exception: another app of the same tenant may continue an `AUTH_REQUIRED` task (step-up). Register your own `IOwnerResolver` before `AddA2AServer` to change this.
 - REST also accepts the tenant-prefixed paths from the proto (`/{tenant}/message:send`, `/{tenant}/tasks/{id}`, ...). The path tenant becomes the request's `tenant`; a different `tenant` in the body is `InvalidParams`.

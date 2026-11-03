@@ -11,9 +11,14 @@ Reference or copy the project (plus [A2A.Protocol](../A2A.Protocol/README.md), [
 | Type | Purpose |
 |---|---|
 | `IA2AClient` | The operations: send, stream, get, list, cancel, subscribe, push config create/get/list/delete, extended card. Mock it in your tests. |
-| `A2AClientFactory.Create(card, options)` | Builds the client for the first supported card interface, or the one in `A2AClientOptions.PreferredBinding` (`JSONRPC`, `HTTP+JSON`, `GRPC`). |
+| `A2AClientFactory.Create(card, options)` | Builds the client for the first supported card interface, or the one in `A2AClientOptions.PreferredBinding` (`JSONRPC`, `HTTP+JSON`, `GRPC`). The result is a `TracingA2AClient` (see Telemetry). |
 | `IA2ACredentialProvider` | Returns the auth headers for a request. Built in: `ClientCredentialsProvider` (OAuth2 client credentials; token URL from an explicit override, or from the card only for hosts you allow, see below), `AzureIdentityCredentialProvider` (Azure.Identity `TokenCredential`), `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`. |
 | `A2ACardResolver` | Fetches and caches (5 minutes) the agent card. |
+
+## Telemetry
+
+`A2AClientFactory.Create` returns a `TracingA2AClient` that wraps the transport client and records one `a2a.client <Method>` span per call, with `a2a.method`, `a2a.agent`, `a2a.transport` and the task and context IDs. The HTTP or gRPC request below it joins that span's trace, so the server's `a2a.server` span becomes its child. To reach the transport client, cast the result to `TracingA2AClient` and read `Inner`. A transport client that you construct yourself records no spans.
+The library uses only `System.Diagnostics`: add the `A2A.Client` activity source (`A2ATelemetryNames.ClientSource`) to your own exporter. Details and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp). The sample client wires this up in `samples/AgentClient/ClientTelemetry.cs`.
 
 Writing your own provider:
 
