@@ -6,7 +6,7 @@
       "transport": "http_json",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: TaskNotCancelableError is FAILED_PRECONDITION / 400",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): TaskNotCancelableError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said 409 Conflict",
       "issue": "draft:tck-error-table",
       "reason": "TCK expects HTTP 409 for TaskNotCancelableError; v1.0.1 says 400.",
       "expires": "2026-11-17"
@@ -17,7 +17,7 @@
       "transport": "grpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: UnsupportedOperationError is FAILED_PRECONDITION / 400",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): UnsupportedOperationError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said UNIMPLEMENTED",
       "issue": "draft:tck-error-table",
       "reason": "TCK expects UNIMPLEMENTED for UnsupportedOperationError; v1.0.1 says FAILED_PRECONDITION.",
       "expires": "2026-11-17"
@@ -28,7 +28,7 @@
       "transport": "grpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table (A2A #1627); the TCK pins the v1.0.0 table: VersionNotSupportedError is FAILED_PRECONDITION / 400",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): VersionNotSupportedError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said UNIMPLEMENTED",
       "issue": "draft:tck-error-table",
       "reason": "TCK expects UNIMPLEMENTED for VersionNotSupportedError; v1.0.1 says FAILED_PRECONDITION.",
       "expires": "2026-11-17"
@@ -39,7 +39,7 @@
       "transport": "jsonrpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
       "issue": "draft:tck-send-003",
       "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
       "expires": "2026-11-17"
@@ -50,7 +50,7 @@
       "transport": "http_json",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
       "issue": "draft:tck-send-003",
       "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
       "expires": "2026-11-17"
@@ -61,7 +61,7 @@
       "transport": "grpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 error mapping table: an unsupported media type is answered with ContentTypeNotSupportedError",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
       "issue": "draft:tck-send-003",
       "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
       "expires": "2026-11-17"
@@ -72,7 +72,7 @@
       "transport": "jsonrpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
       "issue": "draft:tck-jsonrpc-snake-case",
       "reason": "TCK JSON-RPC client sends task_id in params; the spec requires taskId.",
       "expires": "2026-11-17"
@@ -83,7 +83,7 @@
       "transport": "jsonrpc",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
       "issue": "draft:tck-jsonrpc-snake-case",
       "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
       "expires": "2026-11-17"
@@ -94,7 +94,7 @@
       "transport": "jsonrpc",
       "level": "SHOULD",
       "kind": "tck-bug",
-      "spec": "A2A section 5.5: JSON serializations MUST use camelCase, not snake_case",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
       "issue": "draft:tck-jsonrpc-snake-case",
       "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
       "expires": "2026-11-17"
@@ -105,7 +105,7 @@
       "transport": "http_json",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 section 11.1: application/a2a+json SHOULD be used for HTTP+JSON requests and responses (A2A #1753); v1.0.0 said application/json",
+      "spec": "A2A v1.0.1 section 11.1 (changed by A2A PR #1753): application/a2a+json SHOULD be used for HTTP+JSON requests and responses; v1.0.0 said application/json",
       "issue": "draft:tck-rest-media-type",
       "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
       "expires": "2026-11-17"
@@ -116,7 +116,7 @@
       "transport": "http_json",
       "level": "MUST",
       "kind": "tck-bug",
-      "spec": "A2A v1.0.1 section 11.1: application/a2a+json SHOULD be used for HTTP+JSON requests and responses (A2A #1753); v1.0.0 said application/json",
+      "spec": "A2A v1.0.1 section 11.1 (changed by A2A PR #1753): application/a2a+json SHOULD be used for HTTP+JSON requests and responses; v1.0.0 said application/json",
       "issue": "draft:tck-rest-media-type",
       "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
       "expires": "2026-11-17"

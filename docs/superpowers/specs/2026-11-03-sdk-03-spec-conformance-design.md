@@ -277,25 +277,25 @@ Provides:
 
 ## Acceptance criteria
 
-- [ ] `tck` CI job runs on every PR, all three transports, `--level should`; required for merge two weeks after it lands (C13); zero MUST failures and a MUST entry in `tck/known-issues.json` only for a proven TCK bug, with the spec text, an upstream issue link (or a `draft:` reference until posted) and an expiry date *(owner decision 2026-11-03)*; every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3).
-- [ ] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
-- [ ] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
-- [ ] Tests, each on JSON-RPC, REST and gRPC (use `tests/A2A.Integration.Tests/Fixtures/TransportMatrix.cs`):
-  - [ ] missing version gives `VersionNotSupported` with the 0.3 message and `supportedVersions` metadata
-  - [ ] `2.0` and `abc` give `VersionNotSupported`; `1.0.1` is accepted
-  - [ ] a registered fake `IA2AVersionDispatcher` receives empty-version requests
-  - [ ] unknown `TaskState` and `Role` strings read as `Unspecified`; integers read; output always names
-  - [ ] every A2A error carries ErrorInfo; the client maps each catalog error back to the same `A2AErrorCode`
-  - [ ] JSON-RPC `error.data` contains the ErrorInfo detail
-  - [ ] activated extensions echoed; missing required extension gives `ExtensionSupportRequired` on GetTask, ListTasks and SendMessage
-  - [ ] ListTasks: empty `nextPageToken` on last page, order, artifacts absent, scoping
-  - [ ] each D9 rule
-  - [ ] client tenant always equals the interface tenant; server rejects a mismatched tenant
-- [ ] Card endpoint tests: `ETag` (same value from two server instances and after re-signing with the same keys, B13), `Cache-Control`, `Vary: A2A-Version`, 304 on `If-None-Match`, extended card `no-store`.
-- [ ] OAuth implicit and password flows round-trip in JSON and proto.
-- [ ] Client interface selection tests: version match, patch ignored, 0.3-only card gives the "add Compat" message.
-- [ ] `docs/spec-decisions.md` exists with every wire-level writer's call from this spec.
-- [ ] `README.md` "Optional conformance" section replaced by a short "Conformance" section that links the CI job.
+- [x] `tck` CI job runs on every PR, all three transports, run without `--level` (plan section 3, item 1: `--level should` would skip every MUST); required for merge two weeks after it lands (C13); zero MUST failures and a MUST entry in `tck/known-issues.json` only for a proven TCK bug, with the spec text, an upstream issue link (or a `draft:` reference until posted) and an expiry date *(owner decision 2026-11-03)*; every SHOULD failure listed there is a TCK bug with an upstream link and expiry (C3). Checked 2026-11-04: `tck/run-ci.sh` exits 0 with 0 failures; "required for merge" is a branch-protection setting owned by package 12, not a repo file.
+- [x] `tck/sut-behaviors.yaml` lists the SUT's behaviours; a test with a fake listed-but-missing behaviour shows the run fails, not skips.
+- [x] `proto-drift` CI step passes; `proto/a2a.proto` equals tag `v1.0.1`; `proto/README.md` names the tag, SHA and file hash.
+- [x] Tests, each on JSON-RPC, REST and gRPC (use `tests/A2A.Integration.Tests/Fixtures/TransportMatrix.cs`):
+  - [x] missing version gives `VersionNotSupported` with the 0.3 message and `supportedVersions` metadata
+  - [x] `2.0` and `abc` give `VersionNotSupported`; `1.0.1` is accepted
+  - [x] a registered fake `IA2AVersionDispatcher` receives empty-version requests (JSON-RPC and REST only: the dispatcher has no gRPC path by design; see `docs/spec-decisions.md`, "Version dispatch")
+  - [x] unknown `TaskState` and `Role` strings read as `Unspecified`; integers read; output always names
+  - [x] every A2A error carries ErrorInfo; the client maps each catalog error back to the same `A2AErrorCode`
+  - [x] JSON-RPC `error.data` contains the ErrorInfo detail
+  - [x] activated extensions echoed; missing required extension gives `ExtensionSupportRequired` on GetTask, ListTasks and SendMessage
+  - [x] ListTasks: empty `nextPageToken` on last page, order, artifacts absent, scoping
+  - [x] each D9 rule
+  - [x] client tenant always equals the interface tenant; server rejects a mismatched tenant
+- [x] Card endpoint tests: `ETag` (same value from two server instances and after re-signing with the same keys, B13), `Cache-Control`, `Vary: A2A-Version`, 304 on `If-None-Match`, extended card `no-store`.
+- [x] OAuth implicit and password flows round-trip in JSON and proto.
+- [x] Client interface selection tests: version match, patch ignored, 0.3-only card gives the "add Compat" message.
+- [x] `docs/spec-decisions.md` exists with every wire-level writer's call from this spec.
+- [x] `README.md` "Optional conformance" section replaced by a short "Conformance" section that links the CI job.
 
 ## Left to the builder
 
