@@ -12,7 +12,7 @@ The SUT serves JSON-RPC, REST and gRPC. The job runs the TCK once per transport 
 | `sut-behaviors.yaml` | The scenarios the SUT claims to implement. YAML in JSON syntax, so tools read it with a JSON parser. |
 | `check-report.py` | Grades the per-transport `compatibility.json` reports. Standard library only. |
 | `test_check_report.py` | Tests for the checker. |
-| `run-ci.sh` | Starts the SUT, runs the TCK per transport, runs the checker. |
+| `run-ci.sh` | Starts the SUT, runs the TCK per transport, copies each report, runs the checker. CI and local runs both use it. |
 
 ## What the checker fails on
 
@@ -73,26 +73,14 @@ behaviour ends the task as `FAILED`, so a missing behaviour fails the TCK test i
 
 ## Run locally
 
-Needs `dotnet`, `uv` and `python3`.
+Needs `dotnet`, `uv` and `python3`. CI runs the same script (`.github/workflows/tck.yml`).
 
 ```bash
-git clone https://github.com/a2aproject/a2a-tck.git /tmp/a2a-tck
-git -C /tmp/a2a-tck checkout "$(cat tck/TCK_VERSION)"
-
-dotnet run --project tests/A2A.Tck.Sut -c Release -- --port 9999 --grpc-port 10000 &
-
-cd /tmp/a2a-tck && uv sync
-for t in jsonrpc http_json grpc; do
-  rm -rf reports
-  uv run ./run_tck.py --sut-host http://localhost:9999 --transport "$t" || true
-  mkdir -p "reports-$t" && cp reports/* "reports-$t/"   # reports are overwritten on each run
-done
-cd -
-
-python3 -I tck/check-report.py --known-issues tck/known-issues.json --behaviors tck/sut-behaviors.yaml \
-  --report jsonrpc=/tmp/a2a-tck/reports-jsonrpc/compatibility.json \
-  --report http_json=/tmp/a2a-tck/reports-http_json/compatibility.json \
-  --report grpc=/tmp/a2a-tck/reports-grpc/compatibility.json
+mkdir -p /tmp/a2a-tck-run
+RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh            # the pinned TCK
+RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh main       # TCK main (the weekly run)
 ```
+
+Reports and `checker-output.txt` land in `tck-reports/<transport>/` (ignored by version control). The exit code is the checker's.
 
 Do not pass `--level should` to the TCK: it runs only the SHOULD tests.

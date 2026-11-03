@@ -32,14 +32,25 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 
 `tests/A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files. It keeps the extended card off, because the TCK sends no auth token.
 
-The TCK is pinned by commit in `tck/TCK_VERSION`. To run the same steps as CI (build and start the SUT, check out the TCK, run it, check the report):
+The TCK is pinned by commit in `tck/TCK_VERSION`. CI runs it on every PR (job `tck`, `.github/workflows/tck.yml`). To run the same steps locally (build and start the SUT, check out the TCK, run it once per transport, check the reports):
 
 ```
-RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh "$(cat tck/TCK_VERSION)"
+mkdir -p /tmp/a2a-tck-run
+RUNNER_TEMP=/tmp/a2a-tck-run bash tck/run-ci.sh
 ```
 
-The script leaves the reports in `$RUNNER_TEMP/a2a-tck/reports/` and the SUT log in `$RUNNER_TEMP/sut.log`. The exit code is the checker's. Create the `RUNNER_TEMP` folder first.
+The script runs this loop in the TCK checkout, then calls the checker:
 
-The TCK runs once, with no `--level` and no `--transport`. The pinned TCK's `--level should` runs only SHOULD tests. One run covers MUST, SHOULD and MAY on every interface in the card, and `tck/check-report.py` grades each requirement by its own level.
+```
+for t in jsonrpc http_json grpc; do
+  rm -rf reports
+  uv run ./run_tck.py --sut-host http://localhost:9999 --transport "$t" || true
+  mkdir -p "tck-reports/$t" && cp -r reports/. "tck-reports/$t/"   # reports are overwritten on each run
+done
+```
 
-The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it. A known TCK bug can go on the list in `tck/known-issues.json` only once it has an upstream issue. The list is empty today (see spec 03, D1).
+Reports and `checker-output.txt` are left in `tck-reports/`, the SUT log in `$RUNNER_TEMP/sut.log`. The exit code is the checker's. See [tck/README.md](../tck/README.md) for the rules.
+
+Do not pass `--level should` to the TCK: it runs only SHOULD tests and skips every MUST. The checker grades each requirement by its own level.
+
+The TCK reads the card at `{sut-host}/.well-known/agent-card.json` and tests every interface on it. A known TCK bug goes on the list in `tck/known-issues.json`. Until the upstream issues are posted, entries carry draft references (`draft:...`) and short expiry dates.
