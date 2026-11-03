@@ -16,6 +16,7 @@ public class OAuthFlowRoundTripTests
 
     private static string Ours(AgentCard card) => JsonSerializer.Serialize(card, A2AJson.Options);
 
+#pragma warning disable CS0618 // deprecated OAuth flows: read here to test that they round-trip
     private static void AssertFlow(string flow, AgentCard card)
     {
         var flows = card.SecuritySchemes!["oauth"].Oauth2SecurityScheme!.Flows;
@@ -34,6 +35,18 @@ public class OAuthFlowRoundTripTests
             Assert.Null(flows.Implicit);
         }
     }
+    [Fact]
+    public void Deprecated_flows_are_marked_obsolete_with_the_spec_text()
+    {
+        const string text = "Removed from OAuth 2.1; kept so cards round-trip. See docs/spec-decisions.md.";
+        foreach (var member in new System.Reflection.MemberInfo[]
+                 {
+                     typeof(ImplicitOAuthFlow), typeof(PasswordOAuthFlow),
+                     typeof(OAuthFlows).GetProperty(nameof(OAuthFlows.Implicit))!, typeof(OAuthFlows).GetProperty(nameof(OAuthFlows.Password))!,
+                 })
+            Assert.Equal(text, Assert.Single(member.GetCustomAttributes(typeof(ObsoleteAttribute), false).Cast<ObsoleteAttribute>()).Message);
+    }
+#pragma warning restore CS0618
 
     [Theory, MemberData(nameof(Flows))]
     public void Json_in_json_out(string flow)

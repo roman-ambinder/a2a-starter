@@ -45,8 +45,10 @@ namespace A2A.Protocol;
 [JsonSerializable(typeof(SecurityRequirement))]
 [JsonSerializable(typeof(StringList))]
 [JsonSerializable(typeof(OAuthFlows))]
+#pragma warning disable CS0618 // deprecated OAuth flows stay in the context so cards that use them round-trip
 [JsonSerializable(typeof(ImplicitOAuthFlow))]
 [JsonSerializable(typeof(PasswordOAuthFlow))]
+#pragma warning restore CS0618
 [JsonSerializable(typeof(JsonElement))]
 public sealed partial class A2AJsonContext : JsonSerializerContext;
 

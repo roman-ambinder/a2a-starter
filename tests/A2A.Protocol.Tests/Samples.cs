@@ -111,6 +111,7 @@ public static class Samples
         },
     };
 
+#pragma warning disable CS0618 // deprecated OAuth flows: built here to test that they round-trip
     public static OAuthFlows ImplicitFlows() => new()
     {
         Implicit = new ImplicitOAuthFlow { AuthorizationUrl = "https://idp.example/authorize", RefreshUrl = "https://idp.example/refresh", Scopes = Scopes },
@@ -120,6 +121,7 @@ public static class Samples
     {
         Password = new PasswordOAuthFlow { TokenUrl = "https://idp.example/token", RefreshUrl = "https://idp.example/refresh", Scopes = Scopes },
     };
+#pragma warning restore CS0618
 
     public static OAuthFlows DeviceCodeFlows() => new()
     {
