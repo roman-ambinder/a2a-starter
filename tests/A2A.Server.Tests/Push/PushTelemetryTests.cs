@@ -66,13 +66,25 @@ public sealed class PushTelemetryTests
             Message = TestHost.UserText("go"),
             Configuration = new SendMessageConfiguration { TaskPushNotificationConfig = config, ReturnImmediately = true },
         });
-        await Task.Delay(300, Ct); // the retries back off 10 ms and 20 ms
+        // Stop only after both deliveries ended: StopAsync cancels the sender, which would turn a running delivery into "canceled".
+        // A span stops after its metrics are counted, so the metrics are complete once both spans are there.
+        await WaitForSpansAsync(collector, 2);
         await sender.StopAsync(CancellationToken.None);
         gate.Open();
 
-        // Two events are delivered (the new task, then the working status); the sender is drained once it has stopped.
+        // Two events are delivered: the new task, then the working status.
         var spans = collector.Stopped.Where(a => a.OperationName == "a2a.push.deliver").ToList();
         return (spans, metrics.Measurements, config);
+    }
+
+    private static async Task WaitForSpansAsync(ActivityCollector collector, int count)
+    {
+        var deadline = DateTime.UtcNow + TestHost.Timeout;
+        while (collector.Stopped.Count(a => a.OperationName == "a2a.push.deliver") < count)
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException($"Fewer than {count} push spans stopped.");
+            await Task.Delay(10, Ct);
+        }
     }
 
     private static long Count(IEnumerable<(string Instrument, long Value, IReadOnlyDictionary<string, object?> Tags)> m, string outcome)
@@ -98,9 +110,8 @@ public sealed class PushTelemetryTests
             Message = TestHost.UserText("go"),
             Configuration = new SendMessageConfiguration { TaskPushNotificationConfig = new TaskPushNotificationConfig { Url = "http://localhost:5300/hook" } },
         });
-        await sender.StopAsync(CancellationToken.None);
-
         var span = await collector.WaitForAsync("a2a.push.deliver", TestHost.Timeout);
+        await sender.StopAsync(CancellationToken.None);
         Assert.Equal(collector.Root.TraceId, span.TraceId);
         Assert.Equal(response.Task!.Id, span.GetTagItem(A2ATelemetryNames.TaskId));
         Assert.Equal("localhost", span.GetTagItem(A2ATelemetryNames.ServerAddress));
