@@ -17,11 +17,16 @@ public static class TaskStateRules
     public static bool IsFinal(TaskState state) => IsTerminal(state) || IsInterrupted(state);
 
     /// <summary>
-    /// True when an agent may move a task from <paramref name="from"/> to <paramref name="to"/>.
-    /// Nothing leaves a terminal state; agents cannot set UNSPECIFIED or SUBMITTED (the server sets SUBMITTED).
+    /// True when an agent may move a task from <paramref name="from"/> to <paramref name="to"/> (spec D13).
+    /// Only SUBMITTED and WORKING have agent moves: to WORKING, INPUT_REQUIRED, AUTH_REQUIRED, COMPLETED,
+    /// FAILED, REJECTED or CANCELED. Nothing leaves a terminal state. Only the server leaves an interrupted
+    /// state (it sets SUBMITTED for a continuation, CANCELED for a cancel request). Agents never set
+    /// UNSPECIFIED or SUBMITTED.
     /// </summary>
     public static bool CanAgentTransition(TaskState from, TaskState to)
-        => !IsTerminal(from) && to is not (TaskState.Unspecified or TaskState.Submitted) && Enum.IsDefined(to);
+        => from is TaskState.Submitted or TaskState.Working
+           && to is TaskState.Working or TaskState.InputRequired or TaskState.AuthRequired
+               or TaskState.Completed or TaskState.Failed or TaskState.Rejected or TaskState.Canceled;
 
     /// <summary>True when the event ends a stream: a message, or a task/status in a final state.</summary>
     public static bool IsFinal(StreamResponse evt)

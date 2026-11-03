@@ -25,6 +25,9 @@ internal sealed class AgentEventSink : IAgentEventSink
     private int _events;
     private volatile bool _replied;
     private volatile bool _done;
+    // Set when this execution paused the task (INPUT_REQUIRED/AUTH_REQUIRED): the state and history length
+    // it left, so a later event can tell whether a continuation has moved the task on since.
+    private (TaskState State, int HistoryCount)? _paused;
 
     private AgentEventSink(TaskWriter writer, TaskExecution? execution, string agent, string taskId, string contextId,
         string owner, string? tenant, Message? newTaskMessage, bool taskExists)
@@ -57,6 +60,7 @@ internal sealed class AgentEventSink : IAgentEventSink
         using (await _writer.LockAsync(_agent, _taskId, ct).ConfigureAwait(false))
         {
             ThrowIfFinished();
+            await ThrowIfPausedLockedAsync("ReplyAsync is only valid as the agent's first and only event on a new message.").ConfigureAwait(false);
             if (_newTaskMessage is null || _taskExists || _events > 0 || _execution is null)
             {
                 await FailLockedAsync(InvalidResponseText, create: false).ConfigureAwait(false);
@@ -81,9 +85,11 @@ internal sealed class AgentEventSink : IAgentEventSink
     {
         using (await _writer.LockAsync(_agent, _taskId, ct).ConfigureAwait(false))
         {
-            var stored = await BeginEventLockedAsync().ConfigureAwait(false);
+            var stored = await BeginEventLockedAsync($"Illegal task state transition {_paused?.State} -> {state}.").ConfigureAwait(false);
             var from = stored.Task.Status.State;
-            if (!TaskStateRules.CanAgentTransition(from, state))
+            // D13: a cancel request (the sink without an execution) may also end an interrupted task as CANCELED.
+            var cancelOfPaused = _execution is null && state == TaskState.Canceled && TaskStateRules.IsInterrupted(from);
+            if (!TaskStateRules.CanAgentTransition(from, state) && !cancelOfPaused)
             {
                 await FailLockedAsync(InvalidResponseText, create: false).ConfigureAwait(false);
                 throw Invalid($"Illegal task state transition {from} -> {state}.");
@@ -98,7 +104,7 @@ internal sealed class AgentEventSink : IAgentEventSink
         ArgumentNullException.ThrowIfNull(artifact);
         using (await _writer.LockAsync(_agent, _taskId, ct).ConfigureAwait(false))
         {
-            var stored = await BeginEventLockedAsync().ConfigureAwait(false);
+            var stored = await BeginEventLockedAsync("No artifacts are allowed after the agent set an interrupted state.").ConfigureAwait(false);
             if (string.IsNullOrEmpty(artifact.ArtifactId) || artifact.Parts.Count == 0 || artifact.Parts.Any(p => !p.IsValid))
             {
                 await FailLockedAsync(InvalidResponseText, create: false).ConfigureAwait(false);
@@ -140,12 +146,28 @@ internal sealed class AgentEventSink : IAgentEventSink
     private void ThrowIfFinished()
     {
         if (_replied) throw Invalid("No events are allowed after ReplyAsync.");
-        if (_done) throw Invalid("This execution already reached a terminal or interrupted state.");
+        if (_done && _paused is null) throw Invalid("This execution already reached a terminal state.");
     }
 
-    private async ValueTask<StoredTask> BeginEventLockedAsync()
+    /// <summary>
+    /// After this execution paused the task, any further event is illegal (D13: only the server leaves an
+    /// interrupted state). If the task is still as this execution left it, the task ends FAILED; if a
+    /// continuation moved it on, the event is only rejected so the newer run is not disturbed.
+    /// </summary>
+    private async ValueTask ThrowIfPausedLockedAsync(string message)
+    {
+        if (_paused is not { } paused) return;
+        _paused = null; // from here on, _done alone rejects events
+        var stored = await _writer.Store.GetAsync(_agent, _taskId, CancellationToken.None).ConfigureAwait(false);
+        if (stored is not null && stored.Task.Status.State == paused.State && stored.Task.History.Count == paused.HistoryCount)
+            await FailLockedAsync(InvalidResponseText, create: false).ConfigureAwait(false);
+        throw Invalid(message);
+    }
+
+    private async ValueTask<StoredTask> BeginEventLockedAsync(string afterPauseMessage)
     {
         ThrowIfFinished();
+        await ThrowIfPausedLockedAsync(afterPauseMessage).ConfigureAwait(false);
         var stored = await LoadOrCreateLockedAsync().ConfigureAwait(false);
         if (TaskStateRules.IsTerminal(stored.Task.Status.State))
         {
@@ -162,6 +184,9 @@ internal sealed class AgentEventSink : IAgentEventSink
         if (TaskStateRules.IsFinal(stored.Task.Status.State))
         {
             _done = true;
+            _paused = TaskStateRules.IsInterrupted(stored.Task.Status.State)
+                ? (stored.Task.Status.State, stored.Task.History.Count)
+                : null;
             if (_execution is not null) _execution.FinalTask ??= stored.Task;
             _execution?.Settled.TrySetResult();
         }

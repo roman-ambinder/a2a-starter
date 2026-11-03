@@ -363,6 +363,91 @@ public class TaskManagerTests
         Assert.Equal(TaskState.Failed, task.Status.State);
     }
 
+    [Theory]
+    [InlineData(TaskState.InputRequired)]
+    [InlineData(TaskState.AuthRequired)]
+    public async Task Illegal_agent_transition_fails_the_task(TaskState interrupted)
+    {
+        // D13: only the server leaves an interrupted state (a continuation or a cancel request).
+        var host = new TestHost();
+        var rejected = new Signal();
+        A2AException? error = null;
+        host.Scripts.Execute = async (_, sink, ct) =>
+        {
+            await sink.UpdateStatusAsync(interrupted, null, ct);
+            error = await Assert.ThrowsAsync<A2AException>(() => sink.UpdateStatusAsync(TaskState.Completed, null, ct).AsTask());
+            rejected.Set();
+        };
+
+        var task = (await host.SendAsync(TestHost.Text("go"))).Task!;
+        await rejected.WaitAsync();
+
+        Assert.Equal(interrupted, task.Status.State); // the blocking send returned at the interrupt
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, error!.Code);
+        Assert.Contains($"{interrupted} -> Completed", error.Message);
+        var stored = await host.GetAsync(task.Id);
+        Assert.Equal(TaskState.Failed, stored.Status.State);
+        Assert.Equal("Invalid agent response", TextOf(stored.Status.Message));
+    }
+
+    [Fact]
+    public async Task Late_event_from_a_paused_run_does_not_touch_the_continued_task()
+    {
+        var host = new TestHost();
+        var firstRunSink = new TaskCompletionSource<IAgentEventSink>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondRunGate = new Gate();
+        host.Scripts.Execute = async (ctx, sink, ct) =>
+        {
+            if (ctx.CurrentTask is null)
+            {
+                await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+                firstRunSink.SetResult(sink);
+                return;
+            }
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await secondRunGate.WaitAsync(ct);
+            await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+        };
+        var task = (await host.SendAsync(TestHost.Text("start"))).Task!;
+        var oldSink = await firstRunSink.Task.WaitAsync(TestHost.Timeout, TestContext.Current.CancellationToken);
+        var continued = host.SendAsync(TestHost.Text("more", taskId: task.Id, returnImmediately: true));
+        Assert.Equal(TaskState.Working, (await continued).Task!.Status.State);
+
+        var ex = await Assert.ThrowsAsync<A2AException>(() => oldSink.UpdateStatusAsync(TaskState.Completed, null, CancellationToken.None).AsTask());
+
+        Assert.Equal(A2AErrorCode.InvalidAgentResponse, ex.Code);
+        Assert.Equal(TaskState.Working, (await host.GetAsync(task.Id)).Status.State);
+        secondRunGate.Open();
+    }
+
+    [Fact]
+    public async Task Cancel_request_moves_an_interrupted_task_to_canceled()
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = (_, sink, ct) => sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+        host.Scripts.Cancel = (_, sink, ct) => sink.UpdateStatusAsync(TaskState.Canceled, null, ct);
+        var task = (await host.SendAsync(TestHost.Text("go"))).Task!;
+
+        var canceled = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        Assert.Equal(TaskState.Canceled, canceled.Status.State);
+        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+    }
+
+    [Fact]
+    public async Task Cancel_of_canceled_task_returns_task()
+    {
+        var host = new TestHost();
+        host.Scripts.Execute = (_, sink, ct) => sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+        var task = (await host.SendAsync(TestHost.Text("go"))).Task!;
+        await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        var again = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+
+        Assert.Equal(task.Id, again.Id);
+        Assert.Equal(TaskState.Canceled, again.Status.State);
+    }
+
     [Fact]
     public async Task Event_after_terminal_state_is_rejected_and_task_unchanged()
     {

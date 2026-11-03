@@ -109,6 +109,8 @@ public sealed class TaskManager : IA2ARequestHandler
         using (await _writer.LockAsync(call.AgentName, request.Id, ct).ConfigureAwait(false))
         {
             stored = await LoadOwnedAsync(call, request.Id, ct).ConfigureAwait(false);
+            if (stored.Task.Status.State == TaskState.Canceled)
+                return stored.Task; // D13: canceling a canceled task returns it
             if (TaskStateRules.IsTerminal(stored.Task.Status.State))
                 throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is {stored.Task.Status.State} and cannot be canceled.");
             if (!_cancelling.TryAdd(key, 0))
