@@ -38,11 +38,21 @@ Line numbers in the spec are from an earlier snapshot. They already differ from 
 | Task 11 (telemetry variants) | renamed sources and meters `Ambinder.A2A.Server` and `Ambinder.A2A.Client` |
 | Task 13 (size report) | pack output in `artifacts/packages`, and the pack job's size and dependency-count data (01 §6, Goal 4 of 01 "Performance") |
 | Task 12, Task 13 | MinVer versions (the size report keys on the version) |
-| Task 14, Task 25 (CI) | reusable workflows and the `perf` hook job in `ci.yml` and `release.yml` (01 §6, §7); third-party actions pinned by SHA; pinned runner approach |
+| Task 14, Task 25, Task 28 (CI) | 01's hook job for benchmarks in `ci.yml`, and `release.yml` (01 §6, §7); third-party actions pinned by SHA; pinned runner approach. See the note below this table: 01's plan names the hook `benchmarks`, and this plan renames it to `perf`. |
 | Task 22 (rules) | `CONTRIBUTING.md`, `.github/pull_request_template.md` (with its "perf evidence" item), `.github/CODEOWNERS` |
 | Task 21 (bans) | `eng/` folder; `eng/BannedSymbols.txt` (created by package 02 on top of 01's layout) |
 
-If Task 0 finds that any row is not true, **stop and report to the owner**. Do not rename anything yourself, because that is package 01's job.
+If Task 0 finds that any row is not true, **stop and report to the owner**. Do not rename anything yourself, because that is package 01's job. The one exception is the hook rename in the note below.
+
+**Hook name: `perf`, not `benchmarks`.** Spec 01 says 01 provides "a `perf` hook job" to this package, and spec 14 names the workflow `perf.yml`. Package 01's plan (builder Task 8) instead creates:
+- a hook job `benchmarks` in `ci.yml` that calls a stub reusable workflow `.github/workflows/benchmarks.yml`, which prints "not yet implemented (package 14)";
+- no benchmark job in `release.yml`, where the hooks run only inside the `verify` job, which calls `ci.yml`.
+
+This plan follows the specs and owns the rename:
+- Task 14 renames the `ci.yml` job to `perf`, deletes the stub `benchmarks.yml`, and creates `perf.yml`.
+- Task 28 adds the `perf` job to `release.yml`.
+
+Task 0 accepts either name. If 01 has already used `perf` or `perf.yml`, keep that and skip the rename steps.
 
 ### Other packages this plan touches
 
@@ -59,6 +69,19 @@ If Task 0 finds that any row is not true, **stop and report to the owner**. Do n
 | 10 | `IHttpClientFactory` client (R27), new SSE reader (PD3), card cache, interceptors | Task 10, Task 21 (P10) | Task 10 measures today's client. The P10 ban and the 1,000-client socket test wait for 10 (see Task 21). |
 | 12 | removal of `tests/Shared` | Task 2 | Do not reference `tests/Shared` from new projects. |
 | 13 | docs page "Performance and sizing" | Task 30 | 14 provides the JSON and the generator. 13 places the page. |
+
+### Changes after the cross-plan review (2026-11-03, second pass)
+
+This plan was checked again against the 05, 06, 09, 11, 12 and 13 plans on `master`. These edits came out of that review. Each is marked in its task:
+
+| # | Gap | Fix | Task |
+|---|---|---|---|
+| A | 05's plan (Task 30) creates `Store/InMemoryStoreBenchmarks.cs`, `SqliteStoreBenchmarks.cs`, `ChunkWriteBenchmarks.cs` and `DbStoreBenchmarks.cs` (and this project, if missing) | whichever lands second extends the other's classes; one class per store kind | 8 |
+| B | 09's plan (Task 12) fixed the heartbeat frame as `: keep-alive\n\n` and added `SseWriter.WriteCommentAsync` and `StartAsync(..., A2AResponseMetadata?)` (which calls `A2AResponseMetadata.MarkCommitted()`); Task 18 still used `:\n\n` | use 09's text and keep 09's members and tests | 18 |
+| C | 11's plan (Task 24) adds an `Authoring` category | listed in `Categories.cs` from the start | 1 |
+| D | 06's plan (Task 23) adds `Pipeline/ClusterForwardBenchmarks.cs` | mapped in the seam coverage for `ITaskRouter`/`ITaskForwarder` | 31 |
+| E | 13's plan (Task 15) also builds a performance-page generator over the same JSON | one generator: this plan's `PerfTool docs-page`; 13's `DocsLint generate` calls it | 30 |
+| F | 12's plan calls this package's CI job `bench`; the job is `perf` in `perf.yml` | 12's plan fixed in the same PR | 14 (no change here) |
 
 ---
 
@@ -103,7 +126,7 @@ ls CONTRIBUTING.md .github/pull_request_template.md .github/CODEOWNERS
 grep -nE 'workflow_call|perf' .github/workflows/*.yml
 ```
 
-Expected: "rename OK", every path exists, `IsPackable` is false under `benchmarks/`, and `ci.yml` has a perf hook. If any check fails, stop and report which row of the "Steps that depend on package 01" table is not true.
+Expected: "rename OK", every path exists, `IsPackable` is false under `benchmarks/`, and `ci.yml` has 01's benchmark hook job, named `perf` or `benchmarks` (see the note above). Record which name and which reusable workflow file (`perf.yml` or `benchmarks.yml`) it uses; Task 14 needs it. If any check fails, stop and report which row of the "Steps that depend on package 01" table is not true.
 
 - [ ] **Step 2: Record what the other packages provide.** Find each symbol and write the result in your task report:
 
@@ -183,6 +206,7 @@ internal static class Categories
     public const string Store = "Store";
     public const string Db = "Db";       // needs Docker; nightly weekly and on request
     public const string Push = "Push";
+    public const string Authoring = "Authoring"; // package 11 scenarios (11 plan Task 24); review item C
     public const string Client = "Client";
 }
 ```
@@ -498,7 +522,9 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 
 **Files:**
 - Create: `benchmarks/Ambinder.A2A.Benchmarks/Store/InMemoryStoreBenchmarks.cs`
-- Create (when package 05 has landed): `benchmarks/Ambinder.A2A.Benchmarks/Store/EfSqliteStoreBenchmarks.cs`, `Store/DbStoreBenchmarks.cs` (`[BenchmarkCategory(Categories.Store, Categories.Db)]`)
+- Create (when package 05 has landed): `benchmarks/Ambinder.A2A.Benchmarks/Store/SqliteStoreBenchmarks.cs`, `Store/ChunkWriteBenchmarks.cs`, `Store/DbStoreBenchmarks.cs` (`[BenchmarkCategory(Categories.Store, Categories.Db)]`)
+
+**Shared with 05 (review item A).** 05's plan (Task 30) creates the same four files, and creates this project if it does not exist yet. Before Step 1, check `ls benchmarks/Ambinder.A2A.Benchmarks/Store/`. If 05's files are there, keep its class names and add only the operations listed below that are missing; do not create a parallel class. If this task lands first, use 05's file names, so 05 extends them later. The SQLite class is `SqliteStoreBenchmarks` (05's name), not `EfSqliteStoreBenchmarks`.
 
 - [ ] **Step 1: In-memory** (spec §1, PD6). Benchmark: save a new task; save an update (history +1) at history 0, 20 and 200; get; list a page of 50 out of 10,000. Use the public store interface (`ITaskStore`, or the 05 contract), so a replacement store can run the same class (spec principle 5).
 - [ ] **Step 2: When package 05 has landed:**
@@ -596,7 +622,8 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 - Create: `perf/budgets.json` (defaults, `"enforceTime": false`)
 - Create: `perf/exceptions.md` (header and an empty table)
 - Create: `.github/workflows/perf.yml`
-- Modify: `.github/workflows/ci.yml` (fill 01's perf hook: compile check, `--list flat`, allocation tests run with the normal tests, `lint-exceptions`)
+- Modify: `.github/workflows/ci.yml`. Fill 01's hook with the compile check, `--list flat`, the allocation tests (they run with the normal tests) and `lint-exceptions`. If 01 named the job `benchmarks`, rename the job id to `perf`, and update any `needs:` or `if:` that names it, in `ci.yml` and in `release.yml`. Replace its `uses: ./.github/workflows/benchmarks.yml` with the inline steps of Step 9.
+- Delete: `.github/workflows/benchmarks.yml` (01's stub), if it exists. `git rm` it in the same commit that creates `perf.yml`, so no commit is left without a hook.
 - Modify: `.github/CODEOWNERS` (`/perf/ @roman-ambinder`, `/eng/perf/ @roman-ambinder`)
 - Tests: `tests/Ambinder.A2A.PerfTool.Tests/{BdnReportTests,MannWhitneyTests,GateTests,ExceptionsLintTests}.cs`
 
@@ -798,7 +825,7 @@ Notes for this step:
 - Check whether `github-action-benchmark`'s `benchmarkdotnet` parser keeps allocations. If it does not, the chart shows time only and `PerfTool nightly` stays the allocation alert (spec Goal 4 is met by PerfTool either way).
 - The trend data branch: by default the action uses `gh-pages`, and package 13 also deploys the docs site to Pages. Use `benchmark-data-dir-path: perf/nightly` on that branch and write the arrangement in the task report for package 13. If 13 deploys Pages from an artifact rather than a branch, use a separate `perf-data` branch.
 
-- [ ] **Step 9: `ci.yml` perf hook (every PR).**
+- [ ] **Step 9: `ci.yml` perf hook (every PR).** The job id is `perf` (see the hook-name note under the 01 table). If branch protection already lists a required check named `benchmarks`, add an owner action to the task report: replace it with `perf`.
   - The build already includes the benchmark project, because it is in the solution.
   - Add `dotnet run -c Release --no-build --project benchmarks/Ambinder.A2A.Benchmarks -- --list flat` (spec principle 3 check).
   - Run `dotnet run -c Release --project eng/perf/PerfTool -- lint-exceptions perf/exceptions.md`.
@@ -1050,8 +1077,9 @@ Today the flow is: `ReadAsync`, then `byte[]`, then `ParseBody` (`bytes.All(...)
 
 **Files:**
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseWriter.cs`
-- Create: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseFrameWriter.cs`
-- Create: `src/Ambinder.A2A.AspNetCore/Transports/Sse/ISseFrameFormat.cs` (with `JsonRpcFrameFormat` and `RestFrameFormat` implementations)
+- Create: `src/Shared/Sse/SseFrameWriter.cs`
+- Create: `src/Shared/Sse/ISseFrameFormat.cs`. `JsonRpcFrameFormat` and `RestFrameFormat` stay in `src/Ambinder.A2A.AspNetCore/Transports/Sse/`, because they use AspNetCore's JSON-RPC and REST writers.
+- **Package 15 plan D3 (owner decision 2026-11-03):** the frame writer, `ISseFrameFormat` and the "flush when idle" write loop live in `src/Shared/Sse/` and are linked as `internal` source into `Ambinder.A2A.AspNetCore` (01 rule 10, B12). Package 15 links the same files into `Ambinder.A2A.Compat.V0_3.AspNetCore` and supplies its own `ISseFrameFormat`, so there is one SSE loop and one heartbeat implementation. The shared files reference no type outside the BCL, `Microsoft.AspNetCore.Http` and `System.IO.Pipelines`.
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseStreaming.cs`
 - Modify: `JsonRpcEndpoint` (stream branch), `RestEndpoints.StreamAsync`, `JsonRpcMessages` (add `WriteResult(Utf8JsonWriter, JsonElement id, …)` and `WriteError(...)` that write into a given writer)
 - Test: `tests/Ambinder.A2A.AspNetCore.Tests/Sse/SseWireCharacterizationTests.cs`
@@ -1062,6 +1090,8 @@ Today each event goes through a `Func<StreamResponse, byte[]>`, which gives a `b
 - Use no `byte[]` per event and no closure per event.
 - Flush once when the next event is not ready yet.
 - Provide a heartbeat write for package 09.
+
+**If 09's Task 12 has landed (review item B):** it already defines the heartbeat frame as `: keep-alive\n\n`, adds `SseWriter.WriteCommentAsync(HttpResponse, ReadOnlyMemory<byte>, CancellationToken)`, `StartAsync(..., A2AResponseMetadata?)` (it writes the metadata headers before the first flush, then calls `A2AResponseMetadata.MarkCommitted()`, 09 plan Task 5), and owns a single-writer loop with a commit timer. Keep those members and behaviors on the new `PipeWriter` path. Keep 09's tests green (`ErrorAfterCommitBecomesErrorFrame`, `HeartbeatDisabled`, `BothClientsIgnoreHeartbeats`). Add a heartbeat frame to the characterization tests in Step 3, with 09's frame text (the code below already uses it).
 
 - [ ] **Step 1: Public surface.** If Task 0 found `SseWriter` still public, keep `SseWriter.StartAsync` and `SseWriter.WriteEventAsync(HttpResponse, ReadOnlyMemory<byte>, CancellationToken)` with today's behavior, because package 02 owns the public API. The SDK's own streaming stops calling `WriteEventAsync`. If `SseWriter` is already internal, you may change it freely.
 - [ ] **Step 2: Record "before"** for `Stream` (`SseWriteFrame` micro, and 1,000 chunks end to end per transport).
@@ -1092,7 +1122,7 @@ internal sealed class SseFrameWriter
 {
     private static ReadOnlySpan<byte> Prefix => "data: "u8;
     private static ReadOnlySpan<byte> Suffix => "\n\n"u8;
-    private static ReadOnlySpan<byte> Heartbeat => ":\n\n"u8;   // SSE comment; package 09 decides the exact text and the timer
+    private static ReadOnlySpan<byte> Heartbeat => ": keep-alive\n\n"u8;   // SSE comment; text fixed by 09 plan Task 12 (review item B); 09 owns the timer
     private const int FlushThresholdBytes = 16 * 1024;          // plan writer's call: never hold more than this unflushed
 
     private readonly PipeWriter _out;
@@ -1355,7 +1385,12 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
 
 ## Task 28: Release gate against the previous release
 
-**Files:** `.github/workflows/perf.yml` (`workflow_call` job), `.github/workflows/release.yml` (01's perf hook), `eng/perf/PerfTool/GateCommand.cs`
+**Files:** `.github/workflows/perf.yml` (`workflow_call` job), `.github/workflows/release.yml`, `eng/perf/PerfTool/GateCommand.cs`.
+
+`release.yml` changes as follows:
+- 01's plan gives it no benchmark job, so add a job `perf` with `needs: pack` that calls `./.github/workflows/perf.yml` (`workflow_call`, input `baseline-tag`).
+- Make `publish` need `perf` as well, so a perf break blocks the release.
+- If 01 already added a perf hook job there, fill that job instead.
 
 - [ ] **Step 1: The `workflow_call` job.**
   1. Download `perf-results.zip` from the GitHub Release of `inputs.baseline-tag`. That is the previous release, which the caller finds with `git describe --tags --abbrev=0 <tag>^`.
@@ -1386,13 +1421,14 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
   - a fixed "these are not promises" sentence (spec Non-goals)
 
   Package 13 decides where it lives and runs it in its docs build. Test it with a fixture.
+  - **One generator (review item E).** 13's plan (Task 15) planned its own `PerformanceGenerator` in `eng/DocsLint` over the same `nightly-summary.json`. That plan now calls this command from `DocsLint generate` instead. If 13's generator already exists when this task runs, make it a thin wrapper that runs `PerfTool docs-page`, and move its fixture test here.
 - [ ] **Step 2: Commit** `feat(perf): docs page generator from nightly JSON`.
 
 ## Task 31: Seam coverage and closure of the other packages' debts
 
 **Files:** `perf/seams.json`, `tests/Ambinder.A2A.PerfTool.Tests/SeamCoverageTests.cs`
 
-- [ ] **Step 1: Seam coverage.** List every public seam that has a default implementation, from package 02's public API files and the architecture doc: the store contracts, `ITaskEventBus`, push sender and outbox, card resolver, credential providers, middleware pipeline, client interceptors, and the others. Map each one to a benchmark `FullName`. A test checks that every mapped benchmark exists in the suite. For a seam with no scenario, add the scenario (spec principle 5, M2 acceptance).
+- [ ] **Step 1: Seam coverage.** List every public seam that has a default implementation, from package 02's public API files and the architecture doc: the store contracts, `ITaskEventBus`, push sender and outbox, card resolver, credential providers, middleware pipeline, client interceptors, and the others. Map each one to a benchmark `FullName`. A test checks that every mapped benchmark exists in the suite. For a seam with no scenario, add the scenario (spec principle 5, M2 acceptance). Map `ITaskRouter`/`ITaskForwarder` to 06's `Pipeline/ClusterForwardBenchmarks.cs` (06 plan Task 23), and the authoring helpers to 11's `Authoring/*Benchmarks.cs` (11 plan Task 24) (review item D).
 - [ ] **Step 2: Debt closure.** Check that PD3 (10), PD6 (05), PD7 (08) and PD8 (05) each closed with the `Stream`, `Store` and `Push` numbers in their PRs. After 05 lands, add the PD8 allocation test ("100,000 distinct tasks leave no residue") and the PD6 store allocation test if 05 did not add them. Report any missing item to the owner, because they are not 14's code to fix.
 - [ ] **Step 3: Switch the event bus.** If 06 has landed, move the `Pipeline` event-bus scenarios to `ITaskEventBus`.
 - [ ] **Step 4: Commit** `test(perf): seam coverage map`.
