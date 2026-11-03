@@ -31,6 +31,7 @@ public sealed class ClientSpanTests(A2ATestHost host)
         var serverSpan = await collector.WaitForAsync("a2a.server SendMessage", TimeSpan.FromSeconds(5));
         Assert.Equal(expected, clientSpan.GetTagItem(A2ATelemetryNames.Transport));
         Assert.Equal("SendMessage", clientSpan.GetTagItem(A2ATelemetryNames.Method));
+        Assert.Equal("echo", clientSpan.GetTagItem(A2ATelemetryNames.Agent));
         Assert.Equal(clientSpan.TraceId, serverSpan.TraceId);
         Assert.True(IsAncestor(collector, clientSpan, serverSpan), "The client span should be an ancestor of the server span.");
     }
@@ -47,6 +48,7 @@ public sealed class ClientSpanTests(A2ATestHost host)
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Equal("TaskNotFound", span.GetTagItem(A2ATelemetryNames.ErrorType));
         Assert.Equal("no-such-task", span.GetTagItem(A2ATelemetryNames.TaskId));
+        Assert.Equal("echo", span.GetTagItem(A2ATelemetryNames.Agent));
     }
 
     [Fact]

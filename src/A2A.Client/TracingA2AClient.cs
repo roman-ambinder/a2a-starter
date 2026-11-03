@@ -8,8 +8,10 @@ namespace A2A.Client;
 /// Wraps an <see cref="IA2AClient"/> and records one span per operation (<c>a2a.client &lt;Method&gt;</c>).
 /// The HTTP or gRPC call below it joins the span's trace, so a server span becomes its descendant.
 /// Streaming spans stay open for the whole enumeration. Records IDs and error types only, never message content.
+/// <paramref name="agent"/> is the agent card's name (<c>a2a.agent</c>), <paramref name="transport"/> the <c>a2a.transport</c> value,
+/// <paramref name="tenant"/> the card interface's tenant.
 /// </summary>
-public sealed class TracingA2AClient(IA2AClient inner, string transport, string? tenant) : IA2AClient
+public sealed class TracingA2AClient(IA2AClient inner, string agent, string transport, string? tenant) : IA2AClient
 {
     private static readonly ActivitySource Source = new(A2ATelemetryNames.ClientSource);
 
@@ -118,6 +120,7 @@ public sealed class TracingA2AClient(IA2AClient inner, string transport, string?
         var span = Source.StartActivity("a2a.client " + method, ActivityKind.Internal);
         if (span is null) return null;
         span.SetTag(A2ATelemetryNames.Method, method);
+        if (!string.IsNullOrEmpty(agent)) span.SetTag(A2ATelemetryNames.Agent, agent);
         span.SetTag(A2ATelemetryNames.Transport, transport);
         // A request without a tenant uses the card interface's tenant.
         var effectiveTenant = string.IsNullOrEmpty(requestTenant) ? tenant : requestTenant;
