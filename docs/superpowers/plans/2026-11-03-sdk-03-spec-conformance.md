@@ -48,7 +48,7 @@ Expected: no output. If there is output, package 01 has not landed. Stop and tel
 - Every file path and `namespace` / `using` line in this plan.
 - Task 3: the SUT project name, its `ProjectReference`s (`Ambinder.A2A.AspNetCore` and `Ambinder.A2A.AspNetCore.Grpc`), and the solution entry.
 - Tasks 4 and 5: the solution file name in the CI commands and the SUT project path.
-- Task 8: `IA2AVersionDispatcher` goes in `Ambinder.A2A.AspNetCore`, because it takes `HttpContext` and package 01 rule 2 keeps ASP.NET Core out of `Ambinder.A2A.Server`.
+- Task 8: `IA2AVersionDispatcher`, `A2AVersionDispatchContext` and `IA2ACallerResolver` go in `Ambinder.A2A.AspNetCore`, because they take `HttpContext` and package 01 rule 2 keeps ASP.NET Core out of `Ambinder.A2A.Server`. Task 8 also needs package 07's `A2ACaller` (its gate).
 - Task 9: the meter name. Package 01 renames meters to follow assembly names, so the protocol meter is `Ambinder.A2A.Protocol`.
 - Task 13: `IAgentCardContributor` goes in `Ambinder.A2A.Server` (no ASP.NET Core types in its signature). The card endpoint that calls it is in `Ambinder.A2A.AspNetCore`.
 - Task 17: `TaskStateRules` becomes internal linked source under `src/Shared/` (package 01 rule 10).
@@ -87,6 +87,7 @@ These parts of spec 03 need code from a package that does not exist yet. Do not 
 | D6 / D9: context scoping per agent, tenant, owner in the store; ListTasks validation moved out of the store | 05 | Add the "cannot join another owner's context" test; keep Task 12 tests green. |
 | D7: ETag over the RFC 8785 (JCS) canonical payload | 04 (`JsonCanonicalizer`) | Swap the ETag input in Task 13 from the serializer output to JCS. The rule (unsigned payload plus sorted `kid`s) stays the same. |
 | D8: which tenant the server trusts for isolation | 07, 05 | Nothing in this package. |
+| D2: the version dispatcher context carries the caller (package 15 plan D1, owner decision 2026-11-03) | 07 Phase A (`A2ACaller`, Tasks 1–6) | Task 8 runs once `A2ACaller` exists (its gate). |
 | D13: `AUTH_REQUIRED` continuation only for callers `ITaskContinuationPolicy` allows | 07 | Add the policy call to the continuation path. |
 | D13: recovery moves `WORKING`/`SUBMITTED` to `FAILED` | 09 | Use `TransitionSource.Recovery` from Task 17. |
 | D13: the same transition tests on the EF Core store | 05 | Run the Task 17 integration test against the EF Core store. |
@@ -96,8 +97,8 @@ These parts of spec 03 need code from a package that does not exist yet. Do not 
 
 Package 02 (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`) runs alongside this package, so either one may land first. Every new or changed public member in this plan follows the rules below, **whether or not package 02 has landed yet**. A reviewer checks them on every task. Rules marked "if 02 has landed" depend on files that package 02 creates.
 
-1. **No positional public records** (spec 02 section 4, "Records and models"). `A2AAgentRoute` (Task 8) and `AgentCardContext` (Task 13) are `sealed record`s with `required` `init` properties, as shown in those tasks. This matters for `AgentCardContext`: spec 03 says package 09 adds a nullable `Request` to it later, and adding a positional parameter would be a breaking change.
-2. **Complete XML docs** (spec 02 section 6). Every new public type and member has a `<summary>` that is not just the name, a `<param>` for each parameter, `<returns>` for each non-void return, and `<exception>` for the exceptions callers should expect. Implementer-facing interfaces (`IA2AVersionDispatcher`, `IAgentCardContributor`) also get `<remarks>`: when they are called, their lifetime, and whether calls can be concurrent. New options properties state their default. Once 02 has landed, a missing doc fails the build (CS1591) and `XmlDocQualityTests`.
+1. **No positional public records** (spec 02 section 4, "Records and models"). `A2AVersionDispatchContext` (Task 8) and `AgentCardContext` (Task 13) use `required` `init` properties, as shown in those tasks. This matters for `AgentCardContext`: spec 03 says package 09 adds a nullable `Request` to it later, and adding a positional parameter would be a breaking change.
+2. **Complete XML docs** (spec 02 section 6). Every new public type and member has a `<summary>` that is not just the name, a `<param>` for each parameter, `<returns>` for each non-void return, and `<exception>` for the exceptions callers should expect. Implementer-facing interfaces (`IA2AVersionDispatcher`, `IA2ACallerResolver`, `IAgentCardContributor`) also get `<remarks>`: when they are called, their lifetime, and whether calls can be concurrent. New options properties state their default. Once 02 has landed, a missing doc fails the build (CS1591) and `XmlDocQualityTests`.
 3. **API files (if 02 has landed).** When `src/<project>/PublicAPI.Unshipped.txt` exists, each task that adds, changes or removes a public member updates it with the analyzer fix (02 plan Task 9.4), never by hand and never by regenerating the file. This applies to Tasks 7, 8, 9, 10, 13 and 14. Read the diff before you commit.
 4. **Breaking-change records.** A public member that is removed or made internal gets a line under "Breaking changes" in `CHANGELOG.md` and a row in `docs/migration/phase1-map.csv` (format `old symbol,new symbol,package,change`; create the file with that header if it does not exist). This applies to `A2AClientOptions.ProtocolVersion` (Task 7), `ProtoEnumConverter<T>` (Task 9, unless 02 already recorded it) and `TaskStateRules.CanAgentTransition` (Task 17, only if `TaskStateRules` is still public when you get there).
 5. **Logging.** New log calls in `src/` use `[LoggerMessage]` with a fixed `EventId` (spec 02 section 1, item 7: EventIds are API). Use the per-assembly block from the 02 plan (Task 7.3), unless `docs/policies/versioning.md` already lists a different scheme.
@@ -105,7 +106,7 @@ Package 02 (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`) runs along
 7. **JSON metadata.** Code outside `Ambinder.A2A.Protocol` never uses `A2AJsonContext` (02 makes it internal). Use the `A2AJson` typed accessor (for example `A2AJson.AgentCard`) when 02's Task 2 has landed. Before that, use `(JsonTypeInfo<AgentCard>)A2AJson.Options.GetTypeInfo(typeof(AgentCard))`. Do not use `A2AJsonContext.Default.AgentCard`: it lacks the "omit empty lists" modifier on `A2AJson.Options`, so it would change the card bytes and the ETag.
 8. **No `InternalsVisibleTo` between shipped assemblies** (spec 01 rule 6, spec 02). `ServiceParameters`, `TransportRequest`, `TransportErrors` and `RequestValidation` are used by both `Ambinder.A2A.AspNetCore` and `Ambinder.A2A.AspNetCore.Grpc` (Phase 1 `A2AGrpcService` and `GrpcErrorMapper` call them). Use them the way package 01 shares them, normally as linked files in `src/Shared/` compiled `internal` (spec 01 rule 10). A new helper that two shipped assemblies need goes to `src/Shared/` the same way (Task 10). Never solve it by making a helper public or by adding `InternalsVisibleTo`.
 9. **Deprecations** (spec 02 section 4). `[Obsolete]` carries a `DiagnosticId` (`A2AOBS001`, `A2AOBS002`, ...) and a pointer to the docs (Task 16).
-10. **Names.** Spec 03 says package 02 sets the final names of `A2AAgentRoute` and `A2AException.Details`. The 02 plan does not name them. This plan uses those two names, and the 02 plan's API review checklist lists them for the review before `rc.1`.
+10. **Names.** Spec 03 says package 02 sets the final names of `A2AAgentRoute` and `A2AException.Details`. With the owner's approval of the 15 plan's D1 (2026-11-03), `A2AVersionDispatchContext` replaces `A2AAgentRoute`. This plan uses `A2AVersionDispatchContext`, `IA2ACallerResolver` and `A2AException.Details`; the 02 plan's API review checklist lists them for the review before `rc.1`.
 
 ---
 
@@ -123,7 +124,7 @@ New files:
 | `tck/testdata/*.json` | Small report fixtures for the checker tests |
 | `tck/README.md` | How the TCK job works, how to add a behaviour or a known issue |
 | `.github/workflows/tck-weekly.yml` | Weekly run against TCK `main` HEAD, plus a check for a new A2A spec tag |
-| `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs` | Version dispatcher seam (D2) |
+| `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `A2AVersionDispatchContext.cs`, `IA2ACallerResolver.cs` | Version dispatcher seam (D2) with the context from package 15's D1 |
 | `src/Ambinder.A2A.Server/Hosting/IAgentCardContributor.cs` | Card contributor seam and `AgentCardContext` (D7) |
 | `tests/Ambinder.A2A.Integration.Tests/Conformance/VersionNegotiationTests.cs` | D2 matrix tests |
 | `tests/Ambinder.A2A.Integration.Tests/Conformance/ErrorModelTests.cs` | D4 matrix tests |
@@ -492,20 +493,30 @@ dotnet test Ambinder.A2A.slnx
 git commit -am "feat: negotiated version on the call context; client sends the interface version"
 ```
 
-### Task 8: `IA2AVersionDispatcher` seam (D2)
+### Task 8: `IA2AVersionDispatcher` seam (D2), as package 15 needs it
+
+The owner approved decisions D1 and D2 of the package 15 plan (`docs/superpowers/plans/2026-11-03-sdk-15-compat-v03.md`, "Owner decisions needed before execution") on 2026-11-03. This task builds the seam in that shape from the start, so package 15 does not have to change public API after package 02's `1.0.0-rc.1` freeze.
+- **D1:** the dispatcher gets one context object with the resolved caller, tenant and binding, not just the agent. A public `IA2ACallerResolver` gives the gRPC 0.3 service, and the core transports, one way to resolve the caller and tenant.
+- **D2:** the endpoints call the dispatcher right after they resolve the agent and the caller, before the JSON-RPC body is read and before the REST operation is resolved.
+
+**Gate: package 07 Phase A.** The context carries 07's `A2ACaller`. Check: `git grep -nE "class A2ACaller\b|record A2ACaller\b" -- src`. If it is missing, do the rest of this plan first and come back to this task after 07's Tasks 1–6 land (they need only package 01). Do not add a stand-in caller type: a later change to it would break the public API.
 
 **Files:**
-- Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`
-- Modify: the JSON-RPC and REST endpoints (where `EnsureSupportedVersion` is called), the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
+- Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `.../Hosting/A2AVersionDispatchContext.cs`, `.../Hosting/IA2ACallerResolver.cs`
+- Modify: the JSON-RPC and REST endpoints, `TransportRequest.cs` (07's `ResolveCallerAsync` becomes the default `IA2ACallerResolver`), the gRPC call-context path, DI registration, the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
 - Test: `VersionNegotiationTests` (add)
 
-- [ ] **Step 1: Write failing tests.** Register a fake dispatcher with `CanHandle("0.3") == true` that writes `200` and a marker body. Then:
-  - JSON-RPC and REST with no version header: the fake handles the request (status 200, marker body).
-  - The same with header `2.0`: `VersionNotSupported` (the fake does not claim `2.0`).
-  - With no dispatcher registered: `VersionNotSupported` (Task 7 test still passes).
-  - gRPC is not tested here: the spec says gRPC needs no dispatcher.
+- [ ] **Step 1: Write failing tests.** Register a fake dispatcher with `CanHandle("0.3") == true`. It records the context it gets and writes `200` with a marker body. Then:
+  - JSON-RPC with no version header: the fake handles it. The context has `Binding == "JSONRPC"`, `RequestedVersion == ""`, the agent's name and public card, the caller from the test's auth (owner as the core computes it), and the resolved tenant. `RestPath` is empty.
+  - The fake reads the JSON-RPC body itself and gets the bytes the client sent. The core has not read it (D2).
+  - REST with no version header, on a path the 1.0 routes do not have (`GET .../rest/v1/tasks/t1/pushNotificationConfigs`): the fake handles it (not 404 or 405). `Binding == "HTTP+JSON"`, `RestPath == "/v1/tasks/t1/pushNotificationConfigs"`.
+  - An anonymous request to an agent that requires authentication, with no version header: the same 401 a 1.0 request gets, and the fake is not called (D2: auth runs first).
+  - Header `2.0`: `VersionNotSupported` (the fake does not claim `2.0`).
+  - With no dispatcher registered: `VersionNotSupported` (the Task 7 test still passes).
+  - `IA2ACallerResolver` resolved from DI returns the same caller and tenant the transports put on `A2ACallContext`, for one authenticated and one anonymous request.
+  - gRPC has no dispatcher test (the spec says gRPC needs none). The gRPC transport uses `IA2ACallerResolver` (one implementation for all transports).
 
-- [ ] **Step 2: Add the interface**, with the members from the spec and the docs and record shape from section 0.4:
+- [ ] **Step 2: Add the types**, with the docs and record shape from section 0.4:
 
 ```csharp
 namespace Ambinder.A2A.AspNetCore;
@@ -515,8 +526,9 @@ namespace Ambinder.A2A.AspNetCore;
 /// Ambinder.A2A.Compat.V0_3.AspNetCore). The core registers none.
 /// </summary>
 /// <remarks>
-/// The JSON-RPC and REST endpoints ask each registered dispatcher, in registration order, before they reject a version.
-/// Register implementations as singletons; calls can run concurrently. After 1.0, new members get a default implementation.
+/// The JSON-RPC and REST endpoints call it after they resolve the agent, authenticate the caller and resolve the tenant, and
+/// before they read the JSON-RPC body or resolve the REST operation. Dispatchers are asked in registration order. Register
+/// implementations as singletons; calls can run concurrently. After 1.0, new members get a default implementation.
 /// </remarks>
 public interface IA2AVersionDispatcher
 {
@@ -526,39 +538,65 @@ public interface IA2AVersionDispatcher
     bool CanHandle(string version);
 
     /// <summary>Handles the whole HTTP request (JSON-RPC or REST) for the agent and writes the response.</summary>
-    /// <param name="http">The request to handle.</param>
-    /// <param name="agent">The agent the request is for.</param>
-    /// <param name="version">The version <see cref="CanHandle"/> accepted.</param>
+    /// <param name="http">The request. Its body has not been read.</param>
+    /// <param name="context">The agent, binding, caller and tenant the core resolved for this request.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>A task that completes when the response is written.</returns>
-    Task HandleAsync(HttpContext http, A2AAgentRoute agent, string version, CancellationToken ct);
+    Task HandleAsync(HttpContext http, A2AVersionDispatchContext context, CancellationToken ct);
 }
-```
 
-`A2AAgentRoute`: spec 03 says it is the resolved agent (name, registration, card) and leaves the name to package 02, which has not named it (section 0.4, item 10). Add a small public type next to the interface. It is a property record, not a positional one (section 0.4, item 1), and it does not expose the internal registration type:
-
-```csharp
-/// <summary>The agent an A2A request is routed to.</summary>
-public sealed record A2AAgentRoute
+/// <summary>What the core resolved for a request that an <see cref="IA2AVersionDispatcher"/> handles.</summary>
+public sealed class A2AVersionDispatchContext
 {
     /// <summary>The agent's registered name, as used in its URLs.</summary>
-    public required string Name { get; init; }
-
+    public required string AgentName { get; init; }
     /// <summary>The agent's public card.</summary>
-    public required AgentCard Card { get; init; }
+    public required AgentCard PublicCard { get; init; }
+    /// <summary>The binding the request came in on: <c>"JSONRPC"</c> or <c>"HTTP+JSON"</c>.</summary>
+    public required string Binding { get; init; }
+    /// <summary>The raw <c>A2A-Version</c> value; empty when the request had none.</summary>
+    public required string RequestedVersion { get; init; }
+    /// <summary>The authenticated caller, with the same owner rules as 1.0 requests.</summary>
+    public required A2ACaller Caller { get; init; }
+    /// <summary>The resolved tenant; empty when the agent has none.</summary>
+    public required string Tenant { get; init; }
+    /// <summary>For REST, the path after the agent's REST base (for example <c>/v1/tasks/t1</c>); empty for JSON-RPC.</summary>
+    public required PathString RestPath { get; init; }
+}
+
+/// <summary>Resolves the caller and tenant of an A2A request, the same way the core transports do.</summary>
+/// <remarks>The core registers one implementation and its transports use it. Singleton; calls can run concurrently.</remarks>
+public interface IA2ACallerResolver
+{
+    /// <summary>Authenticates the request and resolves its tenant for the agent.</summary>
+    /// <param name="http">The request.</param>
+    /// <param name="agentName">The agent the request is for.</param>
+    /// <param name="requestTenant">The tenant the request names, or <see langword="null"/>.</param>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The caller and the resolved tenant.</returns>
+    /// <exception cref="A2AAuthException">The caller is not authenticated, or may not call this agent.</exception>
+    ValueTask<(A2ACaller Caller, string Tenant)> ResolveAsync(HttpContext http, string agentName, string? requestTenant, CancellationToken ct);
 }
 ```
 
-Say in the PR that the name and shape are open for package 02's API review.
+There is no `A2AAgentRoute` type: the context replaces it. The names and shapes are the ones in the 15 plan's D1. Package 02's API review checks them before `rc.1`.
 
-- [ ] **Step 3: Wire it.** In the JSON-RPC and REST endpoints, before `EnsureSupportedVersion`: compute `NormalizeVersion(version)`. If it is not `1.0`, take the first `IA2AVersionDispatcher` from `RequestServices.GetServices<IA2AVersionDispatcher>()` whose `CanHandle(normalized ?? raw)` is true, call `HandleAsync`, and return. Otherwise fall through to `EnsureSupportedVersion` (which throws). Put this in one helper shared by both endpoints.
+- [ ] **Step 3: The default caller resolver.** Make 07's `TransportRequest.ResolveCallerAsync` the body of an internal `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
 
-- [ ] **Step 4: Run all tests.** Expected: all pass.
+- [ ] **Step 4: Wire the dispatcher (D2).** In one helper shared by the JSON-RPC and REST endpoints, in this order:
+  1. Resolve the agent (as today).
+  2. Read the version header or query parameter (`ServiceParameters.Read` reads only headers and the query, not the body).
+  3. Resolve the caller and tenant with `IA2ACallerResolver`. An auth failure ends the request here, the same way for every version. For the tenant at this point, use the REST route's tenant prefix, or no request tenant for JSON-RPC; the 1.0 path resolves the body tenant later, as today.
+  4. If `NormalizeVersion(version)` is not `1.0`, take the first `IA2AVersionDispatcher` whose `CanHandle(normalized ?? raw)` is true, build the context, call `HandleAsync`, and return.
+  5. Otherwise go on as today: `EnsureSupportedVersion`, then read the body (JSON-RPC) or resolve the REST operation.
+  The helper contains no `"0.3"` literal; the 15 plan's core-purity rule checks this.
 
-- [ ] **Step 5: Commit.**
+- [ ] **Step 5: Run all tests.** Expected: all pass. The 1.0 tests must not change. If one does, Step 4 has changed the order of checks for 1.0 requests; fix the helper, not the test.
+
+- [ ] **Step 6: Commit.**
 
 ```bash
-git commit -am "feat(aspnetcore): IA2AVersionDispatcher seam for other protocol versions"
+git commit -am "feat(aspnetcore): version dispatcher seam with resolved caller and tenant"
 ```
 
 ### Task 9: Enum converter visibility and client reads (D3)
@@ -886,16 +924,17 @@ git commit -am "feat(server): task state transition table from spec 03 D13"
 - Modify: `docs/spec-decisions.md`
 
 - [ ] **Step 1: Fix the card caching row.** The ETag is now base64url of the first 16 bytes of SHA-256 over the unsigned card payload (the card without `signatures`, after contributors) followed by a newline and the UTF-8 key id for each signing key id in ordinal order (B13; the byte rule is package 04's P6). JCS replaces the serializer output when package 04 lands.
+- [ ] **Step 1a: Cite spec sections in the form the docs lint expects.** Package 13's plan (Task 13) adds a docs check: every row of this page must cite an A2A spec section as `§N`, `section N`, or a link to `a2a-protocol.org/…#…`. Today's rows write bare numbers (`3.6`). Rewrite every cell of the "Spec" column as `§N` (for example `§3.6`, `§8.6.1`). A row that names a proto type instead of a section (for example `proto \`OAuthFlows\``) cites the spec section that defines that type; if you cannot find one, link the type's anchor on `a2a-protocol.org`. Every row added below cites a section the same way.
 - [ ] **Step 2: Add rows** (spec section, choice, reason), one each for:
   - Server tenant mismatch: `InvalidParams`; empty request tenant filled from the interface; how a server declares an interface tenant (`InterfaceTenants`, or `A2ASecurityOptions.Tenants` if package 07 landed first; Task 14 Step 0).
   - `A2AException.Details` holds the ErrorInfo metadata as strings.
   - Internal errors: generic message plus `metadata.traceId`.
   - Unknown `TaskState` on the client reads as `Unspecified`; it is neither terminal nor interrupted.
   - The extension check runs on every operation except card fetch (already there; check the wording).
-  - Task state transition table (link to spec 03 D13); cancel of a `CANCELED` task returns the task.
+  - Task state transition table (cite the A2A spec's task lifecycle section; link spec 03 D13 for the full table); cancel of a `CANCELED` task returns the task.
   - Extended card: `Cache-Control: private, no-store` on JSON-RPC and REST.
-  - TCK SUT: the extended card is not declared, because the TCK cannot send credentials (Task 3).
-  - TCK run: no `--level` flag (it would skip MUST tests).
+  - The version dispatcher runs after caller resolution and before the body or REST operation is read (Task 8, cite the spec's versioning section).
+- [ ] **Step 2a: CI-only choices go to `tck/README.md`, not here.** They are not wire choices and cite no spec section: the TCK server does not declare the extended card because the TCK cannot send credentials (Task 3), and the TCK runs with no `--level` flag because it would skip MUST tests (Task 4). Write both in `tck/README.md` if Tasks 3 and 4 did not already.
 - [ ] **Step 3: Run the docs tests and commit.**
 
 ```bash
@@ -917,7 +956,7 @@ All must pass.
 
 - [ ] **Step 2:** Run the TCK locally as in Task 4. The checker must pass with `tck/known-issues.json` holding no MUST entry.
 - [ ] **Step 3:** Go through the spec's "Acceptance criteria" list one by one. For each, write the test name (or CI job) that proves it in the PR description. For each item in section 0.3, write "blocked on package NN". Do not tick a box that has no test.
-- [ ] **Step 4:** Check the anti-goals: no `continue-on-error`; no skip list in the TCK run; no conformance logic only in the SUT; no new public type beyond `IA2AVersionDispatcher`, `A2AAgentRoute` (if added), `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants` (only if Task 14 added it). Check section 0.4 for each of them: no positional record, full XML docs, API file updated (if 02 has landed), breaking changes recorded. If `tests/Ambinder.A2A.PublicApi.Tests` exists, it passes.
+- [ ] **Step 4:** Check the anti-goals: no `continue-on-error`; no skip list in the TCK run; no conformance logic only in the SUT; no new public type beyond `IA2AVersionDispatcher`, `A2AVersionDispatchContext`, `IA2ACallerResolver`, `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants` (only if Task 14 added it). Check section 0.4 for each of them: no positional record, full XML docs, API file updated (if 02 has landed), breaking changes recorded. If `tests/Ambinder.A2A.PublicApi.Tests` exists, it passes.
 
 ```bash
 git grep -n "continue-on-error" -- .github
@@ -933,7 +972,7 @@ Expected: no output.
 
 - **How to run this plan:** use the superpowers:subagent-driven-development skill. One fresh subagent per task, with a review between tasks.
 - **Model:** every subagent (implementer and reviewer) runs on model **`sonnet`**. Pass `model: "sonnet"` on every Agent call. The owner's rule: planning on Opus, execution on Sonnet.
-- **Order:** Task 0 check, then Tasks 1 → 2 → 3 → 4 in order (the CI job needs the checker and the SUT). Tasks 5 and 6 can follow at any time after 4. In Phase B, Tasks 7 → 8 share files, so run them in order. Tasks 9–17 are independent of each other but touch shared test fixtures; run them one at a time to avoid merge conflicts. Task 18 comes after 13, 14 and 17. Task 19 comes last.
+- **Order:** Task 0 check, then Tasks 1 → 2 → 3 → 4 in order (the CI job needs the checker and the SUT). Tasks 5 and 6 can follow at any time after 4. In Phase B, Tasks 7 → 8 share files, so run them in order. Task 8 waits for package 07's `A2ACaller` (its gate); if it is missing, go on with Tasks 9–17 and come back to Task 8. Tasks 9–17 are independent of each other but touch shared test fixtures; run them one at a time to avoid merge conflicts. Task 18 comes after 13, 14 and 17. Task 19 comes last.
 - **Branch:** one feature branch for the whole package (for example `feat/sdk-03-conformance`), created from `master` after package 01 merges. One commit per task, as written in each task.
 - **TDD:** every task writes the failing test first. If a "failing" test passes at once, say so in the task report. It means PR #6 already covers it; keep the test and move on.
 - **Fix the library, not the SUT:** a TCK failure is fixed in `src/`, with a regression test, never with a special case in `tests/Ambinder.A2A.Tck.Sut`.
