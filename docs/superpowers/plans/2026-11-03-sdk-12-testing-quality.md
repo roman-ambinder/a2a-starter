@@ -67,16 +67,18 @@ Package 12 is M2. Task 0 records which seams exist. **Gate rule (binding):** a t
 
 1. **Promotion keeps the slice's shapes.** If the slice's `TaskEventLog` records `(StoredTask, StreamResponse)` (05's shape) or `TaskEvent(AgentName, TaskId, State, Event, Index)` (09's shape), keep it and add only what spec §4 needs. No type renames.
 2. **Conformance dependencies.** Spec §1 lists `Testing` and `xunit.v3.extensibility.core` as the only dependencies of `Ambinder.A2A.Testing.Conformance`. The 05 plan's project also references `xunit.v3.assert`. Task 14 replaces those assert calls with `ConformanceAssert` (which throws `A2ATestAssertException`) and drops `xunit.v3.assert`. If a case cannot be expressed without it, stop and report.
-3. **Leftovers in `tests/Shared`.** Helpers there that the spec does not publish (for example 07's `SecretScrubber.cs`) move to a non-packable project `tests/Ambinder.A2A.TestSupport/`, so the rule "no `tests/Shared`" holds.
+3. **Leftovers in `tests/Shared`.** Helpers there that the spec does not publish (for example 07's `SecretScrubber.cs`, and 16's linked-source `tests/Shared/WireFixtures/` used by `Protocol.Tests` and `Interop.Tests`) move to a non-packable project `tests/Ambinder.A2A.TestSupport/`, so the rule "no `tests/Shared`" holds. Linked-source consumers switch to a project reference; run both of 16's consumers after the move (review item 11).
 4. **Framework-neutrality proof** (spec principle 2): `Testing.Tests` has a test that runs the 12-line hello-world body through a tiny hand-written runner (a static method that calls the body and reports `A2ATestAssertException`), with no xunit types inside the body.
 5. **Coverage tooling:** gate script in bash at `eng/coverage/gate.sh`, thresholds in `eng/coverage/thresholds.json` (spec table), one ReportGenerator config at `eng/coverage/reportgenerator.config`.
 6. **Assertion-free test check:** xunit analyzers (shipped with xunit v3) on as errors for the empty-body and `xUnit2013`-style rules, plus a `Repo.Tests` source scan that flags a `[Fact]`/`[Theory]` method whose body contains none of: `Assert.`, `.Should`, `Verify`, `WaitFor`, `ThrowsAsync`, `Throws`. Each exception carries a `// no-assert: <reason>` comment.
-7. **Golden files:** the JSON samples in `tests/…Protocol.Tests/Samples.cs` move to `testdata/protocol/*.json`; `Protocol.Tests` reads them. Golden files that 03 or 04 placed elsewhere move there too, with their tests updated.
+7. **Golden files:** the JSON samples in `tests/…Protocol.Tests/Samples.cs` move to `tests/vectors/protocol/*.json`; `Protocol.Tests` reads them. 04 (`tests/vectors/card-signing/`) and 16 (`tests/vectors/wire/v1.0/`, with `interop/promote-capture.py` and the fixtures CLI) already use `tests/vectors/`, so that is the one golden root, not the spec's `testdata/`. **Owner check:** if the owner wants `testdata/`, move all three trees and 16's tooling paths in one later commit (review item 10).
 8. **Owner-only steps** (cannot be done in code): required checks in branch protection, secret scanning and push protection. Task 28 lists them for the owner and records the evidence the spec asks for.
+9. **`CreateClient(..., TestIdentity? identity = null, ...)`.** The spec's parameter name `as` is a C# keyword. Use `identity`.
+10. **Default identity of `A2ATestServer`.** 07 makes every agent `Authenticated` by default, and the C8 Development fallback (anonymous when no scheme is registered) no longer applies once the harness registers its test scheme. So `identity: null` means `TestIdentity.Default` = `TestIdentity.App("test-tenant", "test-app")`. Anonymous calls pass `TestIdentity.Anonymous` explicitly. Migrated tests therefore run authenticated, as in production.
 
 ### 0.4 Changes after the cross-plan review (2026-11-03)
 
-This plan was checked against the plans merged after it (05, 06, 08, 09, 10, 11). These edits came out of that review. Each is marked in its task:
+This plan was checked against the plans merged after it (03, 04, 05, 06, 07, 08, 09, 10, 11, 13, 14, 16), in two passes. These edits came out of those reviews. Each is marked in its task:
 
 | # | Gap | Fix | Task |
 |---|---|---|---|
@@ -84,6 +86,15 @@ This plan was checked against the plans merged after it (05, 06, 08, 09, 10, 11)
 | 2 | the push double called 08's internal `PushSignatureVerifier`, which 01 rule 6 forbids; `Push.Receiver` is not a `Testing` dependency in 01's map | verify through 08's public receiver API; add the dependency with owner approval, else ship without the verification result | 10 |
 | 3 | 11's `ScriptedChatClient` has a `TaskCompletionSource` wait hook, and the test expected a `Gate` | add a `Gate` overload; keep the TCS one | 13 |
 | 4 | the soak test read `Ambinder.A2A.Server` internals from `Stress.Tests` (01 rule 6) | internal-counter checks in `Server.Tests` with `Category=Stress`; push queue through the public `GetPendingStatsAsync` | 26 |
+| 5 | parameter name `as` is a C# keyword | §0.3 item 9 | 3, 4 |
+| 6 | with 07's `Authenticated` default, a client without identity gets 401 | §0.3 item 10 | 4, 18 |
+| 7 | 09's slice `TaskEventLog` throws `TimeoutException`; this plan wants `A2ATestAssertException` | update the slice's own tests in the same task | 2 |
+| 8 | 05 already creates `tests/Ambinder.A2A.Stress.Tests` (trait `Category=Soak`, with a lock-table check that needs internals) and may create `nightly.yml`; soak counters name types 06 and 08 replaced | extend 05's project and workflow; one trait; 05's internal check moves under item 4's rule; read 06's `LocalTaskEventBus` | 23, 25, 26 |
+| 9 | CI names: 16's jobs are `interop-smoke`/`interop-full` (C15); 05, 06 and 09 added jobs and workflows | keep them all; required check is `interop-smoke` | 25, 28 |
+| 10 | 04 and 16 already keep golden files under `tests/vectors/`, with tooling | one golden root, `tests/vectors/`; owner check | §0.3 item 7, 21 |
+| 11 | 16's `tests/Shared/WireFixtures/` is linked source used by two projects | moves with the other leftovers | §0.3 item 3, 18 |
+| 12 | 05's conformance classes call `Assert.Skip` and `TestContext.Current`; 05 left the `ConformanceFailedException` → `A2ATestAssertException` swap to 12 | check the defining packages before dropping `xunit.v3.assert`; do the swap | 14 |
+| 13 | the "no fixed port" rule would flag deployable host projects | explicit exclusion list | 19 |
 
 ---
 
@@ -124,8 +135,8 @@ dotnet test Ambinder.A2A.slnx
 
 Created (`src/Ambinder.A2A.Testing/`): moved from the slice: `A2ATestServer.cs`, `A2ATestServerOptions.cs`, `A2ABinding.cs`, `TaskEventLog.cs`, `TaskEvent.cs`, `StoreSet.cs`; new: `A2ATestAssertException.cs`, `TestIdentity.cs`, `TestAuthenticationHandler.cs` (internal), `AgentHarness.cs`, `ScriptedAgent.cs`, `ScriptStep*.cs`, `FakeAgents.cs`, `Gate.cs`, `Signal.cs`, `NotScriptedException.cs`, `FakeRemoteAgent.cs`, `RecordingA2AClient.cs`, `PushReceiverDouble.cs`, `TaskRun.cs`, `Assertions/TaskAssertions.cs`, `Assertions/ArtifactAssert.cs`, `Assertions/StreamAssertions.cs`, `Assertions/EventTable.cs` (internal), `TransportMatrix.cs`, `ServiceCollectionExtensions.cs` (`AddScriptedAgent`, `AddFakeA2AClient`), `Telemetry/ActivityCollector.cs`, `Telemetry/MetricCollector.cs`, `README.md`.
 Created: `src/Ambinder.A2A.Testing.AI/` (`ScriptedChatClient.cs`, `FakeChatClient.cs`, `README.md`); `src/Ambinder.A2A.Testing.Conformance/` (moved from `tests/Ambinder.A2A.Stores.Conformance`, plus `README.md`).
-Created (tests): `tests/Ambinder.A2A.Testing.Tests/`, `tests/Ambinder.A2A.Samples.Tests/`, `tests/Ambinder.A2A.Repo.Tests/`, `tests/Ambinder.A2A.Stress.Tests/`, `tests/Ambinder.A2A.TestSupport/` (if leftovers exist), `tests/BannedSymbols.Tests.txt`.
-Created (eng/CI): `eng/coverage/{gate.sh,thresholds.json,reportgenerator.config}`, `.github/workflows/security.yml`, `.github/workflows/nightly.yml`; `testdata/protocol/`.
+Created (tests): `tests/Ambinder.A2A.Testing.Tests/`, `tests/Ambinder.A2A.Samples.Tests/`, `tests/Ambinder.A2A.Repo.Tests/`, `tests/Ambinder.A2A.Stress.Tests/` (or extend 05's), `tests/Ambinder.A2A.TestSupport/` (if leftovers exist), `tests/BannedSymbols.Tests.txt`.
+Created (eng/CI): `eng/coverage/{gate.sh,thresholds.json,reportgenerator.config}`, `.github/workflows/security.yml`, `.github/workflows/nightly.yml` (or extend 05's); `tests/vectors/protocol/`.
 Modified: `ci.yml`, `tests/Directory.Build.props`, `samples/Directory.Build.props`, `.editorconfig` (test section), `Directory.Packages.props`, `eng/package-dependencies.json`, `Ambinder.A2A.slnx`, `.github/dependabot.yml`, `.gitignore`, every test project in `tests/`.
 Deleted: `tests/Ambinder.A2A.TestHarness/` (moved), `tests/Ambinder.A2A.Stores.Conformance/` (moved), `tests/Shared/`, `TestAgents.cs`, `MinimalServer.cs`, `Fixtures/TransportMatrix.cs`.
 
@@ -213,6 +224,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - The timeout uses a real `CancellationTokenSource` with the given span (a wait deadline is not task time, so it is not on the fake clock; documented in the XML doc).
   - `Gate.Release()` releases all waiters once; `Signal.WaitAsync` completes on `Set`.
   - `A2ATestAssertException` derives from `Exception` only.
+  - 09's slice threw `TimeoutException` on a wait timeout (09 plan Task 1, `TaskEventLogTests.WaitTimesOutWithEventsInMessage`). Change that slice test in this task to expect `A2ATestAssertException`, and grep `tests/` for other `TimeoutException` expectations on waiters (review item 7).
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -233,7 +245,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - `TransportMatrix` yields one row per binding (an `IEnumerable<object[]>`, usable from xunit `MemberData` and other frameworks).
   - Start time: 20 starts, p50 under 1 s (the loose ceiling of spec principle 4; record the measured p50 in the test output for package 14).
 - [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3:** Implement. `CreateClient` uses 10's `IA2AClientFactory` (or `A2AClient.Create` with an `HttpClient` from `TestServer.CreateHandler()`), so real client code runs.
+- [ ] **Step 3:** Implement. Signature: `CreateClient(A2ABinding binding = A2ABinding.JsonRpc, TestIdentity? identity = null, string? agent = null, bool record = false)` (§0.3 item 9). `CreateClient` uses 10's `IA2AClientFactory` (or `A2AClient.Create` with an `HttpClient` from `TestServer.CreateHandler()`), so real client code runs.
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(testing): A2ATestServer over all bindings, Kestrel port-0 mode`.
 
@@ -245,6 +257,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - `TestIdentity.App(tenant, appId, roles...)` → the agent sees `Caller.Kind == Application`, `Owner == OwnerKey.ForApp(tenant, appId).Value`, and the roles.
   - `TestIdentity.User(tenant, userId, scopes..., roles...)` → `Kind == User`, `Owner == OwnerKey.ForUser(tenant, userId).Value`, `scp` holds the scopes.
   - `TestIdentity.Anonymous` → 401 on an `Authenticated` agent (07's default), the real response shape.
+  - `CreateClient()` with no identity uses `TestIdentity.Default` (`App("test-tenant", "test-app")`) and succeeds on an `Authenticated` agent (§0.3 item 10).
   - Two users of one app do not see each other's tasks (the real owner resolver runs).
   - A role-protected agent (07 card requirement or policy) gives 403 for an identity without the role.
   - Review Focus 2: when the app registered its own default scheme, `A2ATestServer` does not add the test scheme; a request with the test header is then not authenticated by it.
@@ -383,7 +396,9 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - A skipped case shows its reason in the test output.
   - NUnit/MSTest path: a plain loop over `TaskStoreConformanceCases.All` with a fresh `StoreSet` runs without xunit types.
 - [ ] **Step 2:** Run. Expected: FAIL.
-- [ ] **Step 3:** Move; apply §0.3 item 2 (drop `xunit.v3.assert`). The in-memory, EF Core and Cosmos store test projects subclass from the package.
+- [ ] **Step 3:** Move; apply §0.3 item 2 (drop `xunit.v3.assert`). The in-memory, EF Core and Cosmos store test projects subclass from the package. Two checks first (review item 12):
+  - 05's abstract classes call `Assert.Skip(reason)` (dynamic skip by capability) and `TestContext.Current.CancellationToken` (05 plan Task 5). Find which xunit v3 package defines each in the pinned version. If `Assert.Skip` lives only in `xunit.v3.assert`, keep that reference and record the deviation from spec §1 for the owner. Capability skips must keep showing their reason.
+  - Swap 05's `ConformanceFailedException` for `A2ATestAssertException` (05 plan Task 5 left this to 12). Case ids do not change.
 - [ ] **Step 4:** Run all store suites. Expected: PASS. `dotnet pack` the package.
 - [ ] **Step 5:** Commit `feat(testing): publish Ambinder.A2A.Testing.Conformance`.
 
@@ -421,7 +436,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `tests/Ambinder.A2A.Integration.Tests/**`; delete `Fixtures/MinimalServer.cs`, `Fixtures/TransportMatrix.cs`, `tests/Shared/`.
 
-- [ ] **Step 1:** Replace `MinimalServer` with `A2ATestServer`; the `Protected` agent becomes tests with `TestIdentity`. Replace `TransportMatrix.cs` with the package `TransportMatrix`/`A2ABindings.All` (review item 1). Library push tests use `PushReceiverDouble` instead of the sample `WebhookReceiver`.
+- [ ] **Step 1:** Replace `MinimalServer` with `A2ATestServer`; the `Protected` agent becomes tests with `TestIdentity`. Replace `TransportMatrix.cs` with the package `TransportMatrix`/`A2ABindings.All` (review item 1). Tests that relied on anonymous calls either pass `TestIdentity.Anonymous` to an `AllowAnonymous()` agent or use the default identity (§0.3 item 10). Library push tests use `PushReceiverDouble` instead of the sample `WebhookReceiver`.
 - [ ] **Step 2:** Run. Expected: green, case count not lower.
 - [ ] **Step 3:** Commit `test(integration): use A2ATestServer; delete MinimalServer and tests/Shared`.
 
@@ -429,7 +444,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** every file from Task 0's sleep and port lists; `tests/BannedSymbols.Tests.txt`; `tests/Directory.Build.props` (add `Microsoft.CodeAnalysis.BannedApiAnalyzers` with that file for test projects); `tests/Ambinder.A2A.Repo.Tests/StructureRulesTests.cs`.
 
-- [ ] **Step 1: Write failing `Repo.Tests`** (spec §7 rules 1–3): no `ProjectReference` to `samples/` outside `Samples.Tests` (parse every `.csproj`); no fixed port outside `Samples.Tests` (scan for `UseUrls`, `ListenLocalhost(\d+)`, `localhost:\d{4,5}`, `A2A_TEST_PORT_BASE`); no `Thread.Sleep`/`Task.Delay` in tests outside `src/Ambinder.A2A.Testing`.
+- [ ] **Step 1: Write failing `Repo.Tests`** (spec §7 rules 1–3): no `ProjectReference` to `samples/` outside `Samples.Tests` (parse every `.csproj`); no fixed port outside `Samples.Tests` (scan for `UseUrls`, `ListenLocalhost(\d+)`, `localhost:\d{4,5}`, `A2A_TEST_PORT_BASE`). Deployable hosts are not tests and are excluded by name: `tests/Ambinder.A2A.Tck.Sut` (03), `tests/Ambinder.A2A.Cluster.TckHost` and `tests/Ambinder.A2A.Cluster.KindHost` (06), and 16's `itk/` agent (review item 13); no `Thread.Sleep`/`Task.Delay` in tests outside `src/Ambinder.A2A.Testing`.
 - [ ] **Step 2:** Run. Expected: FAIL listing the offenders.
 - [ ] **Step 3:** Replace each sleep with `Events.WaitForAsync`, `FakeTimeProvider.Advance` or `Gate`/`Signal`; each fixed port with the in-memory host or port 0. Add the banned-symbol file (`T:System.Threading.Thread.Sleep`… and `M:System.Threading.Tasks.Task.Delay(…)` overloads, each with a message naming the replacement).
 - [ ] **Step 4:** Run the whole suite three times in a row. Expected: green every time; Repo.Tests green; final case count ≥ Task 0 baseline minus documented duplicates.
@@ -446,11 +461,11 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 ### Task 21: `testdata/` golden files (§7)
 
-**Files:** create `testdata/protocol/*.json` from `tests/…Protocol.Tests/Samples.cs`; move other golden files (03, 04) there; update readers.
+**Files:** create `tests/vectors/protocol/*.json` from `tests/…Protocol.Tests/Samples.cs`; update readers. Golden root per §0.3 item 7 (review item 10).
 
-- [ ] **Step 1:** Move each JSON sample to a file with the same name as its constant; `Protocol.Tests` reads them through a small `Golden.Read(name)` helper (path from `AppContext.BaseDirectory` with the files copied as `None` items).
+- [ ] **Step 1:** Move each JSON sample to `tests/vectors/protocol/<constant name>.json`; `Protocol.Tests` reads them through a small `Golden.Read(name)` helper (path from `AppContext.BaseDirectory` with the files copied as `None` items).
 - [ ] **Step 2:** Run. Expected: byte-identical results; green.
-- [ ] **Step 3:** Commit `test: golden files in testdata/`.
+- [ ] **Step 3:** Commit `test: protocol golden files under tests/vectors/`.
 
 ---
 
@@ -499,19 +514,20 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`.
 
-- [ ] **Step 1:** Split `ci.yml` into jobs per spec §6: `build-test` (restore, build with analyzers, unit + library integration tests, coverage + gates), `samples` (build samples, `Samples.Tests`), plus the slots that call 03's `tck`, 16's `interop` and 14's `bench` reusable workflows when they exist. Keep every 01 job. Jobs run in parallel.
-- [ ] **Step 2:** `nightly.yml` (`schedule` + `workflow_dispatch`): the audit (Task 23), `Stress.Tests` (Task 26), the FsCheck properties with a higher iteration count, Stryker.NET on Protocol and Server task logic (advisory: score to the job summary, never fails), and a call to 01's Windows leg if 01 put it elsewhere. Nightly and release builds use 01's strict audit flag (C1).
+- [ ] **Step 1:** Split `ci.yml` into jobs per spec §6: `build-test` (restore, build with analyzers, unit + library integration tests, coverage + gates), `samples` (build samples, `Samples.Tests`), plus the slots that call 03's `tck`, 16's `interop-smoke` (and `interop-full` nightly, C15) and 14's `bench` reusable workflows when they exist. Keep every 01 job, and the jobs and workflows other packages added: 05's `stores-containers` job and its SQL-script and migration drift steps, 06's `tck-cluster` leg and container suite, 09's `aks-kind.yml`/`aks-live.yml` (review item 9). Jobs run in parallel.
+- [ ] **Step 2:** `nightly.yml` (`schedule` + `workflow_dispatch`; 05 may have created it already — extend it and keep 05's soak and `Db` benchmark steps): the audit (Task 23), `Stress.Tests` (Task 26), the FsCheck properties with a higher iteration count, Stryker.NET on Protocol and Server task logic (advisory: score to the job summary, never fails), and a call to 01's Windows leg if 01 put it elsewhere. Nightly and release builds use 01's strict audit flag (C1).
 - [ ] **Step 3:** `build-test` prints its test run time to the job summary and fails above 6 minutes.
 - [ ] **Step 4:** Push and confirm all jobs run. Record the `build-test` time.
 - [ ] **Step 5:** Commit `ci: job layout and nightly workflow`.
 
 ### Task 26: `Stress.Tests`: soak, leak and fuzz (§7 new kinds)
 
-**Files:** `tests/Ambinder.A2A.Stress.Tests/` (trait `Category=Stress`, excluded from `build-test`), `Directory.Packages.props` (FsCheck, newest stable), FsCheck properties in `Protocol.Tests` and `Client.Tests`.
+**Files:** `tests/Ambinder.A2A.Stress.Tests/` (05 plan Task 31 may have created it, with its in-memory store soak test under trait `Category=Soak`; extend it. Use one trait: retag 05's test to `Category=Stress` and change 05's CI filter `Category!=Soak` to `Category!=Stress` in the same commit. 05's lock-table assertion needs internals, so it moves to `Server.Tests` under the rule in Step 1. Excluded from `build-test`; review item 8), `Directory.Packages.props` (FsCheck, newest stable), FsCheck properties in `Protocol.Tests` and `Client.Tests`.
 
 - [ ] **Step 1: Write the soak test:** on one long-lived `A2ATestServer`: create and finish 10,000 tasks; open and drop 1,000 subscribed streams; create 1,000 push configs. After warm-up and after the run, force GC (`GC.Collect(2, Forced, true, true)` twice with `WaitForPendingFinalizers`) and compare managed memory and the sizes of the lock table, running-task table, broker and push queue. Growth must be under 10% above warm-up.
   - **Where (review item 4):** 01 rule 6 allows `InternalsVisibleTo` only to an assembly's *matching* test project (and the benchmarks assembly). `Stress.Tests` is neither, so the internal-counter assertions go in `tests/Ambinder.A2A.Server.Tests/Stress/SoakTests.cs`, with the trait `Category=Stress`, so `build-test` excludes them and the nightly job runs them. The push-queue size is 08's outbox, read through the public `IOutboxStore.GetPendingStatsAsync`, so it needs no internals. Package 06's cluster plan uses the same split for its leak test.
   - `Stress.Tests` keeps the fuzz properties and any soak checks that need only public APIs (managed memory, public metrics). Do not add `InternalsVisibleTo` from `Ambinder.A2A.Server` to `Stress.Tests`.
+  - The counters: lock table = 05's `TaskLockTable.Count`; running-task table = 09's `AgentExecutionHost.Running`; event bus = 06's `LocalTaskEventBus` key count (`TaskEventBroker` if 06 has not landed); push = 08's outbox pending count, which must return to 0 once deliveries finish (review item 8).
 - [ ] **Step 2: Write the properties:** JSON round trip for every protocol model (generators from the model types, using `A2AJson` typed metadata); the SSE reader yields the same events for any split of a valid byte stream, including 1-byte chunks; malformed input throws only `A2AException` and never allocates beyond the client's size limits (measure with `GC.GetAllocatedBytesForCurrentThread` around the read).
 - [ ] **Step 3:** Run locally: `dotnet test tests/Ambinder.A2A.Stress.Tests`. Expected: PASS (fix real leaks in the owning package's code only if the fix is small and obviously local; otherwise report to that package and mark the test as failing in the PR body — never loosen the 10% bound).
 - [ ] **Step 4:** Commit `test: soak, leak and fuzz tests`. Acceptance "pass nightly three times in a row" is recorded in the PR body after three nightly runs.
@@ -534,7 +550,7 @@ test ! -d tests/Shared && ! git ls-files | grep -E 'TestAgents\.cs|MinimalServer
 ```
 
 - [ ] **Step 3:** `dotnet build Ambinder.A2A.slnx -c Release`, `dotnet test Ambinder.A2A.slnx`, `dotnet pack` of the three packages. Expected: green; packages listed in the API tracking files (02).
-- [ ] **Step 4: Owner steps** (§0.3 item 8): ask the owner to set required checks (`build-test`, `security` now; `tck` and `interop` two weeks after each lands, C13) and to turn on secret scanning and push protection; record the evidence (settings export or screenshot) in the PR, as the acceptance list asks.
+- [ ] **Step 4: Owner steps** (§0.3 item 8): ask the owner to set required checks (`build-test`, `security` now; `tck` and `interop-smoke` two weeks after each lands, C13 and C15) and to turn on secret scanning and push protection; record the evidence (settings export or screenshot) in the PR, as the acceptance list asks.
 - [ ] **Step 5:** Walk the spec's acceptance list and tick each item in the PR body with the test, job or link that proves it, or "open: <reason>".
 - [ ] **Step 6:** Open the PR. Body: Task 0 gate table and baseline, acceptance checklist, coverage numbers, `build-test` time, owner steps.
 
