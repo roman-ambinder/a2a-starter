@@ -38,11 +38,21 @@ Line numbers in the spec are from an earlier snapshot. They already differ from 
 | Task 11 (telemetry variants) | renamed sources and meters `Ambinder.A2A.Server` and `Ambinder.A2A.Client` |
 | Task 13 (size report) | pack output in `artifacts/packages`, and the pack job's size and dependency-count data (01 §6, Goal 4 of 01 "Performance") |
 | Task 12, Task 13 | MinVer versions (the size report keys on the version) |
-| Task 14, Task 25 (CI) | reusable workflows and the `perf` hook job in `ci.yml` and `release.yml` (01 §6, §7); third-party actions pinned by SHA; pinned runner approach |
+| Task 14, Task 25, Task 28 (CI) | 01's hook job for benchmarks in `ci.yml`, and `release.yml` (01 §6, §7); third-party actions pinned by SHA; pinned runner approach. See the note below this table: 01's plan names the hook `benchmarks`, and this plan renames it to `perf`. |
 | Task 22 (rules) | `CONTRIBUTING.md`, `.github/pull_request_template.md` (with its "perf evidence" item), `.github/CODEOWNERS` |
 | Task 21 (bans) | `eng/` folder; `eng/BannedSymbols.txt` (created by package 02 on top of 01's layout) |
 
-If Task 0 finds that any row is not true, **stop and report to the owner**. Do not rename anything yourself, because that is package 01's job.
+If Task 0 finds that any row is not true, **stop and report to the owner**. Do not rename anything yourself, because that is package 01's job. The one exception is the hook rename in the note below.
+
+**Hook name: `perf`, not `benchmarks`.** Spec 01 says 01 provides "a `perf` hook job" to this package, and spec 14 names the workflow `perf.yml`. Package 01's plan (builder Task 8) instead creates:
+- a hook job `benchmarks` in `ci.yml` that calls a stub reusable workflow `.github/workflows/benchmarks.yml`, which prints "not yet implemented (package 14)";
+- no benchmark job in `release.yml`, where the hooks run only inside the `verify` job, which calls `ci.yml`.
+
+This plan follows the specs and owns the rename:
+- Task 14 renames the `ci.yml` job to `perf`, deletes the stub `benchmarks.yml`, and creates `perf.yml`.
+- Task 28 adds the `perf` job to `release.yml`.
+
+Task 0 accepts either name. If 01 has already used `perf` or `perf.yml`, keep that and skip the rename steps.
 
 ### Other packages this plan touches
 
@@ -116,7 +126,7 @@ ls CONTRIBUTING.md .github/pull_request_template.md .github/CODEOWNERS
 grep -nE 'workflow_call|perf' .github/workflows/*.yml
 ```
 
-Expected: "rename OK", every path exists, `IsPackable` is false under `benchmarks/`, and `ci.yml` has a perf hook. If any check fails, stop and report which row of the "Steps that depend on package 01" table is not true.
+Expected: "rename OK", every path exists, `IsPackable` is false under `benchmarks/`, and `ci.yml` has 01's benchmark hook job, named `perf` or `benchmarks` (see the note above). Record which name and which reusable workflow file (`perf.yml` or `benchmarks.yml`) it uses; Task 14 needs it. If any check fails, stop and report which row of the "Steps that depend on package 01" table is not true.
 
 - [ ] **Step 2: Record what the other packages provide.** Find each symbol and write the result in your task report:
 
@@ -612,7 +622,8 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 - Create: `perf/budgets.json` (defaults, `"enforceTime": false`)
 - Create: `perf/exceptions.md` (header and an empty table)
 - Create: `.github/workflows/perf.yml`
-- Modify: `.github/workflows/ci.yml` (fill 01's perf hook: compile check, `--list flat`, allocation tests run with the normal tests, `lint-exceptions`)
+- Modify: `.github/workflows/ci.yml`. Fill 01's hook with the compile check, `--list flat`, the allocation tests (they run with the normal tests) and `lint-exceptions`. If 01 named the job `benchmarks`, rename the job id to `perf`, and update any `needs:` or `if:` that names it, in `ci.yml` and in `release.yml`. Replace its `uses: ./.github/workflows/benchmarks.yml` with the inline steps of Step 9.
+- Delete: `.github/workflows/benchmarks.yml` (01's stub), if it exists. `git rm` it in the same commit that creates `perf.yml`, so no commit is left without a hook.
 - Modify: `.github/CODEOWNERS` (`/perf/ @roman-ambinder`, `/eng/perf/ @roman-ambinder`)
 - Tests: `tests/Ambinder.A2A.PerfTool.Tests/{BdnReportTests,MannWhitneyTests,GateTests,ExceptionsLintTests}.cs`
 
@@ -814,7 +825,7 @@ Notes for this step:
 - Check whether `github-action-benchmark`'s `benchmarkdotnet` parser keeps allocations. If it does not, the chart shows time only and `PerfTool nightly` stays the allocation alert (spec Goal 4 is met by PerfTool either way).
 - The trend data branch: by default the action uses `gh-pages`, and package 13 also deploys the docs site to Pages. Use `benchmark-data-dir-path: perf/nightly` on that branch and write the arrangement in the task report for package 13. If 13 deploys Pages from an artifact rather than a branch, use a separate `perf-data` branch.
 
-- [ ] **Step 9: `ci.yml` perf hook (every PR).**
+- [ ] **Step 9: `ci.yml` perf hook (every PR).** The job id is `perf` (see the hook-name note under the 01 table). If branch protection already lists a required check named `benchmarks`, add an owner action to the task report: replace it with `perf`.
   - The build already includes the benchmark project, because it is in the solution.
   - Add `dotnet run -c Release --no-build --project benchmarks/Ambinder.A2A.Benchmarks -- --list flat` (spec principle 3 check).
   - Run `dotnet run -c Release --project eng/perf/PerfTool -- lint-exceptions perf/exceptions.md`.
@@ -1371,7 +1382,12 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
 
 ## Task 28: Release gate against the previous release
 
-**Files:** `.github/workflows/perf.yml` (`workflow_call` job), `.github/workflows/release.yml` (01's perf hook), `eng/perf/PerfTool/GateCommand.cs`
+**Files:** `.github/workflows/perf.yml` (`workflow_call` job), `.github/workflows/release.yml`, `eng/perf/PerfTool/GateCommand.cs`.
+
+`release.yml` changes as follows:
+- 01's plan gives it no benchmark job, so add a job `perf` with `needs: pack` that calls `./.github/workflows/perf.yml` (`workflow_call`, input `baseline-tag`).
+- Make `publish` need `perf` as well, so a perf break blocks the release.
+- If 01 already added a perf hook job there, fill that job instead.
 
 - [ ] **Step 1: The `workflow_call` job.**
   1. Download `perf-results.zip` from the GitHub Release of `inputs.baseline-tag`. That is the previous release, which the caller finds with `git describe --tags --abbrev=0 <tag>^`.
