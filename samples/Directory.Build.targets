@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    Samples on packages (spec 01, section 6). With -p:A2AUsePackages=true -p:A2APackageVersion=<version>, every ProjectReference into
+    src/ becomes a PackageReference to the package with the same ID (the project file name), so a sample builds against the packages
+    a user would install. eng/build-samples-on-packages.sh uses this with the local feed. Samples that reference other samples
+    (SampleTelemetry) keep those project references; the swap applies to them as well.
+    These are static items, evaluated before restore, so NuGet sees the package references.
+  -->
+  <ItemGroup Condition="'$(A2AUsePackages)' == 'true'">
+    <!-- Built-in metadata such as FullPath cannot be used in an evaluation-time condition, so mark the references first. -->
+    <ProjectReference Update="@(ProjectReference)" A2AIsSrc="$([System.String]::new('%(FullPath)').StartsWith('$(A2ARepoRoot)src'))" />
+    <_A2ASrcProjectReference Include="@(ProjectReference->WithMetadataValue('A2AIsSrc', 'True'))" />
+    <ProjectReference Remove="@(_A2ASrcProjectReference)" />
+    <!-- VersionOverride is how a PackageReference gets a version under central package management. -->
+    <PackageReference Include="@(_A2ASrcProjectReference->'%(Filename)')" VersionOverride="$(A2APackageVersion)" />
+  </ItemGroup>
+
+  <Target Name="A2ACheckPackageVersion" BeforeTargets="CollectPackageReferences;_GenerateRestoreGraph;ResolveProjectReferences"
+          Condition="'$(A2AUsePackages)' == 'true' And '$(A2APackageVersion)' == ''">
+    <Error Text="A2AUsePackages=true needs -p:A2APackageVersion=&lt;version&gt; (the version of the packages in the feed)." />
+  </Target>
+</Project>

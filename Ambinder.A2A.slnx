@@ -12,6 +12,8 @@
     <Project Path="samples/AgentClient/AgentClient.csproj" />
     <Project Path="samples/AgentServer/AgentServer.csproj" />
     <Project Path="samples/AppHost/AppHost.csproj" />
+    <Project Path="samples/GettingStarted.Agent/GettingStarted.Agent.csproj" />
+    <Project Path="samples/GettingStarted.Client/GettingStarted.Client.csproj" />
     <Project Path="samples/MockEntra/MockEntra.csproj" />
     <Project Path="samples/SampleTelemetry/SampleTelemetry.csproj" />
     <Project Path="samples/WebhookReceiver/WebhookReceiver.csproj" />

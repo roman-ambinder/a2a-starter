@@ -5,6 +5,15 @@ This repo is a working reference of A2A v1.0: a server library, a client library
 
 Phase 1 (this repo) runs fully on your machine with mock services. Phase 2 (real Entra, real LLMs, durable storage) is not built; see [docs/production.md](docs/production.md).
 
+## Getting started
+
+Two samples show the smallest working setup: an agent in about 20 lines of `Program.cs` ([samples/GettingStarted.Agent](samples/GettingStarted.Agent/README.md), needs only `Ambinder.A2A.AspNetCore`) and the five-call client ([samples/GettingStarted.Client](samples/GettingStarted.Client/README.md), needs only `Ambinder.A2A.Client`).
+
+```bash
+dotnet run --project samples/GettingStarted.Agent                  # terminal 1: listens on http://localhost:5100
+dotnet run --project samples/GettingStarted.Client                 # terminal 2: prints "Hello, hello!"
+```
+
 ## Quick start
 
 Prerequisites: .NET SDK 10.0.401 or newer. Docker is optional. Tests and the first run need no API keys and no network services beyond localhost.
@@ -59,6 +68,8 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 | [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over JSON-RPC and REST, plus the `IA2AClientTransport` seam. |
 | [src/Ambinder.A2A.Client.Grpc](src/Ambinder.A2A.Client.Grpc/README.md) | gRPC client transport (opt-in): `GrpcClientTransport.Instance`. |
 | [src/Ambinder.A2A.Client.Entra](src/Ambinder.A2A.Client.Entra/README.md) | `AzureIdentityCredentialProvider` (Azure.Identity). |
+| [samples/GettingStarted.Agent](samples/GettingStarted.Agent/README.md) | A hello agent in about 20 lines. |
+| [samples/GettingStarted.Client](samples/GettingStarted.Client/README.md) | The five-call client for it. |
 | [samples/AgentServer](samples/AgentServer/README.md) | Four demo agents. |
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
