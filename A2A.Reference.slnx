@@ -8,6 +8,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/AgentClient/AgentClient.csproj" />
     <Project Path="samples/AgentServer/AgentServer.csproj" />
+    <Project Path="samples/AppHost/AppHost.csproj" />
     <Project Path="samples/MockEntra/MockEntra.csproj" />
     <Project Path="samples/SampleTelemetry/SampleTelemetry.csproj" />
     <Project Path="samples/WebhookReceiver/WebhookReceiver.csproj" />
