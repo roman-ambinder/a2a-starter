@@ -310,7 +310,11 @@ public interface IOutboxStore
     ValueTask RescheduleAsync(OutboxEntry claimed, DateTimeOffset nextAttemptAt, string? lastError, CancellationToken ct);
     ValueTask DeadLetterAsync(OutboxEntry claimed, string reason, CancellationToken ct); // frees the lane for the next row
     ValueTask<IReadOnlyList<OutboxEntry>> ListDeadLettersAsync(OwnerScope? scope, int max, CancellationToken ct);
-    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct);
+    // Added in the plan review, 2026-11-03 (Claude's call): for 08's dead-letter operations.
+    // The query filters by kind, tenant, agent, task and age, and pages with a cursor.
+    ValueTask<OutboxEntry?> GetDeadLetterAsync(string id, CancellationToken ct);
+    ValueTask<OutboxEntryPage> QueryDeadLettersAsync(OutboxDeadLetterQuery query, CancellationToken ct);
+    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct); // resets Attempts; clears LastError and the claim (plan review)
     ValueTask<int> PurgeDeadLettersAsync(DateTimeOffset deadLetteredBefore, int max, CancellationToken ct);
     ValueTask<OutboxStats> GetPendingStatsAsync(CancellationToken ct);         // count and oldest CreatedAt
 }
