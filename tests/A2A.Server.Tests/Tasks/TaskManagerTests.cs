@@ -384,7 +384,8 @@ public class TaskManagerTests
 
         Assert.Equal(interrupted, task.Status.State); // the blocking send returned at the interrupt
         Assert.Equal(A2AErrorCode.InvalidAgentResponse, error!.Code);
-        Assert.Contains($"{interrupted} -> Completed", error.Message);
+        Assert.Equal($"Illegal task state transition {interrupted} -> Completed. From {interrupted} the agent may not move the task; "
+            + "only the server (a continuation message) or a cancel request can. See docs/spec-decisions.md.", error.Message);
         var stored = await host.GetAsync(task.Id);
         Assert.Equal(TaskState.Failed, stored.Status.State);
         Assert.Equal("Invalid agent response", TextOf(stored.Status.Message));
@@ -522,9 +523,12 @@ public class TaskManagerTests
         Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
     }
 
-    [Fact]
-    public async Task Cancel_handler_event_after_it_paused_the_task_still_cancels()
+    [Theory]
+    [InlineData(TaskState.InputRequired)]
+    [InlineData(TaskState.Completed)]
+    public async Task Illegal_cancel_handler_move_on_working_task_fails_it_and_cancel_is_not_cancelable(TaskState illegal)
     {
+        // D13: the cancel sink only allows CANCELED. On a WORKING task any other move is rejected and the task ends FAILED.
         var host = new TestHost();
         host.Scripts.Execute = async (_, sink, ct) =>
         {
@@ -534,17 +538,16 @@ public class TaskManagerTests
         A2AException? rejected = null;
         host.Scripts.Cancel = async (_, sink, ct) =>
         {
-            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
-            try { await sink.UpdateStatusAsync(TaskState.Working, null, ct); }
-            catch (A2AException ex) { rejected = ex; }
+            try { await sink.UpdateStatusAsync(illegal, null, ct); }
+            catch (A2AException ex) { rejected = ex; throw; }
         };
         var task = (await host.SendAsync(TestHost.Text("go", returnImmediately: true))).Task!;
 
-        var canceled = await host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None);
+        await ThrowsA2A(A2AErrorCode.TaskNotCancelable, () => host.Manager.CancelTaskAsync(TestHost.Call(), new CancelTaskRequest { Id = task.Id }, CancellationToken.None));
 
         Assert.Equal(A2AErrorCode.InvalidAgentResponse, rejected?.Code);
-        Assert.Equal(TaskState.Canceled, canceled.Status.State);
-        Assert.Equal(TaskState.Canceled, (await host.GetAsync(task.Id)).Status.State);
+        Assert.Equal($"Illegal task state transition Working -> {illegal}. From Working the agent may move to: Canceled. See docs/spec-decisions.md.", rejected!.Message);
+        Assert.Equal(TaskState.Failed, (await host.GetAsync(task.Id)).Status.State);
     }
 
     [Fact]

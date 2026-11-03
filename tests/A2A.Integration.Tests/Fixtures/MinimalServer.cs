@@ -25,6 +25,7 @@ public sealed class MinimalServer : IAsyncLifetime
 {
     public const string EchoAgentName = "echo";
     public const string ProtectedAgentName = "protected";
+    public const string StatesAgentName = "states";
     public const string InvokerPolicy = "RequireInvoker";
     public const string InvokerRole = "A2A.Invoke";
     public const string UserHeader = TestAuthHandler.UserHeader;
@@ -41,6 +42,7 @@ public sealed class MinimalServer : IAsyncLifetime
     public static int HttpPort => PortBase + 200;
     public static int EchoGrpcPort => PortBase + 201;
     public static int ProtectedGrpcPort => PortBase + 202;
+    public static int StatesGrpcPort => PortBase + 204;
 
     /// <summary>HTTP/2 listener that no agent owns (gRPC call there → NOT_FOUND).</summary>
     public static int UnmappedGrpcPort => PortBase + 203;
@@ -84,12 +86,14 @@ public sealed class MinimalServer : IAsyncLifetime
                 o.DefaultAgent = EchoAgentName;
                 o.GrpcPorts[EchoAgentName] = EchoGrpcPort;
                 o.GrpcPorts[ProtectedAgentName] = ProtectedGrpcPort;
+                o.GrpcPorts[StatesAgentName] = StatesGrpcPort;
                 o.Push.AllowPrivateNetworks = true;
             })
             .AddAgent<EchoAgent>(EchoAgentName, _ => Card(EchoAgentName, extended: true), _ => Card(EchoAgentName, extended: true) with
             {
                 Description = "Extended echo card",
             })
+            .AddAgent<StatesAgent>(StatesAgentName, _ => Card(StatesAgentName, extended: false))
             .AddAgent<EchoAgent>(ProtectedAgentName, _ => Card(ProtectedAgentName, extended: false), authorizationPolicy: InvokerPolicy);
 
         _app = builder.Build();
@@ -198,6 +202,60 @@ public sealed class EchoAgent : IAgentHandler
             await Task.Delay(ms, ct);
         await sink.AddArtifactAsync(new Artifact { ArtifactId = "echo", Parts = [Part.FromText($"echo: {text}")] }, append: false, lastChunk: true, ct);
         await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+    }
+}
+
+/// <summary>
+/// Drives task state moves by <c>messageId</c> prefix (spec D13 tests). A continuation (<c>CurrentTask</c> set) always
+/// goes WORKING then COMPLETED. Prefixes: <c>complete-</c>; <c>pause-</c> (INPUT_REQUIRED); <c>pause-auth-</c> (AUTH_REQUIRED);
+/// <c>pause-then-complete-</c> (INPUT_REQUIRED, then an illegal COMPLETED in the same run); <c>set-submitted-</c> (WORKING, then an
+/// illegal SUBMITTED); <c>pause-bad-cancel-</c> / <c>pause-auth-bad-cancel-</c> (pause; the cancel handler sets WORKING);
+/// <c>work-bad-cancel-</c> (WORKING until canceled; the cancel handler sets COMPLETED).
+/// </summary>
+public sealed class StatesAgent : IAgentHandler
+{
+    public async ValueTask ExecuteAsync(AgentRequestContext context, IAgentEventSink sink, CancellationToken ct)
+    {
+        if (context.CurrentTask is not null)
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+            return;
+        }
+        var id = context.Message.MessageId;
+        if (id.StartsWith("pause-then-complete-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+            try { await sink.UpdateStatusAsync(TaskState.Completed, null, ct); }
+            catch (A2AException) { /* D13: rejected, the task ends FAILED */ }
+        }
+        else if (id.StartsWith("set-submitted-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            try { await sink.UpdateStatusAsync(TaskState.Submitted, null, ct); }
+            catch (A2AException) { }
+        }
+        else if (id.StartsWith("pause-auth-", StringComparison.Ordinal))
+            await sink.UpdateStatusAsync(TaskState.AuthRequired, null, ct);
+        else if (id.StartsWith("pause-", StringComparison.Ordinal))
+            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+        else if (id.StartsWith("work-bad-cancel-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await Task.Delay(Timeout.Infinite, ct);
+        }
+        else
+            await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+    }
+
+    public async ValueTask CancelAsync(AgentRequestContext context, IAgentEventSink sink, CancellationToken ct)
+    {
+        var id = context.Message.MessageId;
+        var illegal = id.Contains("-bad-cancel-", StringComparison.Ordinal)
+            ? id.StartsWith("work-", StringComparison.Ordinal) ? TaskState.Completed : TaskState.Working
+            : (TaskState?)null;
+        try { await sink.UpdateStatusAsync(illegal ?? TaskState.Canceled, null, ct); }
+        catch (A2AException) when (illegal is not null) { }
     }
 }
 

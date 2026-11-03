@@ -87,7 +87,7 @@ internal sealed class AgentEventSink : IAgentEventSink
     {
         using (await _writer.LockAsync(_agent, _taskId, ct).ConfigureAwait(false))
         {
-            var stored = await BeginEventLockedAsync($"Illegal task state transition {_paused?.State} -> {state}.").ConfigureAwait(false);
+            var stored = await BeginEventLockedAsync(_paused is { } p ? IllegalMessage(p.State, state) : "").ConfigureAwait(false);
             var from = stored.Task.Status.State;
             if (!Allows(from, state))
             {
@@ -229,15 +229,12 @@ internal sealed class AgentEventSink : IAgentEventSink
         return created;
     }
 
-    // A cancel handler is still agent code, so it may make the agent's moves too. From a paused task
-    // only CANCELED is open to it (the cancel request's own move).
-    private bool Allows(TaskState from, TaskState to)
-        => TaskStateRules.CanTransition(from, to, _source)
-           || (_source == TransitionSource.CancelRequest && TaskStateRules.CanTransition(from, to, TransitionSource.Agent));
+    // D13: the cancel sink's source is CancelRequest, which only allows CANCELED. Any other move by a cancel handler is illegal.
+    private bool Allows(TaskState from, TaskState to) => TaskStateRules.CanTransition(from, to, _source);
 
     private string IllegalMessage(TaskState from, TaskState to)
     {
-        var allowed = Enum.GetValues<TaskState>().Where(t => Allows(from, t)).ToList();
+        var allowed = TaskStateRules.AllowedTargets(from, _source);
         var next = allowed.Count == 0
             ? $"From {from} the agent may not move the task; only the server (a continuation message) or a cancel request can."
             : $"From {from} the agent may move to: {string.Join(", ", allowed)}.";
