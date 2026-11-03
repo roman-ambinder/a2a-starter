@@ -964,7 +964,7 @@ Goals 1 to 10 of spec 02 map to the same tasks: Goal 1 → 9; Goal 2 → 2–4; 
 
 These are spec 02 steps for later milestones. They are listed so the plan covers the whole spec. Do not run them with this plan; each needs the named trigger.
 
-- **D1. API review before `1.0.0-rc.1`** (trigger: all M2 packages have landed). One pass by the builder over every package using `docs/policies/api-review-checklist.md` and the API files. Output: a list of fixes, all merged before `rc.1`.
+- **D1. API review before `1.0.0-rc.1`** (trigger: all M2 packages have landed). One pass by the builder over every package using `docs/policies/api-review-checklist.md` and the API files. Output: a list of fixes, all merged before `rc.1`. Also check the package 15 plan's D7 (owner decision 2026-11-03): its D1–D4 seam changes (`A2AVersionDispatchContext` and `IA2ACallerResolver` in 03, `src/Shared/Sse/` in 14, 09 and 10) have landed in their owning packages before the freeze.
 - **D2. Freeze at `1.0.0-rc.1`** (trigger: D1 closed). In every shipped project, move all lines from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt` (leaving `Unshipped` as `#nullable enable`). Delete `ApiFileTests.Shipped_files_are_empty_during_previews`. Update `CONTRIBUTING.md`: removals now need a `*REMOVED*` line and the deprecation policy.
 - **D3. Baseline at `1.0.0`** (trigger: `1.0.0` published). Set `PackageValidationBaselineVersion` to `1.0.0` in `src/Directory.Build.props`. After each later stable release, update it to the previous stable version.
 - **D4. Prove the gate** (trigger: D3). Open a throwaway PR that removes one public member and show that the pack job fails on package validation. Close it.
