@@ -836,7 +836,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
   - no new static singletons in public API (spec 02, "How it meets the six principles", item 6);
   - the store key structs spec 05 keeps positional (owner decision 2026-11-03): `TaskKey`, `OwnerScope`, `TaskCursor`, `TaskRef`, `CreateResult`, `OutboxStats`. They are the only positional public types allowed; every other public record uses properties;
-  - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public;
+  - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AException.Details` (next to the existing `A2AException.Data`; decide whether both stay public), and the dispatcher seam from the package 15 plan's D1 (owner-approved 2026-11-03), which replaces the `A2AAgentRoute` of spec 03: `A2AVersionDispatchContext` and `IA2ACallerResolver` in `Ambinder.A2A.AspNetCore`;
   - the server signer seam from the package 04 plan (decision P18, owner decision 2026-11-03): `IAgentCardSigner` and `SignedAgentCard` in `Ambinder.A2A.Server.Signing`.
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
 
