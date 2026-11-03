@@ -32,6 +32,7 @@ def check_transports(report, failures):
 def check_known_issues(entries, today, failures):
     """Returns a dict of valid SHOULD entries keyed by (requirement, transport)."""
     valid = {}
+    seen = set()
     if not isinstance(entries, list):
         failures.append("FAIL: known-issues file must be a JSON list")
         return valid
@@ -45,8 +46,10 @@ def check_known_issues(entries, today, failures):
             failures.append(f"FAIL: known issue {name} missing fields: {', '.join(missing)}")
             continue
         problems = []
-        if entry["level"] != "SHOULD":
-            problems.append(f"level is {entry['level']}, only SHOULD can be a known issue")
+        if entry["level"] not in ("SHOULD", "MUST"):
+            problems.append(f"level is {entry['level']}, only SHOULD or MUST can be a known issue")
+        elif entry["level"] == "MUST" and (entry.get("kind") != "tck-bug" or not entry.get("spec")):
+            problems.append("a MUST entry needs kind \"tck-bug\" and a non-empty spec")
         if not str(entry["issue"]).startswith("https://"):
             problems.append("issue must be an https:// URL")
         try:
@@ -57,8 +60,13 @@ def check_known_issues(entries, today, failures):
             problems.append(f"unparsable expires '{entry['expires']}'")
         if problems:
             failures.append(f"FAIL: known issue {name}: {'; '.join(problems)}")
+        key = (entry["requirement"], entry["transport"])
+        if key in seen:
+            failures.append(f"FAIL: duplicate known issue {name}")
             continue
-        valid[(entry["requirement"], entry["transport"])] = entry
+        seen.add(key)
+        if not problems:
+            valid[key] = entry
     return valid
 
 
@@ -69,16 +77,31 @@ def check_requirements(report, valid_issues, failures, warnings):
         return
     failing_now = set()
     for req_id, req in requirements.items():
+        if not isinstance(req, dict):
+            failures.append(f"FAIL: requirement {req_id} is malformed (not an object)")
+            continue
         level = req.get("level")
-        for transport, status in (req.get("transports") or {}).items():
-            if status == "FAIL":
-                failing_now.add((req_id, transport))
-                if level == "MUST":
-                    failures.append(f"FAIL: MUST {req_id} failed on {transport}")
-                elif level == "SHOULD" and (req_id, transport) not in valid_issues:
-                    failures.append(
-                        f"FAIL: SHOULD {req_id} failed on {transport} and is not in known issues")
-            elif status == "SKIPPED" and level == "MUST":
+        transports = req.get("transports")
+        if not isinstance(transports, dict):
+            transports = {}
+        failed = {t for t, status in transports.items() if status == "FAIL"}
+        if req.get("status") == "FAIL" and not failed:
+            # The TCK can overwrite a transport entry with a later PASS.
+            failed = set(transports) or {"unknown"}
+        for transport in sorted(failed):
+            failing_now.add((req_id, transport))
+            if level not in ("MUST", "SHOULD", "MAY"):
+                failures.append(f"FAIL: {req_id} failed on {transport} with unknown level {level!r}")
+                continue
+            if level == "MAY":
+                continue
+            entry = valid_issues.get((req_id, transport))
+            if entry is not None and entry["level"] == level:
+                continue
+            suffix = " and is not in known issues" if level == "SHOULD" else ""
+            failures.append(f"FAIL: {level} {req_id} failed on {transport}{suffix}")
+        for transport, status in transports.items():
+            if status == "SKIPPED" and level == "MUST":
                 warnings.append(f"warn: MUST {req_id} skipped on {transport}")
     for key in valid_issues:
         if key not in failing_now:

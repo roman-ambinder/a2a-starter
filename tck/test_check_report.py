@@ -90,7 +90,7 @@ class CheckReportTests(unittest.TestCase):
         self.assertEqual(code, 1, out)
         self.assertGreaterEqual(out.count("FAIL:"), 2, out)
         self.assertIn("REQ-M", out)
-        self.assertIn("MUST", out)
+        self.assertIn("tck-bug", out)
 
     def test_should_fail_unlisted_exits_1(self):
         report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
@@ -121,16 +121,75 @@ class CheckReportTests(unittest.TestCase):
         del entry["expires"]
         code, out = self.run_checker(report, [entry])
         self.assertEqual(code, 1, out)
+        self.assertIn("expires", out)
 
     def test_non_https_issue_exits_1(self):
         report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
         code, out = self.run_checker(report, [issue(issue="http://x")])
         self.assertEqual(code, 1, out)
+        self.assertIn("https", out)
 
     def test_unparsable_expires_exits_1(self):
         report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
         code, out = self.run_checker(report, [issue(expires="soon")])
         self.assertEqual(code, 1, out)
+        self.assertIn("expires", out)
+
+    def test_top_level_fail_with_passing_transports_is_a_failure(self):
+        req = requirement("MUST", http_json="PASS")
+        req["status"] = "FAIL"
+        req["transports"] = {"http_json": "PASS"}
+        code, out = self.run_checker(self.base(**{"REQ-M": req}))
+        self.assertEqual(code, 1, out)
+        self.assertIn("REQ-M", out)
+        self.assertIn("http_json", out)
+
+    def test_must_tck_bug_entry_covers_failure(self):
+        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
+        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug", spec="v1.0.1 section 5.4")]
+        code, out = self.run_checker(report, known)
+        self.assertEqual(code, 0, out)
+
+    def test_must_entry_without_kind_is_invalid(self):
+        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
+        known = [issue(requirement="REQ-M", level="MUST", spec="v1.0.1 section 5.4")]
+        code, out = self.run_checker(report, known)
+        self.assertEqual(code, 1, out)
+        self.assertIn("tck-bug", out)
+        self.assertIn("MUST REQ-M failed", out)
+
+    def test_must_tck_bug_entry_without_spec_is_invalid(self):
+        report = self.base(**{"REQ-M": requirement("MUST", grpc="FAIL")})
+        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug")]
+        code, out = self.run_checker(report, known)
+        self.assertEqual(code, 1, out)
+        self.assertIn("spec", out)
+
+    def test_must_tck_bug_entry_that_passes_now_exits_1(self):
+        report = self.base(**{"REQ-M": requirement("MUST")})
+        known = [issue(requirement="REQ-M", level="MUST", kind="tck-bug", spec="v1.0.1 section 5.4")]
+        code, out = self.run_checker(report, known)
+        self.assertEqual(code, 1, out)
+        self.assertIn("no longer fails", out)
+
+    def test_unknown_level_fail_is_reported(self):
+        req = requirement("MUST", grpc="FAIL")
+        del req["level"]
+        code, out = self.run_checker(self.base(**{"REQ-X": req}))
+        self.assertEqual(code, 1, out)
+        self.assertIn("unknown level", out)
+
+    def test_malformed_requirement_is_reported(self):
+        code, out = self.run_checker(self.base(**{"REQ-X": "oops"}))
+        self.assertEqual(code, 1, out)
+        self.assertIn("REQ-X", out)
+        self.assertNotIn("Traceback", out)
+
+    def test_duplicate_entry_is_reported(self):
+        report = self.base(**{"REQ-S": requirement("SHOULD", grpc="FAIL")})
+        code, out = self.run_checker(report, [issue(), issue()])
+        self.assertEqual(code, 1, out)
+        self.assertIn("duplicate", out)
 
     def test_must_skipped_warns_but_passes(self):
         report = self.base(**{"REQ-M": requirement("MUST", grpc="SKIPPED")})
