@@ -1,7 +1,3 @@
-using System.Buffers.Text;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Text.Json;
 using A2A.Protocol;
 using A2A.Server.Agents;
 using A2A.Server.Push;
@@ -40,7 +36,7 @@ internal static class AgentCardEndpoints
             return;
         }
         var options = http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value;
-        var (bytes, etag) = CardBytes.GetValue(agent.PublicCard, Serialize);
+        var (bytes, etag, _) = http.RequestServices.GetRequiredService<AgentCardRenderer>().Render(agent.Name, agent.PublicCard, isExtended: false);
 
         // Spec 8.6.1: Cache-Control max-age and an ETag; conditional GET answers 304. Vary, so a shared cache never serves
         // one protocol version's card to a client of another.
@@ -58,19 +54,6 @@ internal static class AgentCardEndpoints
 
         http.Response.ContentType = "application/json";
         await http.Response.Body.WriteAsync(bytes, http.RequestAborted);
-    }
-
-    // Serialized once per card instance (cards are immutable records built at startup).
-    private static readonly ConditionalWeakTable<AgentCard, CachedCard> CardBytes = new();
-
-    private sealed record CachedCard(byte[] Bytes, string ETag);
-
-    /// <summary>Card JSON plus a strong ETag: base64url of the first 16 bytes of its SHA-256, so every instance agrees.</summary>
-    private static CachedCard Serialize(AgentCard card)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(card, A2AJson.Options.GetTypeInfo(typeof(AgentCard)));
-        var hash = SHA256.HashData(bytes);
-        return new CachedCard(bytes, $"\"{Base64Url.EncodeToString(hash.AsSpan(0, 16))}\"");
     }
 
     /// <summary>True when an <c>If-None-Match</c> value lists <paramref name="etag"/> (weak comparison, RFC 9110 13.1.2) or is <c>*</c>.</summary>

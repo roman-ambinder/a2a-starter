@@ -119,7 +119,10 @@ internal static class JsonRpcEndpoint
             if (!Methods.TryGetValue(request.Method, out method!))
                 throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
             if (method.IsExtendedCard)
+            {
                 await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
+                http.Response.Headers.CacheControl = "private, no-store";
+            }
             ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
@@ -137,7 +140,10 @@ internal static class JsonRpcEndpoint
             }
 
             var result = await method.Invoke!(handler, call, parameters, ct).ConfigureAwait(false);
-            await WriteJsonAsync(http, JsonRpcMessages.Result(request.Id, result, method.ResultType)).ConfigureAwait(false);
+            await WriteJsonAsync(http, method.IsExtendedCard
+                ? JsonRpcMessages.RawResult(request.Id, http.RequestServices.GetRequiredService<AgentCardRenderer>()
+                    .Render(agent.Name, (AgentCard)result!, isExtended: true).Bytes)
+                : JsonRpcMessages.Result(request.Id, result, method.ResultType)).ConfigureAwait(false);
         }
         catch (A2AAuthException)
         {

@@ -40,6 +40,7 @@ public static class A2AServiceCollectionExtensions
         services.TryAddSingleton<ITaskStore, InMemoryTaskStore>();
         services.TryAddSingleton<TaskEventBroker>(_ => new TaskEventBroker());
         services.TryAddSingleton<AgentCatalog>(builder.BuildCatalog);
+        services.TryAddSingleton<AgentCardRenderer>();
         services.TryAddSingleton<TaskManager>(sp => new TaskManager(
             sp.GetRequiredService<AgentCatalog>(),
             sp.GetRequiredService<ITaskStore>(),
