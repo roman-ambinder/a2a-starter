@@ -70,7 +70,7 @@ The core offers three seams. This package uses them and nothing else:
 
 | Seam | Owner | What compat does with it |
 |---|---|---|
-| `IA2AVersionDispatcher` (server, `Ambinder.A2A.AspNetCore`) | 03 | Claims versions `0.3` (empty header) and `0.3` sent explicitly. Handles the whole JSON-RPC or REST request. |
+| `IA2AVersionDispatcher` (server, `Ambinder.A2A.AspNetCore`) | 03 | Claims versions `0.3` (empty header) and `0.3` sent explicitly. Handles the whole JSON-RPC or REST request. Gets `A2AVersionDispatchContext`, and gRPC 0.3 uses `IA2ACallerResolver` *(owner approval of the plan's D1 and D2, 2026-11-03)*. |
 | `IAgentCardContributor` (server, `Ambinder.A2A.Server`) | 03 | Adds 0.3 top-level fields and appends 0.3 interfaces to `supportedInterfaces` in the served card JSON. |
 | `IA2ATransportFactory` (registered with `IA2AClientBuilder.AddTransport<T>()`) and `IAgentCardReader` (client) | 10 | The factory reports `ProtocolVersions = ["0.3"]` and creates a 0.3 `IA2ATransport`; the reader's `TryRead` converts 0.3-only cards to 1.0 `AgentCard` models. |
 
@@ -161,7 +161,7 @@ Builder type names: `A2AServerBuilder` (the server builder class, packages 02 an
 
 - SSE with JSON-RPC envelopes per event, as in 0.3. Events: Task (`kind: "task"`), Message, `TaskStatusUpdateEvent` (`kind: "status-update"`, `final`), `TaskArtifactUpdateEvent` (`kind: "artifact-update"`, `append`, `lastChunk`).
 - `final: true` is set on the status update that moves the task into a terminal or interrupted state. If the core stream closes and the last event written was not such an update, compat writes one more status update with the current status and `final: true`, then closes. *(writer's call; this is the "no hang" rule.)*
-- Keep-alive comments and other SSE behavior come from the core SSE writer (packages 09, 10).
+- Keep-alive comments and other SSE behavior come from the core SSE writer (packages 09, 10), which lives in `src/Shared/Sse/` as linked internal source *(owner approval of the plan's D3 and D4, 2026-11-03)*.
 
 ### Server: 0.3 REST
 
