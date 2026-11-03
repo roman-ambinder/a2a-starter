@@ -72,7 +72,11 @@ Package 11 is M2, so most M1 packages should be merged when this runs. Task 0 re
 3. **JSON merge patch** (RFC 7386, spec §4 `TaskMetadata`): an internal `JsonMergePatch.Apply(JsonElement? target, JsonElement patch) → JsonElement?` on `System.Text.Json.Nodes` (AOT-safe, no reflection), with the RFC 7386 appendix test vectors.
 4. **Error reference id** (spec §6 errors rule 3): `Activity.Current?.TraceId.ToHexString()` when there is an activity, else `Guid.NewGuid().ToString("N")`. The log uses the property name `ErrorRef`.
 5. **Derived remote `contextId`** (spec §8.3): first 16 bytes of `SHA-256(UTF-8(parentContextId + "\n" + remoteAgentUrl))`, where the URL is the selected interface URL, lower-cased scheme and host, no trailing `/`. Set the version nibble to 8 and the variant bits to `10`. Format `D`.
-6. **Tool id binding storage** (B9): in the parent task's metadata under the key `ambinder.a2a.tools` (written through `AgentEventOptions.TaskMetadata`, so it survives pods and recovery): `{ "<remote agent url>": { "owner": "<parent owner key>", "contextId": "...", "taskIds": ["..."] } }`, keeping the last 50 task ids per remote agent. Outside an agent run (no ambient scope) the bindings are kept in the tool instance.
+6. **Tool id binding storage** (B9): kept in the parent task's metadata under the key `ambinder.a2a.tools`, written through `AgentEventOptions.TaskMetadata` so it survives pods and recovery:
+   - **Shape:** `{ "<agentKey>": { "owner": "<parent owner key>", "contextId": "...", "taskIds": ["..."] } }`, keeping the last 50 task ids per remote agent.
+   - **`agentKey`:** the first 16 bytes of `SHA-256(UTF-8(normalized remote agent URL))` as lower-case hex, with the URL normalized as in item 5. The remote URL itself is never written.
+   - **Visible to the client** *(owner decision, option A)*: `AgentTask.Metadata` is a wire field, returned by `GetTask`, `ListTasks` and stream snapshots. The hash keeps internal agent URLs out of that response. The owner key (the caller's own), the derived remote `contextId` and the remote task ids stay visible to the task's owner. The remote tasks belong to the agent's app identity (B9), so the client cannot act on them. Task 25's `call-other-agents.md` says all of this.
+   - Outside an agent run (no ambient scope), the bindings are kept in the tool instance.
 7. **`ScriptedChatClient` test double** (see §0.2): test code only, never shipped.
 8. **Docs pages** use package 13's tree (see Task 25 for the mapping from the spec's section names to files).
 9. **Provisional task record (05).** 05's plan (Task 12 step 8) creates the `SUBMITTED` record *before* the handler runs, for the dedupe check, and deletes it when the agent's first event is a direct reply. This plan keeps that and adds two more deletions: an `A2AException` or `A2AAuthException` thrown before the first event also deletes the record, so "stores no task" holds (Task 5). `returnImmediately` returns that record after the grace window instead of creating one (Task 7).
@@ -97,6 +101,10 @@ This plan was checked against the plans merged after it (03, 05, 06, 07, 09, 10,
 | 11 | ordering of the outgoing hook versus 08's push contributor was unstated | the hook runs first, so push payloads carry extension metadata | 12 |
 | 12 | on a continuation forwarded by 06, the owner pod skips slot 400 (B5), and `ClusterCallContext` carries only `RequestedExtensions`, so the agent saw no active extensions and no outgoing hook ran | the core recomputes activation from `RequestedExtensions` on forwarded calls (no required check, no request hook) | 12 |
 | 13 | `ConversationOptions.MaxTasks` had no upper bound, but it becomes 05's `TaskQuery.PageSize` (1..100) | validate 1..100 | 9 |
+| 14 | the tool's bindings in parent task metadata (a wire field) would show remote agent URLs to the client | key by a SHA-256 of the URL; test that `GetTask` has no URL; document what stays visible (owner decision, option A) | §0.3 item 6, 18, 25 |
+| 15 | nothing told agent authors that `TaskMetadata` and `EventMetadata` reach clients | XML `<remarks>` and a docs note | 21, 25 |
+| 16 | `TaskUpdater.UpdateAsync`, `ReplyAsync`, `TaskId` and `ContextId` had no tests | tests added | 3 |
+| 17 | the tool cache was not tied to the card cache lifetime (spec §8.3) | test with the fake clock | 18 |
 
 ---
 
@@ -132,6 +140,7 @@ dotnet test Ambinder.A2A.slnx
 6. **Tool id binding (B9):** a model-supplied `taskId` the tool did not create for this owner is refused without a network call (Task 18).
 7. **No provider text leaks** into task messages by default (Task 16).
 8. **Streaming cost is linear** (text-part coalescing in storage, Task 2; benchmark, Task 24).
+9. **No internal address reaches the client.** The tool's bindings in the parent task's metadata are keyed by a hash, so `GetTask` never shows a remote agent's URL (Task 18, option A).
 
 ---
 
@@ -247,6 +256,10 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - `ArtifactWriter`: first write `append: false`; later writes `append: true`; `CompleteAsync` sends `lastChunk: true` once; `DisposeAsync` without error sends `lastChunk: true`; `DisposeAsync` after an exception sends nothing; the id is fixed at `OpenArtifact`.
   - `NewMessage(parts)` builds an agent message with the right ids.
   - `ReplyTextAsync(context, text, ct)` on `IAgentEventSink` replies with a text message.
+  - `TaskUpdater.TaskId` and `ContextId` equal the context's ids.
+  - `TaskUpdater.ReplyAsync(text)` sends a direct agent message with the context's `ContextId` (no task event). After a task event on the same run, it throws `A2AException(InvalidAgentResponse)`, as the sink does.
+  - `TaskUpdater.UpdateAsync(state, message, options)` passes `state`, `message` and `options` (with `EventMetadata` and `TaskMetadata`) unchanged to the sink's options overload. With `message == null`, no message is sent.
+  - `AddArtifactAsync(name, parts, artifactId, options)` passes `options` to the sink's options overload.
   - `TaskUpdater` holds no lock and no state beyond the context and sink (two updaters on one context interleave correctly).
   - After `RequireInputAsync` or `RequireAuthAsync`, a further `StartWorkAsync` or `CompleteAsync` in the same run fails the task with `InvalidAgentResponse`. This is 03's D13 rule (03 plan Task 17): only a continuation or a cancel may move a task out of an interrupted state. The XML docs of both methods say "return from `ExecuteAsync` after this call" (review item 3).
 - [ ] **Step 2:** Run. Expected: FAIL.
@@ -505,6 +518,8 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
   - Remote `INPUT_REQUIRED` → `input_required` with the `taskId`; a second call with that `taskId` completes.
   - A `taskId` the tool did not create for this owner → `{"status":"failed","error":"unknown taskId"}` and **no** request reaches the fake agent (B9). A binding made for owner A is not usable when the ambient owner is B.
   - Bindings survive a new tool instance inside a later turn of the same parent task (stored in parent task metadata, §0.3 item 6).
+  - **No remote URL in the parent task** (§0.3 item 6, option A). After a tool call, `GetTask` on the parent task, through every transport, returns metadata under `ambinder.a2a.tools` keyed by the 32-hex-character hash. The serialized task contains neither the remote agent's URL nor its host name; assert on the raw response bytes. Two remote agents get two different keys.
+  - **Tool cache lifetime** (spec §8.3: "caches them for the card cache lifetime (10)"). `RemoteAgentToolProvider` resolves a tool once and reuses it while 10's card cache entry for that client is fresh. After the card cache expires (advance the fake clock past 10's card cache lifetime), the next use resolves the card again and rebuilds the tool, so a changed card description or skill list reaches the model. Use 10's card cache option name; do not add a second cache timer.
   - Default identity: the call carries the client's own credentials and no `UserAssertion`; with `UseOnBehalfOf = true` the call carries `A2ARequestOptions.UserAssertion` from the caller (B9; OBO only on the receiving pod, B8).
   - Remote `FAILED`/`REJECTED` and A2A errors are returned as results; `A2AAuthException` and cancellation are thrown.
   - Timeout (`A2AToolOptions.Timeout`, fake clock) → a failed result *(plan-writer's call: the spec lists timeout among tool tests without saying throw or result; a result lets the model recover, matching "A2A failures … are returned as a result")*.
@@ -547,6 +562,7 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 **Files:** `IAgentHandler.cs`, `IAgentEventSink.cs`, `TaskUpdater.cs`, `AgentRequestContext.cs`.
 
 - [ ] **Step 1:** Write the DI-scope, cancellation and error rules (spec §6) into the XML docs of `IAgentHandler` (spec §6 DI rule 6). Replace the old "With `returnImmediately`, … emit WORKING promptly" note with the grace rule.
+- [ ] **Step 1a: Metadata visibility.** Put a `<remarks>` on `AgentEventOptions.TaskMetadata` and `EventMetadata` that says: "Sent to clients. `TaskMetadata` is part of the task that `GetTask`, `ListTasks` and stream snapshots return to the task's owner; `EventMetadata` is part of the streamed event. Do not put secrets, credentials or internal addresses here; keep those in the agent's own store and put only an opaque id in metadata." Add the same note to the `TaskUpdater` methods that take `AgentEventOptions`.
 - [ ] **Step 2:** If 02 is present, make sure every new public member is in `PublicAPI.Unshipped.txt` and the build is clean.
 - [ ] **Step 3:** Commit `docs(server): authoring contract in XML docs`.
 
@@ -594,6 +610,9 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 | streaming and `ArtifactWriter` | `docs/agents/streaming-and-artifacts.md` |
 
 - [ ] **Step 1:** Write the pages from the spec only. Code samples come from the Task 22 projects.
+- [ ] **Step 1a: Visibility notes.**
+  - `task-lifecycle.md`, where task metadata is the place for per-task state (multi-turn rule 4): add "Task metadata is returned to the client; store secrets and internal addresses in your own store and keep only an opaque id in metadata" (same text as Task 21 Step 1a).
+  - `call-other-agents.md`: explain that the tool's bindings live under `ambinder.a2a.tools` in the parent task's metadata, keyed by a hash of each remote agent's URL. The task's owner can see the derived remote context id and the remote task ids, but not the URLs. Those remote tasks belong to the agent's app identity, so the client cannot use them (§0.3 item 6).
 - [ ] **Step 2:** If 13's `DocsLint` or the repo `DocsTests` exist, run them. Expected: PASS.
 - [ ] **Step 3:** Commit `docs(agents): authoring, extensions and AI guides`.
 
