@@ -18,5 +18,6 @@
     <Project Path="tests/A2A.Protocol.Tests/A2A.Protocol.Tests.csproj" />
     <Project Path="tests/A2A.Integration.Tests/A2A.Integration.Tests.csproj" />
     <Project Path="tests/A2A.Server.Tests/A2A.Server.Tests.csproj" />
+    <Project Path="tests/A2A.Tck.Sut/A2A.Tck.Sut.csproj" />
   </Folder>
 </Solution>

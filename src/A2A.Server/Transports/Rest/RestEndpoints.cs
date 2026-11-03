@@ -102,7 +102,11 @@ internal static class RestEndpoints
         var (version, extensions) = ServiceParameters.Read(http);
         ServiceParameters.EnsureSupportedVersion(version);
         if (route.Op == Op.ExtendedCard)
+        {
             await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+            http.Response.Headers.CacheControl = "private, no-store";
+        }
+        ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
         JsonObject? body = null;
         if (route.Op is Op.Send or Op.Stream or Op.Cancel or Op.CreatePush)

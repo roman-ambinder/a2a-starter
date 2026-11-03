@@ -67,15 +67,16 @@ public sealed class HostingWiringTests(MinimalServer server)
         options.GrpcPorts["x"] = 5201;
         var list = AgentCardInterfaces.For("x", options);
         Assert.Equal("http://[::1]:5200/agents/x/jsonrpc", list[0].Url);
-        Assert.Equal("http://[::1]:5201", list[2].Url);
+        Assert.Equal("[::1]:5201", list[2].Url);
     }
 
     [Fact]
-    public void Grpc_interface_uses_https_when_public_base_url_is_https()
+    public void Grpc_interface_is_host_and_port()
     {
+        // Spec: the gRPC AgentInterface.url is an address "hostname:port" (a gRPC channel target), not an http(s) URL.
         var options = new A2AServerOptions { PublicBaseUrl = "https://agents.example.com/" };
         options.GrpcPorts["x"] = 5201;
         var grpc = AgentCardInterfaces.For("x", options).Single(i => i.ProtocolBinding == "GRPC");
-        Assert.Equal("https://agents.example.com:5201", grpc.Url);
+        Assert.Equal("agents.example.com:5201", grpc.Url);
     }
 }

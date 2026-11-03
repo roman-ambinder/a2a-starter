@@ -97,7 +97,7 @@ public sealed class DiscoveryAndAuthTests(A2ATestHost host)
             (card.Capabilities.Streaming == true, card.Capabilities.PushNotifications == true, card.Capabilities.ExtendedAgentCard == true));
         Assert.Equal(inputModes.Split(','), card.DefaultInputModes);
         Assert.Equal(["JSONRPC", "HTTP+JSON", "GRPC"], card.SupportedInterfaces.Select(i => i.ProtocolBinding));
-        Assert.Equal($"http://127.0.0.1:{A2ATestHost.PortBase + A2ATestHost.GrpcOffsets[agent]}", card.SupportedInterfaces[2].Url);
+        Assert.Equal($"127.0.0.1:{A2ATestHost.PortBase + A2ATestHost.GrpcOffsets[agent]}", card.SupportedInterfaces[2].Url);
         if (extension is null)
         {
             Assert.Empty(card.Capabilities.Extensions);
@@ -157,12 +157,13 @@ public sealed class DiscoveryAndAuthTests(A2ATestHost host)
     }
 
     [Theory, MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
-    public async Task Echo_extended_card_not_configured(string binding)
+    public async Task Echo_extended_card_not_offered_is_unsupported_operation(string binding)
     {
+        // Spec 3.3.4: capabilities.extendedAgentCard false → UnsupportedOperationError.
         await using var client = await host.CreateClientAsync("echo", binding, TestAuth.Client, ct: Ct);
         var ex = await Assert.ThrowsAsync<A2AException>(() => client.GetExtendedAgentCardAsync(new GetExtendedAgentCardRequest(), Ct));
-        Assert.Equal(A2AErrorCode.ExtendedAgentCardNotConfigured, ex.Code);
-        Assert.Equal(-32007, (int)ex.Code);
+        Assert.Equal(A2AErrorCode.UnsupportedOperation, ex.Code);
+        Assert.Equal(-32004, (int)ex.Code);
     }
 
     [Fact]

@@ -197,7 +197,7 @@ public sealed partial class FlowRunner
                 () => noAudit.SendMessageAsync(Request("approve r-300"), ct));
 
         await using var echo = await ClientAsync(Echo, ct: ct);
-        await Expect(A2AErrorCode.ExtendedAgentCardNotConfigured, "extended card of the echo agent",
+        await Expect(A2AErrorCode.UnsupportedOperation, "extended card of the echo agent",
             () => echo.GetExtendedAgentCardAsync(new GetExtendedAgentCardRequest(), ct));
     });
 }

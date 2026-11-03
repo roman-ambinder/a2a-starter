@@ -79,6 +79,35 @@ internal static class TransportErrors
             ? string.Join(",", value.EnumerateArray().Select(v => v.ValueKind == JsonValueKind.String ? v.GetString() : v.GetRawText()))
             : value.GetRawText();
 
+    /// <summary>The <c>@type</c> of a google.rpc.ErrorInfo detail in ProtoJSON <c>Any</c> form.</summary>
+    public const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
+
+    /// <summary>
+    /// Writes <paramref name="propertyName"/> as an array holding one google.rpc.ErrorInfo detail (<c>@type</c>, <c>reason</c>,
+    /// <c>domain</c> = <c>a2a-protocol.org</c>, <c>metadata</c> from <see cref="ErrorMetadata"/>) for errors that have a catalog
+    /// reason (spec 3.3.2: A2A errors MUST carry ErrorInfo). Writes nothing for the standard JSON-RPC errors.
+    /// REST uses it for <c>error.details</c>, JSON-RPC for <c>error.data</c> (spec 9.5, 11.6).
+    /// </summary>
+    public static void WriteDetails(Utf8JsonWriter w, string propertyName, A2AException error)
+    {
+        var info = A2AError.Get(error.Code);
+        if (info.Reason is null) return;
+        w.WriteStartArray(propertyName);
+        w.WriteStartObject();
+        w.WriteString("@type", ErrorInfoType);
+        w.WriteString("reason", info.Reason);
+        w.WriteString("domain", A2AError.Domain);
+        if (error.Data is { ValueKind: JsonValueKind.Object })
+        {
+            w.WriteStartObject("metadata");
+            foreach (var (name, value) in ErrorMetadata(error.Data))
+                w.WriteString(name, value);
+            w.WriteEndObject();
+        }
+        w.WriteEndObject();
+        w.WriteEndArray();
+    }
+
     /// <summary>HTTP 404 for an agent name not in the catalog.</summary>
     public static Task WriteUnknownAgentAsync(HttpContext http, string? agentName)
         => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'.");

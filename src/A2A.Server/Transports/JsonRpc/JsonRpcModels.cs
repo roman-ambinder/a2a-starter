@@ -75,18 +75,17 @@ internal static class JsonRpcMessages
             }
         });
 
-    /// <summary><c>{"jsonrpc":"2.0","id":..,"error":{"code":..,"message":..,"data":..}}</c>; <c>data</c> only when set.</summary>
+    /// <summary>
+    /// <c>{"jsonrpc":"2.0","id":..,"error":{"code":..,"message":..,"data":[ErrorInfo]}}</c> (spec 9.5): <c>data</c> is an array of
+    /// <c>@type</c>-tagged details, present for A2A errors (those with an ErrorInfo reason), absent for standard JSON-RPC errors.
+    /// </summary>
     public static byte[] Error(JsonElement id, A2AException error)
         => Write(id, w =>
         {
             w.WriteStartObject("error");
             w.WriteNumber("code", (int)error.Code);
             w.WriteString("message", error.Message);
-            if (error.Data is { } data)
-            {
-                w.WritePropertyName("data");
-                data.WriteTo(w);
-            }
+            TransportErrors.WriteDetails(w, "data", error);
             w.WriteEndObject();
         });
 

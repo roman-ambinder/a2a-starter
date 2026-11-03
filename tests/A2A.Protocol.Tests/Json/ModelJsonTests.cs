@@ -27,13 +27,30 @@ public class ModelJsonTests
     public void Part_with_two_contents_fails_validation()
         => Assert.False(new Part { Text = "a", Url = "https://x" }.IsValid);
 
-    [Fact]
-    public void Unknown_enum_string_throws_JsonException()
-        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":"working"}""", A2AJson.Options));
+    [Theory]
+    [InlineData("\"working\"")]          // 0.3 spelling: not guessed, read as unspecified
+    [InlineData("\"TASK_STATE_FUTURE\"")] // a newer peer's value
+    [InlineData("99")]
+    public void Unknown_task_state_reads_as_unspecified(string value)
+        => Assert.Equal(TaskState.Unspecified,
+            JsonSerializer.Deserialize<AgentTaskStatus>($$"""{"state":{{value}}}""", A2AJson.Options)!.State);
 
     [Fact]
-    public void Integer_enum_value_throws_JsonException()
-        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":2}""", A2AJson.Options));
+    public void Unknown_role_reads_as_unspecified()
+        => Assert.Equal(Role.Unspecified, JsonSerializer.Deserialize<Message>("""{"messageId":"m","role":"user"}""", A2AJson.Options)!.Role);
+
+    [Fact]
+    public void Known_integer_enum_values_are_read_and_written_as_names()
+    {
+        var status = JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":2}""", A2AJson.Options)!;
+        Assert.Equal(TaskState.Working, status.State);
+        Assert.Equal("""{"state":"TASK_STATE_WORKING"}""", JsonSerializer.Serialize(status, A2AJson.Options));
+        Assert.Equal(Role.Agent, JsonSerializer.Deserialize<Message>("""{"messageId":"m","role":2}""", A2AJson.Options)!.Role);
+    }
+
+    [Fact]
+    public void Enum_of_wrong_json_type_throws_JsonException()
+        => Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AgentTaskStatus>("""{"state":true}""", A2AJson.Options));
 
     [Fact]
     public void Timestamp_serializes_as_utc_iso8601()

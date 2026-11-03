@@ -17,6 +17,12 @@ public sealed class A2AServerOptions
     /// <summary>gRPC port per agent name. An agent without an entry gets no GRPC interface on its card.</summary>
     public IDictionary<string, int> GrpcPorts { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
+    /// <summary>
+    /// <c>max-age</c> of the <c>Cache-Control</c> header on public agent card responses (spec 8.6.1). Default 5 minutes.
+    /// <see cref="TimeSpan.Zero"/> sends <c>no-cache</c> (clients revalidate with the ETag every time).
+    /// </summary>
+    public TimeSpan CardCacheMaxAge { get; set; } = TimeSpan.FromMinutes(5);
+
     /// <summary>Largest accepted request body. Larger bodies get HTTP 413.</summary>
     public long MaxRequestBodyBytes { get; set; } = 4 * 1024 * 1024;
 

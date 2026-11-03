@@ -42,27 +42,56 @@ internal static class ClientSupport
     }
 
     /// <summary>
-    /// <paramref name="request"/> with <c>Tenant</c> set to <paramref name="defaultTenant"/> when the request has none. Requests
-    /// with their own tenant, and types without a tenant, are returned unchanged.
+    /// <paramref name="request"/> with <c>Tenant</c> set to <paramref name="defaultTenant"/> (the selected interface's tenant), as
+    /// spec 8.3.2 requires. A request whose tenant is set and differs throws <see cref="ArgumentException"/>. Without an interface
+    /// tenant the request is returned unchanged.
     /// </summary>
     public static T WithTenant<T>(T request, string? defaultTenant)
     {
         if (string.IsNullOrEmpty(defaultTenant)) return request;
+        var current = request switch
+        {
+            SendMessageRequest r => r.Tenant,
+            GetTaskRequest r => r.Tenant,
+            ListTasksRequest r => r.Tenant,
+            CancelTaskRequest r => r.Tenant,
+            SubscribeToTaskRequest r => r.Tenant,
+            TaskPushNotificationConfig r => r.Tenant,
+            GetTaskPushNotificationConfigRequest r => r.Tenant,
+            ListTaskPushNotificationConfigsRequest r => r.Tenant,
+            DeleteTaskPushNotificationConfigRequest r => r.Tenant,
+            GetExtendedAgentCardRequest r => r.Tenant,
+            _ => null,
+        };
+        if (EffectiveTenant(current, defaultTenant) == current) return request;
         object? result = request switch
         {
-            SendMessageRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            GetTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            ListTasksRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            CancelTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            SubscribeToTaskRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            TaskPushNotificationConfig r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            GetTaskPushNotificationConfigRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            ListTaskPushNotificationConfigsRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            DeleteTaskPushNotificationConfigRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
-            GetExtendedAgentCardRequest r when string.IsNullOrEmpty(r.Tenant) => r with { Tenant = defaultTenant },
+            SendMessageRequest r => r with { Tenant = defaultTenant },
+            GetTaskRequest r => r with { Tenant = defaultTenant },
+            ListTasksRequest r => r with { Tenant = defaultTenant },
+            CancelTaskRequest r => r with { Tenant = defaultTenant },
+            SubscribeToTaskRequest r => r with { Tenant = defaultTenant },
+            TaskPushNotificationConfig r => r with { Tenant = defaultTenant },
+            GetTaskPushNotificationConfigRequest r => r with { Tenant = defaultTenant },
+            ListTaskPushNotificationConfigsRequest r => r with { Tenant = defaultTenant },
+            DeleteTaskPushNotificationConfigRequest r => r with { Tenant = defaultTenant },
+            GetExtendedAgentCardRequest r => r with { Tenant = defaultTenant },
             _ => request,
         };
         return (T)result!;
+    }
+
+    /// <summary>
+    /// The tenant to send: the interface tenant when there is one (a different non-empty request tenant throws
+    /// <see cref="ArgumentException"/>), else the request tenant.
+    /// </summary>
+    public static string? EffectiveTenant(string? requestTenant, string? interfaceTenant)
+    {
+        if (string.IsNullOrEmpty(interfaceTenant)) return string.IsNullOrEmpty(requestTenant) ? null : requestTenant;
+        if (string.IsNullOrEmpty(requestTenant) || requestTenant == interfaceTenant) return interfaceTenant;
+        throw new ArgumentException(
+            $"This client talks to tenant '{interfaceTenant}' (from the agent card); the request asks for tenant '{requestTenant}'. " +
+            "Leave the request tenant empty, or create a client for the other interface.", "request");
     }
 
     /// <summary>True for an SSE payload with content; blank payloads are heartbeats.</summary>
@@ -96,18 +125,51 @@ internal static class ClientSupport
             ? new A2AException(A2AErrorCode.InvalidAgentResponse, message)
             : new A2AException(A2AErrorCode.InvalidAgentResponse, $"{message} {inner.Message}");
 
-    /// <summary>Maps a wire error code to <see cref="A2AErrorCode"/>; unknown numbers become InternalError.</summary>
+    private const string ErrorInfoType = "type.googleapis.com/google.rpc.ErrorInfo";
+
+    /// <summary>
+    /// Maps a JSON-RPC error to <see cref="A2AException"/>. A google.rpc.ErrorInfo in the <c>data</c> array (spec 9.5) wins: its
+    /// reason selects the code and its metadata becomes <see cref="A2AException.Data"/>. Otherwise the numeric code is used (unknown
+    /// numbers become InternalError) and a <c>data</c> value that is not a detail array is kept as is.
+    /// </summary>
     public static A2AException ToException(int code, string? message, JsonElement? data)
     {
         message ??= "";
+        if (data is { } d && FindErrorInfo(d) is { } found)
+            return new A2AException(found.Code, message, found.Metadata);
+        var raw = data is { ValueKind: JsonValueKind.Array } ? null : data;
         if (Enum.IsDefined(typeof(A2AErrorCode), code))
-            return new A2AException((A2AErrorCode)code, message, data);
-        return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", data);
+            return new A2AException((A2AErrorCode)code, message, raw);
+        return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", raw);
+    }
+
+    /// <summary>
+    /// The first google.rpc.ErrorInfo detail in an array of ProtoJSON <c>Any</c> objects whose reason is in the A2A catalog,
+    /// with its string metadata as a JSON object (null when empty). Null when there is none.
+    /// </summary>
+    public static (A2AErrorCode Code, JsonElement? Metadata)? FindErrorInfo(JsonElement details)
+    {
+        if (details.ValueKind != JsonValueKind.Array) return null;
+        foreach (var detail in details.EnumerateArray())
+        {
+            if (detail.ValueKind != JsonValueKind.Object) continue;
+            if (!detail.TryGetProperty("@type", out var type) || type.ValueKind != JsonValueKind.String || type.GetString() != ErrorInfoType) continue;
+            if (!detail.TryGetProperty("reason", out var r) || r.ValueKind != JsonValueKind.String) continue;
+            if (A2AError.FromReason(r.GetString()!) is not { } code) continue;
+
+            JsonElement? metadata = null;
+            if (detail.TryGetProperty("metadata", out var md) && md.ValueKind == JsonValueKind.Object)
+                metadata = MetadataToData(md.EnumerateObject()
+                    .Where(p => p.Value.ValueKind == JsonValueKind.String)
+                    .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
+            return (code, metadata);
+        }
+        return null;
     }
 
     /// <summary>
     /// ErrorInfo <c>metadata</c> (string map) as a JSON object, or null when empty. ErrorInfo metadata is string-only, so
-    /// <see cref="A2AException.Data"/> differs per transport by design (JSON-RPC keeps the original JSON, REST/gRPC strings).
+    /// <see cref="A2AException.Data"/> is a string map on every transport.
     /// </summary>
     public static JsonElement? MetadataToData(IEnumerable<KeyValuePair<string, string>> metadata)
     {

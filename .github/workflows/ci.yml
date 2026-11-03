@@ -31,3 +31,19 @@ jobs:
 
       - name: Test
         run: dotnet test A2A.Reference.slnx --no-build --configuration Release
+
+  proto-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Vendored proto equals the pinned A2A release
+        run: |
+          set -euo pipefail
+          tag=v1.0.1
+          curl -sSfL "https://raw.githubusercontent.com/a2aproject/A2A/${tag}/specification/a2a.proto" -o "$RUNNER_TEMP/a2a.proto"
+          diff -u "$RUNNER_TEMP/a2a.proto" proto/a2a.proto
+          expected=$(sed -n 's/^- SHA-256 of `a2a.proto`: //p' proto/README.md)
+          actual=$(sha256sum proto/a2a.proto | cut -d' ' -f1)
+          test "$expected" = "$actual" || { echo "proto/README.md hash $expected does not match $actual"; exit 1; }

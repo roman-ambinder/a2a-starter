@@ -45,7 +45,7 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
             [
                 ($"{MinimalServer.BaseUrl}/agents/{Echo}/jsonrpc", "JSONRPC", "1.0"),
                 ($"{MinimalServer.BaseUrl}/agents/{Echo}/rest", "HTTP+JSON", "1.0"),
-                ($"http://127.0.0.1:{MinimalServer.EchoGrpcPort}", "GRPC", "1.0"),
+                ($"127.0.0.1:{MinimalServer.EchoGrpcPort}", "GRPC", "1.0"),
             ],
             interfaces);
     }
@@ -198,7 +198,63 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!;
         Assert.Equal(5, body["id"]!.GetValue<int>());
         Assert.Equal(-32009, body["error"]!["code"]!.GetValue<int>());
-        Assert.Equal("""{"supportedVersions":["1.0"]}""", body["error"]!["data"]!.ToJsonString());
+        // Spec 9.5: data is an array of @type-tagged details holding the ErrorInfo.
+        Assert.Equal(
+            """[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"VERSION_NOT_SUPPORTED","domain":"a2a-protocol.org","metadata":{"supportedVersions":"1.0"}}]""",
+            body["error"]!["data"]!.ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("1.0.1")]
+    [InlineData(" 1.0 ")]
+    public async Task Version_patch_is_ignored(string version)
+    {
+        using var client = server.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"agents/{Echo}/jsonrpc")
+        {
+            Content = new StringContent(Request(5, "SendMessage", SendParams("v")).ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add("A2A-Version", version);
+        using var response = await client.SendAsync(request, Ct);
+
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!;
+        Assert.Null(body["error"]);
+        Assert.NotNull(body["result"]);
+    }
+
+    [Fact]
+    public async Task Standard_jsonrpc_errors_have_no_data()
+    {
+        using var client = server.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"agents/{Echo}/jsonrpc")
+        {
+            Content = new StringContent(Request(7, "NoSuchMethod", new JsonObject()).ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add("A2A-Version", "1.0");
+        using var response = await client.SendAsync(request, Ct);
+
+        var error = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!["error"]!;
+        Assert.Equal(-32601, error["code"]!.GetValue<int>());
+        Assert.Null(error["data"]);
+    }
+
+    [Fact]
+    public async Task A2A_errors_carry_error_info_in_data()
+    {
+        using var client = server.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"agents/{Echo}/jsonrpc")
+        {
+            Content = new StringContent(Request(8, "GetTask", new JsonObject { ["id"] = "missing" }).ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add("A2A-Version", "1.0");
+        using var response = await client.SendAsync(request, Ct);
+
+        var error = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!["error"]!;
+        Assert.Equal(-32001, error["code"]!.GetValue<int>());
+        var detail = Assert.Single(error["data"]!.AsArray())!;
+        Assert.Equal("type.googleapis.com/google.rpc.ErrorInfo", detail["@type"]!.GetValue<string>());
+        Assert.Equal("TASK_NOT_FOUND", detail["reason"]!.GetValue<string>());
+        Assert.Equal("a2a-protocol.org", detail["domain"]!.GetValue<string>());
     }
 
     [Fact]
@@ -233,7 +289,7 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"text":"a","url":"http://x"}]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{}]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_BOGUS","parts":[{"text":"a"}]}}}""", -32602 },
-        { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":1,"parts":[{"text":"a"}]}}}""", -32602 },
+        { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":0,"parts":[{"text":"a"}]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"raw":"%%%"}]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":{}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":{"id":""}}""", -32602 },
@@ -250,7 +306,7 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         { """{"jsonrpc":"2.0","id":1,"method":"SendMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[]}}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":[1,2]}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"GetTask","params":"x"}""", -32602 },
-        { """{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{"status":"TASK_STATE_NOPE"}}""", -32602 },
+        { """{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{"status":true}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{"pageSize":"ten"}}""", -32602 },
         { """{"jsonrpc":"2.0","id":1,"method":"SendStreamingMessage","params":{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"text":"a","data":{}}]}}}""", -32602 },
     };

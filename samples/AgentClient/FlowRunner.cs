@@ -193,6 +193,8 @@ public sealed partial class FlowRunner : IDisposable
             PreferredBinding = _options.Binding,
             Extensions = extensions ?? [],
             ProtocolVersion = protocolVersion ?? A2AConstants.ProtocolVersion,
+            // The sample's gRPC listeners use TLS exactly when its HTTP server URL does.
+            GrpcUseTls = new Uri(_options.ServerUrl).Scheme == Uri.UriSchemeHttps,
         });
     }
 

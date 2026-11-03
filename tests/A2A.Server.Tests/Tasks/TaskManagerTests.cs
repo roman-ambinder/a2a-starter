@@ -78,6 +78,31 @@ public class TaskManagerTests
         Assert.Equal("ctx-1", task.ContextId);
     }
 
+    [Theory]
+    [InlineData(257)]
+    [InlineData(-1)] // control character
+    public async Task Unacceptable_client_context_id_is_rejected_not_replaced(int length)
+    {
+        var host = new TestHost();
+        var contextId = length > 0 ? new string('c', length) : "ctx\n1";
+        var request = TestHost.Text("go");
+        request = request with { Message = request.Message with { ContextId = contextId } };
+
+        var ex = await ThrowsA2A(A2AErrorCode.InvalidParams, () => host.SendAsync(request));
+        Assert.Contains("contextId", ex.Message);
+    }
+
+    [Fact]
+    public async Task Context_id_of_256_characters_is_kept()
+    {
+        var host = new TestHost();
+        var contextId = new string('c', 256);
+        var request = TestHost.Text("go");
+        request = request with { Message = request.Message with { ContextId = contextId } };
+
+        Assert.Equal(contextId, (await host.SendAsync(request)).Task!.ContextId);
+    }
+
     [Fact]
     public async Task Send_return_immediately_returns_working_task()
     {
@@ -657,7 +682,7 @@ public class TaskManagerTests
         var extended = TestHost.DefaultCard with { Description = "extended" };
         var withCapability = TestHost.DefaultCard with { Capabilities = new AgentCapabilities { ExtendedAgentCard = true } };
 
-        await ThrowsA2A(A2AErrorCode.ExtendedAgentCardNotConfigured,
+        await ThrowsA2A(A2AErrorCode.UnsupportedOperation,
             () => new TestHost(extendedCard: extended).Manager.GetExtendedAgentCardAsync(TestHost.Call(), new GetExtendedAgentCardRequest(), CancellationToken.None));
         await ThrowsA2A(A2AErrorCode.ExtendedAgentCardNotConfigured,
             () => new TestHost(withCapability).Manager.GetExtendedAgentCardAsync(TestHost.Call(), new GetExtendedAgentCardRequest(), CancellationToken.None));

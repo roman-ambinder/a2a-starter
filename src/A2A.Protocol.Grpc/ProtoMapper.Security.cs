@@ -96,6 +96,22 @@ public static partial class ProtoMapper
             flow.Scopes.Add(ToDict(c.Scopes));
             f.ClientCredentials = flow;
         }
+        else if (x.Implicit is { } i)
+        {
+            var flow = new Proto.ImplicitOAuthFlow { AuthorizationUrl = i.AuthorizationUrl, RefreshUrl = S(i.RefreshUrl) };
+            flow.Scopes.Add(ToDict(i.Scopes));
+#pragma warning disable CS0612 // deprecated in the proto; mapped so cards round-trip
+            f.Implicit = flow;
+#pragma warning restore CS0612
+        }
+        else if (x.Password is { } p)
+        {
+            var flow = new Proto.PasswordOAuthFlow { TokenUrl = p.TokenUrl, RefreshUrl = S(p.RefreshUrl) };
+            flow.Scopes.Add(ToDict(p.Scopes));
+#pragma warning disable CS0612
+            f.Password = flow;
+#pragma warning restore CS0612
+        }
         else if (x.DeviceCode is { } d)
         {
             var flow = new Proto.DeviceCodeOAuthFlow
@@ -108,9 +124,26 @@ public static partial class ProtoMapper
         return f;
     }
 
-    /// <summary>Deprecated implicit and password flows are not modeled and map to an empty value.</summary>
+    /// <summary>Maps every flow, including the deprecated implicit and password flows (kept so cards round-trip).</summary>
+#pragma warning disable CS0612 // deprecated proto members
     public static OAuthFlows FromProto(Proto.OAuthFlows x) => x.FlowCase switch
     {
+        Proto.OAuthFlows.FlowOneofCase.Implicit => new()
+        {
+            Implicit = new ImplicitOAuthFlow
+            {
+                AuthorizationUrl = x.Implicit.AuthorizationUrl, RefreshUrl = N(x.Implicit.RefreshUrl),
+                Scopes = new Dictionary<string, string>(x.Implicit.Scopes),
+            },
+        },
+        Proto.OAuthFlows.FlowOneofCase.Password => new()
+        {
+            Password = new PasswordOAuthFlow
+            {
+                TokenUrl = x.Password.TokenUrl, RefreshUrl = N(x.Password.RefreshUrl),
+                Scopes = new Dictionary<string, string>(x.Password.Scopes),
+            },
+        },
         Proto.OAuthFlows.FlowOneofCase.AuthorizationCode => new()
         {
             AuthorizationCode = new AuthorizationCodeOAuthFlow
@@ -138,4 +171,5 @@ public static partial class ProtoMapper
         },
         _ => new(),
     };
+#pragma warning restore CS0612
 }

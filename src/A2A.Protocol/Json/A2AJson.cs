@@ -45,6 +45,8 @@ namespace A2A.Protocol;
 [JsonSerializable(typeof(SecurityRequirement))]
 [JsonSerializable(typeof(StringList))]
 [JsonSerializable(typeof(OAuthFlows))]
+[JsonSerializable(typeof(ImplicitOAuthFlow))]
+[JsonSerializable(typeof(PasswordOAuthFlow))]
 [JsonSerializable(typeof(JsonElement))]
 public sealed partial class A2AJsonContext : JsonSerializerContext;
 
