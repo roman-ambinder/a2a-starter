@@ -20,6 +20,8 @@ public static class ChatClientRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+        // A client registered earlier (a test double, or your own provider) wins, like the TryAdd registrations of AddA2AServer.
+        if (services.Any(d => d.ServiceType == typeof(IChatClient))) return services;
         var provider = configuration[ProviderKey];
         if (string.IsNullOrWhiteSpace(provider) || provider.Equals(FakeProvider, StringComparison.OrdinalIgnoreCase))
         {

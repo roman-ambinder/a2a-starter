@@ -6,6 +6,7 @@ using System.Text.Json;
 using A2A.Protocol;
 using A2A.Server.Push;
 using A2A.Server.Tasks;
+using A2A.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -255,6 +256,7 @@ public class PushTests
     public async Task Failing_webhook_does_not_block_task_and_is_retried()
     {
         await using var h = new Harness();
+        using var deliveries = new ActivityCollector(A2ATelemetryNames.ServerSource);
         var gate = new Gate();
         h.Handler.Responder = async _ =>
         {
@@ -269,7 +271,8 @@ public class PushTests
         gate.Open();
         // Two events (task snapshot, completed), each tried once plus 3 retries.
         await h.Handler.WaitForAsync(8);
-        await Task.Delay(150, TestContext.Current.CancellationToken); // nothing beyond the retry limit
+        // A delivery span stops when its retry loop ends, so no attempt can follow once both have stopped.
+        await deliveries.WaitForCountAsync("a2a.push.deliver", 2, TestHost.Timeout);
         var bodies = h.Handler.Requests.GroupBy(r => Convert.ToHexString(r.Body)).ToList();
         Assert.Equal(2, bodies.Count);
         Assert.All(bodies, g => Assert.Equal(4, g.Count()));
@@ -279,12 +282,14 @@ public class PushTests
     public async Task Retry_stops_after_first_success()
     {
         await using var h = new Harness();
+        using var deliveries = new ActivityCollector(A2ATelemetryNames.ServerSource);
         h.Handler.Responder = n => Task.FromResult(n < 3 ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.NoContent);
         h.Host.Scripts.Execute = (_, sink, ct) => sink.UpdateStatusAsync(TaskState.Working, null, ct);
 
         await h.SendWithPushAsync(Config(), returnImmediately: true);
         await h.Handler.WaitForAsync(3);
-        await Task.Delay(150, TestContext.Current.CancellationToken);
+        // Events of one task are delivered in order, so the first span to stop is event 1's, with its retries done.
+        await deliveries.WaitForCountAsync("a2a.push.deliver", 1, TestHost.Timeout);
         // Event 1 needed 3 attempts; later events (working) follow with their own first attempt succeeding.
         Assert.Equal(3, h.Handler.Requests.Count(r => r.Body.SequenceEqual(h.Handler.Requests[0].Body)));
     }
@@ -336,17 +341,19 @@ public class PushTests
     public async Task Client_error_is_not_retried_but_429_is()
     {
         await using var h = new Harness();
-        h.Handler.Responder = _ => Task.FromResult(HttpStatusCode.BadRequest);
-        await h.SendWithPushAsync(Config());
-        await h.Handler.WaitForAsync(2); // two events, one attempt each
-        await Task.Delay(200, TestContext.Current.CancellationToken);
+        using (var deliveries = new ActivityCollector(A2ATelemetryNames.ServerSource))
+        {
+            h.Handler.Responder = _ => Task.FromResult(HttpStatusCode.BadRequest);
+            await h.SendWithPushAsync(Config());
+            await deliveries.WaitForCountAsync("a2a.push.deliver", 2, TestHost.Timeout); // two events, one attempt each
+        }
         Assert.Equal(2, h.Handler.Requests.Count);
 
         await using var h2 = new Harness();
+        using var retried = new ActivityCollector(A2ATelemetryNames.ServerSource);
         h2.Handler.Responder = _ => Task.FromResult((HttpStatusCode)429);
         await h2.SendWithPushAsync(Config());
-        await h2.Handler.WaitForAsync(8);
-        await Task.Delay(150, TestContext.Current.CancellationToken);
+        await retried.WaitForCountAsync("a2a.push.deliver", 2, TestHost.Timeout);
         Assert.Equal(8, h2.Handler.Requests.Count);
     }
 

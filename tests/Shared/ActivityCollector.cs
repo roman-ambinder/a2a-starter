@@ -50,9 +50,22 @@ public sealed class ActivityCollector : IDisposable
         {
             var found = Stopped.FirstOrDefault(a => a.OperationName == name);
             if (found is not null) return found;
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
         throw new TimeoutException($"No activity '{name}' stopped within {timeout}.");
+    }
+
+    /// <summary>Waits until at least <paramref name="count"/> activities with this name have stopped; returns them.</summary>
+    public async Task<IReadOnlyList<Activity>> WaitForCountAsync(string name, int count, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (true)
+        {
+            var found = Stopped.Where(a => a.OperationName == name).ToList();
+            if (found.Count >= count) return found;
+            if (DateTime.UtcNow > deadline) throw new TimeoutException($"Only {found.Count} of {count} activities '{name}' stopped within {timeout}.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
     }
 
     public void Dispose()

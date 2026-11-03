@@ -68,7 +68,7 @@ public sealed class PushTelemetryTests
         });
         // Stop only after both deliveries ended: StopAsync cancels the sender, which would turn a running delivery into "canceled".
         // A span stops after its metrics are counted, so the metrics are complete once both spans are there.
-        await WaitForSpansAsync(collector, 2);
+        await collector.WaitForCountAsync("a2a.push.deliver", 2, TestHost.Timeout);
         await sender.StopAsync(CancellationToken.None);
         gate.Open();
 
@@ -77,15 +77,6 @@ public sealed class PushTelemetryTests
         return (spans, metrics.Measurements, config);
     }
 
-    private static async Task WaitForSpansAsync(ActivityCollector collector, int count)
-    {
-        var deadline = DateTime.UtcNow + TestHost.Timeout;
-        while (collector.Stopped.Count(a => a.OperationName == "a2a.push.deliver") < count)
-        {
-            if (DateTime.UtcNow > deadline) throw new TimeoutException($"Fewer than {count} push spans stopped.");
-            await Task.Delay(10, Ct);
-        }
-    }
 
     private static long Count(IEnumerable<(string Instrument, long Value, IReadOnlyDictionary<string, object?> Tags)> m, string outcome)
         => m.Where(x => x.Instrument == A2ATelemetryNames.PushDeliveries && (string?)x.Tags[A2ATelemetryNames.Outcome] == outcome).Sum(x => x.Value);

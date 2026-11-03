@@ -32,6 +32,10 @@ public sealed class ResubscribeTests(A2ATestHost host) : IAsyncLifetime
         if (_server is not null) await _server.DisposeAsync();
     }
 
+    [Fact]
+    public void Server_uses_the_gated_chat_client()
+        => Assert.Same(_chat, _server!.Services.GetRequiredService<IChatClient>());
+
     [Theory]
     [MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
     public async Task Resubscribe_after_disconnect_receives_terminal_event(string binding)

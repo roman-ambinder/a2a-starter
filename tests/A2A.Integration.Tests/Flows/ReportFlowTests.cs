@@ -183,13 +183,17 @@ public sealed class ReportCancelFlowTests(A2ATestHost host) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
         => _server = await A2ATestHost.StartAgentServerAsync(PortBase, A2ATestHost.MockEntraBaseUrl,
-            // Host.ConfigureServices runs at Build, after the app's own registration, so this IChatClient wins.
+            // The configure callback runs before the app's own registrations; AddDemoChatClient keeps an IChatClient registered first.
             b => b.Host.ConfigureServices((_, services) => services.AddSingleton<IChatClient>(new BlockAfterFirstChatClient())));
 
     public async ValueTask DisposeAsync()
     {
         if (_server is not null) await _server.DisposeAsync();
     }
+
+    [Fact]
+    public void Server_uses_the_blocking_chat_client()
+        => Assert.IsType<BlockAfterFirstChatClient>(_server!.Services.GetRequiredService<IChatClient>());
 
     [Theory]
     [MemberData(nameof(TransportMatrix.Bindings), MemberType = typeof(TransportMatrix))]
