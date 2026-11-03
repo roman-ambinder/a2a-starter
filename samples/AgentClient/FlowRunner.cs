@@ -121,12 +121,25 @@ public sealed partial class FlowRunner : IDisposable
             passed = false;
             var failure = Describe(e);
             flow.Fail(failure);
-            span?.SetStatus(ActivityStatusCode.Error, failure);
+            if (span is not null)
+            {
+                // Only fixed parts reach the span: the full text may hold agent or server content. It stays in the console output.
+                span.SetStatus(ActivityStatusCode.Error, SpanDescription(e));
+                span.SetTag(A2ATelemetryNames.ErrorType, e is A2AException a ? a.Code.ToString() : e.GetType().FullName);
+            }
         }
         _output.WriteLine(passed ? $"[PASS] {name}" : $"[FAIL] {name}");
         _output.Flush();
         return new FlowResult(name, passed, flow.Steps);
     }
+
+    private static string SpanDescription(Exception e) => e switch
+    {
+        FlowException => "flow check failed",
+        A2AException a => $"A2AException {a.Code}",
+        A2AAuthException a => $"A2AAuthException HTTP {a.HttpStatus}",
+        _ => e.GetType().Name,
+    };
 
     private static string Describe(Exception e) => e switch
     {
