@@ -14,6 +14,41 @@ dotnet run --project samples/GettingStarted.Agent                  # terminal 1:
 dotnet run --project samples/GettingStarted.Client                 # terminal 2: prints "Hello, hello!"
 ```
 
+## Packages
+
+Nothing is published to NuGet yet, and every version is a preview until 1.0.0 (any preview can contain breaking changes; see [CHANGELOG.md](CHANGELOG.md)). The `dotnet add package` lines below work once the first preview is released; until then, use the project references described in the [samples](samples/GettingStarted.Agent/README.md) or `eng/build-samples-on-packages.sh`.
+
+One package for a server (`Ambinder.A2A.AspNetCore`), one for a client (`Ambinder.A2A.Client`). gRPC and Entra are opt-in.
+
+| Package | What it is | When to add it |
+|---|---|---|
+| `Ambinder.A2A.Protocol` | Wire models, JSON rules, error codes, telemetry names. No dependencies. | Comes in through the server and client packages. Add it alone only to share models. |
+| `Ambinder.A2A.Server` | Host-neutral server core: agents, task manager, streaming, push. No ASP.NET Core. | Comes in through `AspNetCore`. Add it alone to host A2A in your own web stack. |
+| `Ambinder.A2A.AspNetCore` | JSON-RPC, REST and SSE endpoints: `AddA2AServer`, `MapA2A`. | Serving an agent. This is the one server package. |
+| `Ambinder.A2A.AspNetCore.Grpc` | gRPC server endpoint: `AddA2AGrpc`, `MapA2AGrpc`. | Only when you also serve gRPC. |
+| `Ambinder.A2A.Client` | `IA2AClient` over JSON-RPC and REST, card resolver, credential providers. | Calling an agent. This is the one client package. |
+| `Ambinder.A2A.Client.Grpc` | gRPC client transport: `GrpcClientTransport.Instance`. | Only when you call agents over gRPC. |
+| `Ambinder.A2A.Client.Entra` | `AzureIdentityCredentialProvider` (Azure.Identity). | Only when you authenticate with Microsoft Entra ID through Azure.Identity. |
+
+```bash
+dotnet add package Ambinder.A2A.AspNetCore --prerelease          # a server
+dotnet add package Ambinder.A2A.AspNetCore.Grpc --prerelease     # optional: also serve gRPC
+dotnet add package Ambinder.A2A.Client --prerelease              # a client
+dotnet add package Ambinder.A2A.Client.Grpc --prerelease         # optional: call over gRPC
+dotnet add package Ambinder.A2A.Client.Entra --prerelease        # optional: Azure.Identity credentials
+```
+
+gRPC is off until you ask for it. On a server, chain `.AddA2AGrpc()` onto `AddA2AServer(...)` and call `MapA2AGrpc()` next to `MapA2A()`. On a client, pass `Transports = [GrpcClientTransport.Instance]` in `A2AClientOptions`.
+
+**Coexistence with the official package.** All types live in `Ambinder.A2A.*` namespaces, so a project can reference the official `A2A` package too. Alias the official namespace when both define the same type name:
+
+```csharp
+using OfficialA2A = A2A;
+using OurCard = Ambinder.A2A.Protocol.AgentCard;
+```
+
+`tests/Ambinder.A2A.Coexistence` compiles exactly this.
+
 ## Quick start
 
 Prerequisites: .NET SDK 10.0.401 or newer. Docker is optional. Tests and the first run need no API keys and no network services beyond localhost.
@@ -75,12 +110,16 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
 | [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
+| `src/Shared`, `src/Grpc.Shared` | Source files compiled into several packages (transport helpers, `ProtoMapper`). Not packages. |
 | `samples/SampleTelemetry` | OpenTelemetry setup shared by the three server hosts. Off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. |
-| `tests/` | Five test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.Client.Grpc.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`. |
+| `tests/` | Test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.Client.Grpc.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`; `Ambinder.A2A.Coexistence` (compile-only) and `Ambinder.A2A.CoreOnly.Smoke` (checked by `eng/check-core-only.sh`); and `Ambinder.A2A.Tck.Sut` (see [Conformance](#conformance)). |
+| `eng/` | Packaging and release checks: `check-packages.cs`, `package-dependencies.json`, `check-core-only.sh`, `build-samples-on-packages.sh`, `smoke-test.sh`. |
+| `benchmarks/` | Reserved for BenchmarkDotNet projects; none ship ([README](benchmarks/README.md)). |
 | `docker/`, `docker-compose.yml` | Images and the compose stack. |
 | `.github/` | GitHub Actions CI and Dependabot (see [Continuous integration](#continuous-integration)). |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
 | [docs/production.md](docs/production.md) | What to change for Phase 2. |
+| [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) | Release notes, how to contribute, how to report a vulnerability. |
 | [docs/architecture.html](docs/architecture.html) | Architecture overview (open in a browser). |
 
 `src/` never references `samples/`.
