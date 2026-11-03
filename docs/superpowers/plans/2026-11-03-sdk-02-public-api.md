@@ -40,6 +40,7 @@ This plan assumes package 01 (rename and split to `Ambinder.A2A.*`) is merged in
 | A11 | The gRPC and proto tests that use `ProtoMapper` and `Lf.A2a.V1` types were moved by 01 to test projects that can see those internals (or use `extern alias`, because both gRPC packages contain the same generated types). | Design 1, rule 4 | 3.4, 4.3 |
 | A12 | `samples/GettingStarted.Agent` and `samples/GettingStarted.Client` may or may not exist. (01's release smoke job uses `samples/GettingStarted.Agent`; package 13 owns the content.) | Design 7, step 8 | 5.4 |
 | A13 | The public API is otherwise unchanged from Phase 1: the same public types as listed in spec 02 section 3, now under the new names. | Design 3: "no behavior change" | 1, 3, 4 |
+| A14 | **`AddA2AServerCore` (owner decision, 2026-11-03).** 01 split the registration: `AddA2AServerCore(...)` in `Ambinder.A2A.Server` registers everything host-neutral and returns `A2AServerBuilder`; `AddA2AServer(...)` in `Ambinder.A2A.AspNetCore` has today's signature, calls `AddA2AServerCore` and adds the ASP.NET Core parts (authorization, `AgentAuthorizer`, the startup filter). The owner accepted this deviation from spec 01's package map, which lists `AddA2AServer` under `Ambinder.A2A.Server`. Server apps still call `AddA2AServer`. | 01 plan, builder decision 1 | 3, 5, 9, 10, 12 |
 
 If an assumption is false in a way that a step below does not already cover, **stop and ask the owner.** Do not invent a workaround.
 
@@ -70,6 +71,7 @@ These were checked in the repo when this plan was written. They drive several st
 - **Docs style:** short, plain sentences, no jargon (the repo style). This applies to XML docs too.
 - **Every made-internal or moved public type gets two records:** a line under "Breaking changes" in `CHANGELOG.md` (preview section), and a row in `docs/migration/phase1-map.csv` (format from spec 13 section 5: `old symbol,new symbol,package,change`; create the file with that header line if it does not exist yet).
 - **Package 03 runs alongside.** The package 03 plan (`docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md`, section 0.4) follows this plan's rules for its new public types (`IA2AVersionDispatcher`, `A2AAgentRoute`, `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, `A2AServerOptions.InterfaceTenants`). Either plan may land first. Where both change the same thing (`ProtoEnumConverter<T>` internal, `TaskStateRules` internal in `src/Shared`), do the change only if it is not already done, and keep the checks of both plans.
+- **Package 05 may land first.** The package 05 plan (`docs/superpowers/plans/2026-11-03-sdk-05-stores.md`) replaces the Phase 1 store contract: it deletes `PageToken` (now internal `PageTokens` in `src/Shared/Stores/`), replaces `ITaskStore`, `IPushConfigStore`, `StoredTask`, `InMemoryTaskStore` and `InMemoryPushConfigStore`, and adds `InMemoryOutboxStore` and `InMemoryInstanceStore` as `internal`. In Task 3, skip a row whose type no longer exists or is already internal, and do not recreate a deleted type.
 - **Commands:** build with `dotnet build Ambinder.A2A.slnx -c Release`; test with `dotnet test Ambinder.A2A.slnx -c Release`. A step that says "build" means this command passes with zero warnings.
 
 ## Review focus
@@ -254,7 +256,7 @@ public sealed class PublicSurfaceTests
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
         "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
         // Default implementations (spec 02 section 3, writer's call as a default):
-        "InMemoryTaskStore", "InMemoryPushConfigStore", "DefaultOwnerResolver", "AgentAuthorizer",
+        "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "DefaultOwnerResolver", "AgentAuthorizer",
     ];
 
     /// <summary>Allowed InternalsVisibleTo targets besides "&lt;assembly&gt;.Tests". Integration.Tests: owner decision 2026-11-03 (Task 3, step 3.1).</summary>
@@ -537,7 +539,7 @@ Stay public (reviewed by 10 and 07): `IA2AClient`, `A2AClientOptions`, `A2ACardR
 ### Task 5: Namespaces: registration methods and day-one types (spec 02 section 5, Goal 9)
 
 **Files:**
-- Modify: the files that declare `A2AServiceCollectionExtensions`, `A2AEndpointRouteBuilderExtensions`, `GrpcHostingExtensions` (and any other `AddA2A...`/`MapA2A...` class 01 created)
+- Modify: the files that declare `A2AServiceCollectionExtensions`, `A2AEndpointRouteBuilderExtensions`, `GrpcHostingExtensions` (and any other `AddA2A...`/`MapA2A...` class 01 created). This includes both registration classes of A14: the one in `Ambinder.A2A.Server` with `AddA2AServerCore` and the one in `Ambinder.A2A.AspNetCore` with `AddA2AServer`. Both go in `namespace Microsoft.Extensions.DependencyInjection`. They must have different class names (for example `A2AServerCoreServiceCollectionExtensions` and `A2AServerServiceCollectionExtensions`), because two public static classes with the same full name in two assemblies would clash for a consumer who references both.
 - Modify: the files that declare `IAgentHandler`, `IAgentEventSink`, `AgentRequestContext`
 - Modify: `.editorconfig`
 - Modify: every `using` that breaks in `src/`, `samples/`, `tests/`
@@ -545,6 +547,7 @@ Stay public (reviewed by 10 and 07): `IA2AClient`, `A2AClientOptions`, `A2ACardR
 - Create: `tests/Ambinder.A2A.PublicApi.Tests/GettingStartedTests.cs`
 
 - [ ] **5.1** Put every static class whose methods are `AddA2A...` extensions on `IServiceCollection` in `namespace Microsoft.Extensions.DependencyInjection;`. Put every `MapA2A...` extension class on `IEndpointRouteBuilder` in `namespace Microsoft.AspNetCore.Builder;`. Other extension methods in those classes (for example `ConfigureA2AKestrel` on `WebApplicationBuilder`) move with their class; `WebApplicationBuilder` is in `Microsoft.AspNetCore.Builder` too. Do not move files between folders.
+- [ ] **5.1a** `AddA2AServerCore` (A14) is public API of `Ambinder.A2A.Server`: it gets XML docs that say "Use this in a host without ASP.NET Core; web apps call `AddA2AServer` from `Ambinder.A2A.AspNetCore`, which calls this method." Its line goes in Server's `PublicAPI.Unshipped.txt` (Task 9). `AddA2AServer`'s XML docs say it calls `AddA2AServerCore`. Add a test in `tests/Ambinder.A2A.PublicApi.Tests` that `AddA2AServer` resolves every service `AddA2AServerCore` registers (same service types), so the two cannot drift.
 - [ ] **5.2** Turn off IDE0130 for those files only, with a comment, in `.editorconfig`:
 
 ```ini
@@ -791,7 +794,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - `IAgentHandler`: a new instance is created per execution and per cancel; `HttpContext` is not available (R36).
   - `ITaskStore`: the concurrency and ordering contract **as the code implements it today**, in a few sentences, with "Package 05 replaces this contract text." in the remarks. Package 05 owns the final text.
   - `IPushConfigStore`, `IOwnerResolver`, `IAgentAuthorizer`, `ITaskEventObserver`, `IA2ACredentialProvider`, `IA2ARequestHandler`: the lifetime they are registered with and whether calls can be concurrent.
-- `<example>` on the entry points: `AddA2AServer`, `A2AServerBuilder.AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`. (`AddA2AClient` gets one when package 10 adds it.) Each example is short, in a `<code>` block, and uses only public API. The code should compile when pasted into the getting-started sample; package 13's docs build checks it later.
+- `<example>` on the entry points: `AddA2AServer`, `AddA2AServerCore` (a console or worker host, A14), `A2AServerBuilder.AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`. (`AddA2AClient` gets one when package 10 adds it.) Each example is short, in a `<code>` block, and uses only public API. The code should compile when pasted into the getting-started sample; package 13's docs build checks it later.
 - Options properties: state the default and the unit in the `<summary>` or a `<value>`.
 - Every public enum: add the line "More values can be added in later versions; handle unknown values." in `<remarks>`. Do not rely on numeric values.
 - `Add...` methods: say which services they register, their lifetimes, and which are `TryAdd` (replaceable) (spec 02 section 1, item 5).
@@ -831,6 +834,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
   - any public type 01 needed in `Client.Grpc` (Task 4.3);
   - the `Ambinder.A2A.Integration.Tests` `InternalsVisibleTo` exception (owner decision 2026-11-03, Task 3.1): check it is still needed once packages 10 and 12 have reworked those tests;
   - no new static singletons in public API (spec 02, "How it meets the six principles", item 6);
+  - the store key structs spec 05 keeps positional (owner decision 2026-11-03): `TaskKey`, `OwnerScope`, `TaskCursor`, `TaskRef`, `CreateResult`, `OutboxStats`. They are the only positional public types allowed; every other public record uses properties;
   - names that spec 03 leaves to package 02 and that the package 03 plan chose: `A2AAgentRoute` (a property record with `Name` and `Card`) and `A2AException.Details` (next to the existing `A2AException.Data`). Decide whether both `Data` and `Details` stay public;
   - the server signer seam from the package 04 plan (decision P18, owner decision 2026-11-03): `IAgentCardSigner` and `SignedAgentCard` in `Ambinder.A2A.Server.Signing`.
 - [ ] **11.5** Commit: `test(api): XML doc quality lint and API review checklist`.
@@ -842,7 +846,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
 Spec 02 "How it meets the six principles", item 3: each options validation failure message contains a "set" or "add" instruction.
 
 **Files:**
-- Modify: the `AddA2AServer` file (the `.Validate(...)` messages) and any `IValidateOptions<T>` in `src/`
+- Modify: the file with the `.Validate(...)` messages and any `IValidateOptions<T>` in `src/`. After 01 (A14), the options validation belongs in `AddA2AServerCore` in `Ambinder.A2A.Server`, so it runs for hosts with and without ASP.NET Core; move it there if 01 left it in `AddA2AServer`, and test it through `AddA2AServerCore`.
 - Create: `tests/Ambinder.A2A.Server.Tests/Hosting/OptionsValidationMessageTests.cs` (or the project 01 put hosting tests in)
 
 - [ ] **12.1** Test first: for each validation in `src/` (Phase 1 has two in `AddA2AServer`: `PublicBaseUrl`, `MaxRequestBodyBytes`), build a service provider with a bad value, resolve the options, catch `OptionsValidationException`, and assert the message names the property, contains the bad value, and contains `Set ` or `Add `.

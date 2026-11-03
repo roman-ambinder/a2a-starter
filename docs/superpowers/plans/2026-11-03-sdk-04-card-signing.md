@@ -1720,6 +1720,7 @@ Retired-at time: the moment a version stopped being the signing version, observe
   - Client default `IfPresent` with known variants accepted (C4), and the `IfPresent` table.
   - Verify-side header rules (P8).
   - Extended card on gRPC (P16).
+  - Extended card on the client: the server signs it, but the client does not verify its signature. The client gets it from `GetExtendedAgentCard` over the authenticated connection, not through the card resolver (owner decision, 2026-11-03). Only the public card fetched by the resolver is verified.
 - [ ] **Step 2: Sample.** Add `samples/CardSigning/` (two small programs, or one program with two modes). It shows signing with `AddDevelopmentCardSigningKey()` and a client resolving and verifying the card through a same-origin JWKS. It may add at most 10 lines over the plain hello agent and client (principle 3). Add it to the solution. A test in `tests/.../Samples/` runs it in-memory and asserts `Verified`.
 - [ ] **Step 3: `docs/security/agent-card-trust.md`.** Follow package 13's page rules: title as an action, Before you start, at most 7 steps, Check it worked, If it fails, Next, and the front matter `packages`, `since`, `verified`, `owner: 04`. It has two sections, "Sign your agent card" and "Verify agent cards". Include:
   - the Key Vault RBAC role

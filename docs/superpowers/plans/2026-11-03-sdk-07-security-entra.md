@@ -298,6 +298,10 @@ XML docs state the format is part of the public contract and frozen at 1.0.
   - Startup check in `A2AStartupValidation` using `IAuthenticationSchemeProvider.GetAllSchemesAsync()` and `IHostEnvironment.IsDevelopment()`.
   - `TaskManager.ListTasksAsync`: anonymous caller → empty `ListTasksResponse` with `NextPageToken = ""`, no store call.
 - [ ] **Step 4:** Run. Expected: PASS. Run the full suite; existing flows that relied on open agents either register a test scheme or opt in with `AllowAnonymous()`.
+- [ ] **Step 4a: Conformance servers opt in.** The TCK cannot send credentials, and neither can the ITK and ACTS runs. Without an opt-in, the `tck` and `acts` CI jobs fail after this task, and the normal `dotnet test` run does not show it.
+  - Check: `git grep -nE "AddAgent<" -- tests/Ambinder.A2A.Tck.Sut itk 2>/dev/null`.
+  - For each agent found in `tests/Ambinder.A2A.Tck.Sut` (package 03) and `itk/` (package 16), add `AllowAnonymous()` in the same commit. Each project uses only public APIs, so use the public `AllowAnonymous()` shape from Step 3.
+  - If the TCK server exists, run it and fetch the card plus one unauthenticated `SendMessage` (JSON-RPC) to see it answer. If the `tck` workflow job exists, confirm it is green on this PR. If neither project exists yet, write in the PR body: "Packages 03 and 16: the TCK server and the ITK agent must call `AllowAnonymous()` (07 Task 5)."
 - [ ] **Step 5:** Commit `feat(security)!: agents require authentication by default`.
 
 ### Task 6: Owner isolation across transports
@@ -372,6 +376,9 @@ XML docs state the format is part of the public contract and frozen at 1.0.
   - Integration (three transports): a task created under tenant `a` → under tenant `b`, same owner: `GetTask`, `ListTasks`, `CancelTask`, `SubscribeToTask` and push-config get/list/delete → `TaskNotFound` (list: not present). gRPC uses the request field.
   - Store conformance: if 05's suite does not already contain "same task id, different tenant, not visible" and "list scoped by tenant even without contextId" cases, add them to 05's case catalog (spec "Dependencies: The conformance suite must include the tenant-isolation and owner-isolation cases from Goal 4").
 - [ ] **Step 2:** Run. Expected: FAIL.
+- [ ] **Step 2a: One tenant setting.** The package 03 plan (Task 14, owner decision 4: "package 07 may replace it") adds `A2AServerOptions.InterfaceTenants` (agent name → one tenant). It writes that tenant on every card interface of the agent and rejects a mismatched request tenant with `InvalidParams`. Check: `git grep -n "InterfaceTenants" -- src tests`.
+  - **Found:** `A2ASecurityOptions.Tenants` becomes the only setting. Remove `InterfaceTenants`; move its callers and tests to `Tenants`. When an agent has exactly one configured tenant, `AgentCardInterfaces` writes it on each interface, as 03 did, so 03's "card lists the tenant on all three interfaces" test still passes. With several tenants, leave the interface `tenant` empty and say so in `docs/spec-decisions.md`. Keep this plan's message ("Tenant 'x' is not served by agent 'y'.") for an unknown tenant. Change 03's tenant-mismatch test, and its `docs/spec-decisions.md` row, to the message `DefaultTenantResolver` gives for route `a` with body `b`. There is one resolver and one message on every transport. The 03 tests in `Conformance/TenantTests.cs` must pass after the change, with only the setting name and message text changed.
+  - **Not found** (03 has not run yet): nothing to remove. Write in the PR body: "Package 03 Task 14: use `A2ASecurityOptions.Tenants` and `DefaultTenantResolver` instead of adding `A2AServerOptions.InterfaceTenants`."
 - [ ] **Step 3: Implement** per spec "Tenant isolation". Register `DefaultTenantResolver` with `TryAddSingleton`. `TransportRequest.ResolveCallerAsync` now returns the resolved tenant; transports pass it to `A2ACallContext.Tenant`. `TaskManager` builds every `TaskKey`/`OwnerScope`/`TaskRef` from `call.Tenant`.
 - [ ] **Step 4:** Run. Expected: PASS. Run the full suite.
 - [ ] **Step 5:** Commit `feat(security): trusted tenant resolution and tenant isolation`.
