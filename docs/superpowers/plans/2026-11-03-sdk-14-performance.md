@@ -1079,7 +1079,7 @@ Today the flow is: `ReadAsync`, then `byte[]`, then `ParseBody` (`bytes.All(...)
 
 **Files:**
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseWriter.cs`
-- Create: `src/Shared/Sse/SseFrameWriter.cs`
+- Create: `src/Shared/Sse/SseFrameWriter.cs` (whichever of this task and 09's Task 12 runs first creates `src/Shared/Sse/` and the `<Compile Include="../Shared/Sse/**/*.cs" LinkBase="Shared/Sse" />` line in `Ambinder.A2A.AspNetCore.csproj`; the other reuses them)
 - Create: `src/Shared/Sse/ISseFrameFormat.cs`. `JsonRpcFrameFormat` and `RestFrameFormat` stay in `src/Ambinder.A2A.AspNetCore/Transports/Sse/`, because they use AspNetCore's JSON-RPC and REST writers.
 - **Package 15 plan D3 (owner decision 2026-11-03):** the frame writer, `ISseFrameFormat` and the "flush when idle" write loop live in `src/Shared/Sse/` and are linked as `internal` source into `Ambinder.A2A.AspNetCore` (01 rule 10, B12). Package 15 links the same files into `Ambinder.A2A.Compat.V0_3.AspNetCore` and supplies its own `ISseFrameFormat`, so there is one SSE loop and one heartbeat implementation. The shared files reference no type outside the BCL, `Microsoft.AspNetCore.Http` and `System.IO.Pipelines`.
 - Modify: `src/Ambinder.A2A.AspNetCore/Transports/Sse/SseStreaming.cs`
@@ -1413,15 +1413,15 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
 
 **Files:** `eng/perf/PerfTool/DocsPageCommand.cs`
 
-- [ ] **Step 1:** `PerfTool docs-page --nightly nightly-summary.json --out <path given by package 13>` renders markdown with:
+- [ ] **Step 1:** `PerfTool docs-page --nightly nightly-summary.json --out docs/reference/performance.md` renders markdown with:
   - the latest numbers per category
   - the hardware named
   - the date and commit
   - the startup and size tables
   - a fixed "these are not promises" sentence (spec Non-goals)
 
-  Package 13 decides where it lives and runs it in its docs build. Test it with a fixture.
-  - **One generator (review item E).** 13's plan (Task 15) planned its own `PerformanceGenerator` in `eng/DocsLint` over the same `nightly-summary.json`. That plan now calls this command from `DocsLint generate` instead. If 13's generator already exists when this task runs, make it a thin wrapper that runs `PerfTool docs-page`, and move its fixture test here.
+  This command is the only generator of that page. 13's docs build runs it and owns the drift test (13 plan Task 15). Test the rendering here with a fixture.
+  - **One generator (review item E).** Do not add a generator in `eng/DocsLint`. If one exists when this task runs, delete it, and point `DocsLint generate` at this command.
 - [ ] **Step 2: Commit** `feat(perf): docs page generator from nightly JSON`.
 
 ## Task 31: Seam coverage and closure of the other packages' debts
@@ -1480,3 +1480,12 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
   - no wire change
   - no LINQ, capturing closures or `params` arrays in per-event code (P9)
 - **Benchmarks are slow.** Use `--filter` per category while developing. Full runs belong to the nightly. Set `A2A_PERF_JOB=short` for local A/B work.
+
+---
+
+## Known minor review notes
+
+Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
+
+- Spec 12 says `A2ATestServer` start time (150 ms p50) is "tracked by package 14"; plan 14 only measures HelloAgent process start (Task 12) and plan 12 just prints the p50. Nobody tracks it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:542. Spec: 12 spec Principle 4, Dependencies. Fix: add an M2 scenario measuring `A2ATestServer.StartAsync`, or have 12 Task 3 write the p50 to JSON the nightly summary reads.
+- Spec 14 says store scenarios are "reusable by the `Testing` package" for third-party stores ("Provides to 12"); no task in 14 or 12 does it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:488 (Task 8). Spec: 14 spec Principle 5, Dependencies. Fix: write Task 8's benchmark against `StoreSet`/`ITaskStore` so authors can subclass it and document it, or record a deferral with a reason.

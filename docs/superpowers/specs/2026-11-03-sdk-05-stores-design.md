@@ -310,7 +310,11 @@ public interface IOutboxStore
     ValueTask RescheduleAsync(OutboxEntry claimed, DateTimeOffset nextAttemptAt, string? lastError, CancellationToken ct);
     ValueTask DeadLetterAsync(OutboxEntry claimed, string reason, CancellationToken ct); // frees the lane for the next row
     ValueTask<IReadOnlyList<OutboxEntry>> ListDeadLettersAsync(OwnerScope? scope, int max, CancellationToken ct);
-    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct);
+    // Added in the plan review, 2026-11-03 (Claude's call): for 08's dead-letter operations.
+    // The query filters by kind, tenant, agent, task and age, and pages with a cursor.
+    ValueTask<OutboxEntry?> GetDeadLetterAsync(string id, CancellationToken ct);
+    ValueTask<OutboxEntryPage> QueryDeadLettersAsync(OutboxDeadLetterQuery query, CancellationToken ct);
+    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct); // resets Attempts; clears LastError and the claim (plan review)
     ValueTask<int> PurgeDeadLettersAsync(DateTimeOffset deadLetteredBefore, int max, CancellationToken ct);
     ValueTask<OutboxStats> GetPendingStatsAsync(CancellationToken ct);         // count and oldest CreatedAt
 }
@@ -340,7 +344,7 @@ public interface ITaskWriteContributor
 public interface IPushConfigStore
 {
     // Inserts or replaces by (task, config id). The core assigns the id when empty. Returns what was stored.
-    ValueTask<StoredPushConfig> UpsertAsync(TaskRef task, TaskPushNotificationConfig config, string? protocolVersion, CancellationToken ct);
+    ValueTask<StoredPushConfig> UpsertAsync(TaskRef task, TaskPushNotificationConfig config, string? protocolVersion, string? issuer, CancellationToken ct);
     ValueTask<StoredPushConfig?> GetAsync(TaskRef task, string configId, CancellationToken ct);
     ValueTask<PushConfigPage> ListAsync(TaskRef task, int pageSize, long? afterSequence, CancellationToken ct);
     ValueTask<IReadOnlyList<StoredPushConfig>> GetAllAsync(TaskRef task, CancellationToken ct); // for delivery
@@ -358,6 +362,9 @@ public sealed record StoredPushConfig
     // Opaque protocol version of the API that created the config ("1.0", or "0.3" from package 15).
     // Package 08 picks the payload formatter by it. Null means "1.0".
     public string? ProtocolVersion { get; init; }
+    // Opaque push signature issuer: the public base URL of the request that created the config, set only when the server
+    // has no A2A:PublicBaseUrl (FromRequest mode). Package 08 signs with it. Null means "use PushOptions.Issuer".
+    public string? Issuer { get; init; }
 }
 public sealed record PushConfigPage
 {
@@ -366,7 +373,7 @@ public sealed record PushConfigPage
 }
 ```
 
-`UpsertAsync` takes the protocol version as a nullable parameter (`null` means "1.0") and stores it unchanged. The core passes the call's `A2ACallContext.ProtocolVersion`, so a config created through package 15's 0.3 methods is stored with `"0.3"`. *(Reconciled: the text said "optional parameter", which cannot precede `ct`; the code block now shows the parameter.)*
+`UpsertAsync` takes the protocol version as a nullable parameter (`null` means "1.0") and stores it unchanged. It also takes the push signature issuer as a nullable parameter and stores it unchanged (*owner decision 2026-11-03, package 09 plan owner note 6*). The core passes the call's `A2ACallContext.ProtocolVersion`, so a config created through package 15's 0.3 methods is stored with `"0.3"`. *(Reconciled: the text said "optional parameter", which cannot precede `ct`; the code block now shows the parameter.)*
 
 - `TaskRef` carries the owner so Cosmos can keep configs in the task's partition. The core always loads the task first (as today, `TaskManager.cs:183,190`), so the owner is known.
 - Order is creation order (`CreatedSequence`), as today. The core encodes the page token (`v1:{sequence}`) and returns `""` on the last page. Today's store returns `null` (`InMemoryPushConfigStore.cs:62`); the proto says empty.
