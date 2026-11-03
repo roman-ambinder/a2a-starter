@@ -47,7 +47,7 @@ Expected: no output. If there is output, package 01 has not landed. Stop and tel
 
 - Every file path and `namespace` / `using` line in this plan.
 - Task 3: the SUT project name, its `ProjectReference`s (`Ambinder.A2A.AspNetCore` and `Ambinder.A2A.AspNetCore.Grpc`), and the solution entry.
-- Tasks 4 and 5: the solution file name in the CI commands and the SUT project path.
+- Tasks 4 and 5: the solution file name in the CI commands and the SUT project path. Task 4 also fills package 01's TCK hook. 01's plan (Task 8) adds a job `tck` to `ci.yml` that calls a stub reusable workflow `.github/workflows/tck.yml`, which prints "not yet implemented (package 03)". Task 4 writes the real job into `tck.yml` and does not add a second `tck` job to `ci.yml`.
 - Task 8: `IA2AVersionDispatcher`, `A2AVersionDispatchContext` and `IA2ACallerResolver` go in `Ambinder.A2A.AspNetCore`, because they take `HttpContext` and package 01 rule 2 keeps ASP.NET Core out of `Ambinder.A2A.Server`. Task 8 also needs package 07's `A2ACaller` (its gate).
 - Task 9: the meter name. Package 01 renames meters to follow assembly names, so the protocol meter is `Ambinder.A2A.Protocol`.
 - Task 13: `IAgentCardContributor` goes in `Ambinder.A2A.Server` (no ASP.NET Core types in its signature). The card endpoint that calls it is in `Ambinder.A2A.AspNetCore`.
@@ -123,6 +123,7 @@ New files:
 | `tck/test_check_report.py` | Unit tests for the checker (stdlib `unittest`) |
 | `tck/testdata/*.json` | Small report fixtures for the checker tests |
 | `tck/README.md` | How the TCK job works, how to add a behaviour or a known issue |
+| `.github/workflows/tck.yml` | The TCK job as a reusable workflow (`workflow_call`). It replaces package 01's stub; `ci.yml`'s `tck` hook job and the weekly run both call it. |
 | `.github/workflows/tck-weekly.yml` | Weekly run against TCK `main` HEAD, plus a check for a new A2A spec tag |
 | `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `A2AVersionDispatchContext.cs`, `IA2ACallerResolver.cs` | Version dispatcher seam (D2) with the context from package 15's D1 |
 | `src/Ambinder.A2A.Server/Hosting/IAgentCardContributor.cs` | Card contributor seam and `AgentCardContext` (D7) |
@@ -329,11 +330,40 @@ git commit -m "test(tck): SUT declares push, fails unknown behaviours, covers al
 ### Task 4: The `tck` CI job
 
 **Files:**
-- Modify: `.github/workflows/ci.yml`
+- Modify (replace 01's stub): `.github/workflows/tck.yml`
+- Modify only if needed: `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Add the job.** It runs on every PR. Do **not** use `continue-on-error` (spec anti-goal). "Advisory for two weeks" (C13) means the job is not yet a required check in branch protection; package 12 owns that list. Keep the repo's existing action majors (`actions/checkout@v7`, `actions/setup-dotnet@v5`). For Python, use `actions/setup-python` at its current major; check the latest major on the action's releases page before you pin it.
+- [ ] **Step 0: Find 01's hook.**
+
+```bash
+grep -nE '^\s{2}tck:|tck\.yml' .github/workflows/ci.yml; ls .github/workflows/tck.yml
+```
+
+The expected state from 01's plan is that `ci.yml` has a job `tck` with `uses: ./.github/workflows/tck.yml`, and `tck.yml` is a stub with `on: workflow_call`.
+- If so, Step 1 rewrites `tck.yml` and leaves the `tck` job in `ci.yml` alone.
+- If `ci.yml` has no `tck` job, add only this hook job:
 
 ```yaml
+  tck:
+    uses: ./.github/workflows/tck.yml
+```
+
+- Never add a second job with the id `tck`. Duplicate job ids make the workflow file invalid.
+
+- [ ] **Step 1: Write the TCK job in `tck.yml`.** `ci.yml` calls it on every PR. Do **not** use `continue-on-error` (spec anti-goal). "Advisory for two weeks" (C13) means the job is not yet a required check in branch protection; package 12 owns that list. Keep the repo's existing action majors (`actions/checkout@v7`, `actions/setup-dotnet@v5`). For Python, use `actions/setup-python` at its current major; check the latest major on the action's releases page before you pin it.
+
+```yaml
+name: tck
+on:
+  workflow_call:
+    inputs:
+      tck-ref:
+        description: TCK git ref to test against; empty means the pinned commit in tck/TCK_VERSION
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
   tck:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -363,7 +393,8 @@ git commit -m "test(tck): SUT declares push, fails unknown behaviours, covers al
       - name: Check out TCK
         run: |
           git clone https://github.com/a2aproject/a2a-tck.git "$RUNNER_TEMP/a2a-tck"
-          git -C "$RUNNER_TEMP/a2a-tck" checkout "$(cat tck/TCK_VERSION)"
+          ref="${{ inputs.tck-ref }}"; [ -n "$ref" ] || ref="$(cat tck/TCK_VERSION)"
+          git -C "$RUNNER_TEMP/a2a-tck" checkout "$ref"
           cd "$RUNNER_TEMP/a2a-tck" && python3 -m pip install uv && uv venv && uv pip install -e .
 
       - name: Run TCK per transport
@@ -378,10 +409,12 @@ git commit -m "test(tck): SUT declares push, fails unknown behaviours, covers al
 
       - name: Check reports
         run: >
+          set -o pipefail;
           python3 -I tck/check-report.py --known-issues tck/known-issues.json --behaviors tck/sut-behaviors.yaml
           --report jsonrpc=tck-reports/jsonrpc/compatibility.json
           --report http_json=tck-reports/http_json/compatibility.json
           --report grpc=tck-reports/grpc/compatibility.json
+          | tee tck-reports/checker-output.txt
 
       - name: Upload reports
         if: always()
@@ -397,13 +430,15 @@ Notes:
 - `|| true` on the TCK run is not a hidden skip. The TCK's exit code treats SHOULD failures as xfail, so it cannot enforce "SHOULD fails too". The checker enforces it. A missing `compatibility.json` makes the checker fail (rule 6: claimed requirements missing).
 - No `--level` flag: `--level should` would run only SHOULD tests and skip every MUST (Task 1 Step 2).
 - The `dotnet run ... --no-build` path depends on package 01's project name.
+- The job is a reusable workflow because 01's release pipeline runs `ci.yml` through `workflow_call` (its `verify` job), and spec 01 §6 keeps hooks as reusable workflows. The job id inside `tck.yml` is also `tck`. The PR check is therefore named `tck / tck`; use that name when package 12 makes the check required (C13).
+- `checker-output.txt` is uploaded with the reports, so the weekly run (Task 5) can quote it in its issue.
 
 - [ ] **Step 2: Try it locally** with the same commands (SUT in one terminal, the loop in another). Fix every MUST failure in the **library**, not in the SUT (spec anti-goal: "Conformance code only in the SUT or samples"). For each failure, add a regression test in the right test project before you fix it. If a SHOULD failure is a TCK bug, open (or find) the upstream issue and add a known-issues entry with an expiry date at most 90 days out. That date is my suggestion; the spec gives none.
 
 - [ ] **Step 3: Commit.**
 
 ```bash
-git add .github/workflows/ci.yml
+git add .github/workflows/tck.yml .github/workflows/ci.yml
 git commit -m "ci: run the A2A TCK on every PR on all three transports"
 ```
 
@@ -413,7 +448,7 @@ git commit -m "ci: run the A2A TCK on every PR on all three transports"
 - Create: `.github/workflows/tck-weekly.yml`
 
 - [ ] **Step 1: Write the workflow.** Trigger: `schedule` (one weekly cron, for example `17 3 * * 1`) and `workflow_dispatch`. Permissions: `contents: read`, `issues: write`. Steps:
-  1. The same steps as the `tck` job, but check out TCK `main` HEAD instead of `tck/TCK_VERSION`. If the checker fails, open an issue titled `TCK main: new failures (<date>)` with the checker output, using `gh issue create` and `GITHUB_TOKEN`. Look for an open issue with the same title prefix first and comment on it instead of opening a duplicate.
+  1. A job `tck` that reuses Task 4's workflow instead of copying its steps: `uses: ./.github/workflows/tck.yml` with `tck-ref: main`. A second job `report`, with `needs: tck` and `if: always() && needs.tck.result == 'failure'`, downloads the `tck-reports` artifact. If the checker failed, it opens an issue titled `TCK main: new failures (<date>)` with the checker output, using `gh issue create` and `GITHUB_TOKEN`. Look for an open issue with the same title prefix first and comment on it instead of opening a duplicate.
   2. Spec tag check (D11): `gh api repos/a2aproject/A2A/releases --jq '.[].tag_name'`. If a tag newer than `v1.0.1` exists, open the issue `A2A spec <tag> released` once (same duplicate check).
   This workflow never runs on PRs and blocks nothing.
 
