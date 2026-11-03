@@ -52,6 +52,8 @@ If Task 0 finds that any row is not true, **stop and report to the owner**. Do n
 | 03 | golden JSON tests (`testdata/`), proto round-trip tests, TCK job | every PD task | PD tasks still run against the Phase 1 golden tests (`ModelJsonTests`, `ProtoRoundTripTests`). The PR description must say the TCK was not yet available. |
 | 05 | store contract, EF Core stores, SQLite/PostgreSQL/Cosmos | Task 8 | Task 8 ships the in-memory scenarios only. It adds the EF and `Db` scenarios when 05 lands (an M1 acceptance item stays open until then). |
 | 06 | `ITaskEventBus` | Task 5 | Use today's `TaskEventBroker` through `InternalsVisibleTo`, then switch to the interface when 06 lands (M2). |
+| 07 | owner resolution, the anonymous rules (C8), `AllowAnonymous()` | Task 6 | Task 6 uses today's anonymous default. When 07 lands, the bench host gets a fixed caller (Task 6 Step 1, review item 2). |
+| 09 | gRPC opt-in (`AddA2AGrpc()`), gRPC routing by request `tenant` instead of local port, Development defaults for public URLs and TLS | Task 6 | Before 09 Task 8, gRPC routes agents by local port, and `TestServer` has none. So the gRPC rows of the server-only layer wait for 09 (review item 1), and gRPC runs end to end on Kestrel only. |
 | 08 | push outbox | Task 9 | Measure today's `PushNotificationSender`. 08 re-runs the same scenarios after its redesign. |
 | 09 | heartbeat timer | Task 18 | Task 18 only adds the heartbeat write method. 09 owns the timer. |
 | 10 | `IHttpClientFactory` client (R27), new SSE reader (PD3), card cache, interceptors | Task 10, Task 21 (P10) | Task 10 measures today's client. The P10 ban and the 1,000-client socket test wait for 10 (see Task 21). |
@@ -446,6 +448,13 @@ Expected: results appear, there are no exceptions, and the 1 MB case shows its a
 Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Transport.Grpc)]` where the transport matters.
 
 - [ ] **Step 1: `BenchServer`.** Use one `WebApplication` with `AddA2AServer` + `MapA2A` + `MapA2AGrpc`, registering `HelloAgent`, `TaskAgent` and a store pre-filled with 1,000 tasks (for `ListTasks`).
+  - **Environment and gRPC (review item 1).** Run the host with `EnvironmentName = Development`. That way, 09's startup checks (public URL, TLS) and 07's "no scheme registered" check do not fail the host, and nothing has to be configured.
+    - If 09 has landed, call `.AddA2AGrpc()`, because `MapA2AGrpc()` throws without it (09 plan Task 7). gRPC then routes by the request `tenant`, so the gRPC client takes the tenant from the card's gRPC interface.
+    - If 09 has not landed, gRPC routes by local port (Phase 1 `GrpcPorts`), which does not work on `TestServer`. Run the gRPC rows end to end on Kestrel only, and list the gRPC server-only rows as "waits for 09" in the task report.
+  - **Caller (review item 2).** With package 07, an anonymous caller's `ListTasks` returns an empty page by design (07 plan Task 5), so "a page of 50 out of 1,000" would measure an empty list, or fail the response check below.
+    - Register a small benchmark-only authentication scheme that signs in one fixed app caller (`tid` and `azp` claims, as 07 reads them), make it the default scheme, and pre-fill the 1,000 tasks with that caller's owner key (`OwnerKey.ForApp(tid, appId)`).
+    - Do not mark the agents `AllowAnonymous()`: that would measure a path production does not use.
+    - Before 07 lands, today's anonymous owner is used, and the same pre-fill works.
   - **Server-only:** `UseTestServer()`. Requests are pre-built: the body bytes are ready, and a fresh `HttpRequestMessage` with `ByteArrayContent` over the same array is made per call. The client side then costs almost nothing.
   - **gRPC server-only:** `GrpcChannel.ForAddress(server.BaseAddress, new GrpcChannelOptions { HttpHandler = server.CreateHandler() })` with the generated client. Use the alias from Task 1 if needed.
   - **End to end:** Kestrel on `127.0.0.1:0`, reading the bound port from `IServerAddressesFeature`, with the real `Ambinder.A2A.Client`. Use one client instance per benchmark class, created in `[GlobalSetup]`.
@@ -506,7 +515,7 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 **Files:**
 - Create: `benchmarks/Ambinder.A2A.Benchmarks/Push/PushBenchmarks.cs`
 
-- [ ] **Step 1: `PushEnqueue`** (the name is cited by package 08). This is the enqueue cost on the event path, with no delivery: call the sender's event hook (`OnTaskEventAsync`-style, the current internal method on `PushNotificationSender`) with 1 and 3 configs per task.
+- [ ] **Step 1: `PushEnqueue`** (the name is cited by package 08). This is the enqueue cost on the event path, with no delivery: call the sender's event hook (`OnTaskEventAsync`-style, the current internal method on `PushNotificationSender`) with 1 and 3 configs per task. Package 08 deletes `PushNotificationSender`. Its plan (Task 20) rewrites the body of this benchmark to measure the outbox write in the task writer, and keeps the names `PushEnqueue` and `PushDeliveryThroughput`, so the before and after numbers line up (review item 3).
 - [ ] **Step 2: `PushDeliveryThroughput`** (cited by 08). Deliver to a loopback Kestrel receiver that answers 200, with `[Params(1, 10)]` configs per task and JWT signing on (an ephemeral key). Use `OperationsPerInvoke` = deliveries. The receiver counts deliveries, and the benchmark throws if the count is wrong.
 - [ ] **Step 3:** Run `--filter "*Push*"`. **Commit** `feat(perf): Push scenarios`.
 
