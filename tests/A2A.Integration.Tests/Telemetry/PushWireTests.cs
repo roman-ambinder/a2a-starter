@@ -19,7 +19,7 @@ namespace A2A.Integration.Tests.Telemetry;
 
 /// <summary>
 /// Push webhook requests over a real socket, so the runtime's HttpClient diagnostics run (a stub handler would skip them).
-/// Not parallel: the OpenTelemetry SDK's listeners are process-wide.
+/// Not parallel: one test starts the OpenTelemetry SDK, whose listeners are process-wide; the other needs no listener at all.
 /// </summary>
 [Collection(TelemetrySdkCollection.Name)]
 public sealed class PushWireTests
@@ -52,6 +52,20 @@ public sealed class PushWireTests
             var values = span.TagObjects.Select(t => t.Value?.ToString() ?? "").Append(span.DisplayName).Append(span.StatusDescription ?? "");
             Assert.DoesNotContain(values, v => v.Contains(PathSecret, StringComparison.Ordinal) || v.Contains(QuerySecret, StringComparison.Ordinal));
         }
+    }
+
+    [Fact]
+    public async Task Push_request_has_no_traceparent_when_nothing_listens()
+    {
+        // Off means off: no listener, no current activity, so .NET adds no trace header to the webhook request.
+        Assert.Null(Activity.Current);
+        await using var webhook = await LoopbackWebhook.StartAsync();
+
+        await PushOnceAsync(webhook, webhook.BaseUrl + "/webhook");
+
+        var headers = Assert.Single(webhook.Requests);
+        Assert.False(headers.ContainsKey("traceparent"), "The webhook request should carry no traceparent.");
+        Assert.False(headers.ContainsKey("tracestate"));
     }
 
     /// <summary>Queues one working-status event for a task with one webhook config, and waits until the webhook got it.</summary>

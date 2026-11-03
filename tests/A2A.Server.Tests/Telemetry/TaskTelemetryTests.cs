@@ -154,4 +154,26 @@ public sealed class TaskTelemetryTests
         Assert.Equal(ActivityStatusCode.Error, run.Status);
         Assert.Equal(typeof(InvalidOperationException).FullName, run.GetTagItem(A2ATelemetryNames.ErrorType));
     }
+
+    [Fact]
+    public async Task Throwing_metric_listener_does_not_stop_the_publish()
+    {
+        using var listener = new System.Diagnostics.Metrics.MeterListener
+        {
+            InstrumentPublished = (instrument, l) =>
+            {
+                if (instrument.Meter.Name == A2ATelemetryNames.ServerMeter && instrument.Name == A2ATelemetryNames.TasksCompleted)
+                    l.EnableMeasurementEvents(instrument);
+            },
+        };
+        listener.SetMeasurementEventCallback<long>((_, _, _, _) => throw new InvalidOperationException("listener failed"));
+        listener.Start();
+        var (_, handler) = Create();
+
+        // The completed state is counted between save and publish; the stream still gets it.
+        var events = await TestHost.CollectAsync(handler.SendStreamingMessageAsync(TestHost.Call(), TestHost.Text("go"), Ct))
+            .WaitAsync(TestHost.Timeout, Ct);
+
+        Assert.Equal(TaskState.Completed, events[^1].StatusUpdate?.Status.State);
+    }
 }

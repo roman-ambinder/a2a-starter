@@ -35,7 +35,15 @@ internal sealed class TaskWriter(
     public async ValueTask CommitAsync(StoredTask task, StreamResponse evt)
     {
         await store.SaveAsync(task, CancellationToken.None).ConfigureAwait(false);
-        RecordState(task, evt);
+        try
+        {
+            RecordState(task, evt);
+        }
+        catch (Exception ex)
+        {
+            // A throwing listener must not stop the publish or the observers: the task is already saved.
+            logger.LogDebug(ex, "Recording telemetry failed for task {TaskId}", task.Task.Id);
+        }
         broker.Publish(task.AgentName, task.Task.Id, evt);
         foreach (var observer in observers)
         {
@@ -50,14 +58,16 @@ internal sealed class TaskWriter(
         }
     }
 
-    /// <summary>Adds a state event to the current span. A terminal state also counts once in the completed-task metric.</summary>
+    /// <summary>Adds a state event to the current span, if it is recorded. A terminal state also counts once in the completed-task metric.</summary>
     private static void RecordState(StoredTask task, StreamResponse evt)
     {
         var state = evt.StatusUpdate?.Status.State ?? evt.Task?.Status.State;
         if (state is null) return;
         var value = A2ATelemetryNames.StateValue(state.Value);
-        Activity.Current?.AddEvent(new ActivityEvent(A2ATelemetryNames.TaskStateEvent,
-            tags: new ActivityTagsCollection { { A2ATelemetryNames.TaskState, value } }));
+        // Only on a recorded span: an unrecorded one (such as ASP.NET Core's logging activity) would just allocate the event.
+        if (Activity.Current is { IsAllDataRequested: true } span)
+            span.AddEvent(new ActivityEvent(A2ATelemetryNames.TaskStateEvent,
+                tags: new ActivityTagsCollection { { A2ATelemetryNames.TaskState, value } }));
         if (TaskStateRules.IsTerminal(state.Value))
             ServerInstruments.TasksCompleted.Add(1,
                 new KeyValuePair<string, object?>(A2ATelemetryNames.Agent, task.AgentName),

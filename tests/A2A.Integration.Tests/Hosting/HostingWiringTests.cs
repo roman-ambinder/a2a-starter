@@ -27,7 +27,7 @@ public sealed class HostingWiringTests(MinimalServer server)
     }
 
     [Fact]
-    public void Push_sender_is_observer_and_hosted_service_and_handler_is_task_manager()
+    public void Push_sender_is_observer_and_hosted_service_and_handler_is_tracing_request_handler()
     {
         var sender = Services.GetRequiredService<PushNotificationSender>();
         Assert.Contains(sender, Services.GetServices<ITaskEventObserver>());

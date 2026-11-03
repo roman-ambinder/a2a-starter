@@ -146,7 +146,7 @@ public sealed class EndToEndTraceTests(A2ATestHost host)
         Assert.Contains(spans, a => a.OperationName == "a2a.push.deliver");
         foreach (var span in spans)
         {
-            var values = new List<string> { span.DisplayName, span.OperationName };
+            var values = new List<string> { span.DisplayName, span.OperationName, span.StatusDescription ?? "" };
             values.AddRange(span.TagObjects.Select(t => t.Value?.ToString() ?? ""));
             values.AddRange(span.Events.SelectMany(e => e.Tags).Select(t => t.Value?.ToString() ?? ""));
             foreach (var secret in secrets)
