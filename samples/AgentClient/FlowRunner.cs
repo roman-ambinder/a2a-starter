@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using A2A.Client;
 using A2A.Client.Auth;
 using A2A.Protocol;
@@ -19,6 +20,8 @@ public sealed partial class FlowRunner : IDisposable
     /// <summary>The flows in the order <see cref="RunAllAsync"/> runs them.</summary>
     public static IReadOnlyList<string> FlowNames { get; } =
         ["discover", "send", "stream", "get", "list", "cancel", "resubscribe", "multi-turn", "push", "auth", "extended-card", "extensions", "errors"];
+
+    private static readonly ActivitySource FlowSource = new(ClientTelemetry.SourceName);
 
     private readonly FlowOptions _options;
     private readonly TextWriter _output;
@@ -104,6 +107,7 @@ public sealed partial class FlowRunner : IDisposable
         _output.WriteLine($"== {name} ==");
         var flow = new Flow(name, _output);
         var passed = true;
+        using var span = FlowSource.StartActivity("flow " + name);
         try
         {
             await body(flow).ConfigureAwait(false);
@@ -115,7 +119,9 @@ public sealed partial class FlowRunner : IDisposable
         catch (Exception e)
         {
             passed = false;
-            flow.Fail(Describe(e));
+            var failure = Describe(e);
+            flow.Fail(failure);
+            span?.SetStatus(ActivityStatusCode.Error, failure);
         }
         _output.WriteLine(passed ? $"[PASS] {name}" : $"[FAIL] {name}");
         _output.Flush();
