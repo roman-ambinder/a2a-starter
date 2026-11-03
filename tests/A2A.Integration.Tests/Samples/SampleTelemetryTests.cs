@@ -22,12 +22,16 @@ public sealed class SampleTelemetryTests
             b.Configuration[SampleTelemetryExtensions.EndpointKey] = endpoint;
         });
 
+    // Checks registration only. Resolving TracerProvider or MeterProvider would build the SDK: process-wide listeners and an
+    // OTLP exporter, while other tests run in parallel. The app is never started, so its hosted services never build them either.
+    private static bool IsRegistered<T>(WebApplication app) => app.Services.GetRequiredService<IServiceProviderIsService>().IsService(typeof(T));
+
     [Fact]
     public async Task Telemetry_is_off_when_endpoint_unset()
     {
         await using var app = Build("");
-        Assert.Null(app.Services.GetService<TracerProvider>());
-        Assert.Null(app.Services.GetService<MeterProvider>());
+        Assert.False(IsRegistered<TracerProvider>(app));
+        Assert.False(IsRegistered<MeterProvider>(app));
         Assert.IsType<FakeChatClient>(app.Services.GetRequiredService<IChatClient>());
     }
 
@@ -35,8 +39,8 @@ public sealed class SampleTelemetryTests
     public async Task Telemetry_is_on_when_endpoint_set()
     {
         await using var app = Build("http://127.0.0.1:4317");
-        Assert.NotNull(app.Services.GetService<TracerProvider>());
-        Assert.NotNull(app.Services.GetService<MeterProvider>());
+        Assert.True(IsRegistered<TracerProvider>(app));
+        Assert.True(IsRegistered<MeterProvider>(app));
         var chat = app.Services.GetRequiredService<IChatClient>();
         Assert.IsNotType<FakeChatClient>(chat);
         Assert.NotNull(chat.GetService<FakeChatClient>()); // wrapped, not replaced

@@ -6,6 +6,7 @@ namespace A2A.Tests.Shared;
 /// <summary>
 /// Records the activities of the given sources, but only those under <see cref="Root"/>. The sampler drops everything else, so parallel
 /// tests never see each other's activities and no other test gets extra activities or <c>traceparent</c> headers.
+/// This holds only while no OpenTelemetry SDK runs: tests that start one are in a collection with parallelization off.
 /// </summary>
 public sealed class ActivityCollector : IDisposable
 {
