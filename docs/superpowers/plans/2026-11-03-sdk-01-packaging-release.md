@@ -83,7 +83,9 @@ These are not owner decisions. Each one is listed in the PR for the owner to see
    package 02 owns doc enforcement.
 9. **Dependency floors** (rule 7): `Directory.Packages.props` keeps the newest versions (tests and samples); shipped projects use
    `VersionOverride` with the lowest .NET 10 version (`10.0.0`) for `Microsoft.Extensions.*`; third-party packages keep the
-   central version. `CentralPackageTransitivePinningEnabled=true`.
+   central version. Transitive pinning is on for tests, samples and tools and off for shipped projects (`src/Directory.Build.props`), so
+   packages declare only their direct dependencies at their floors; `NuGetAuditMode=all` still audits the transitive graph consumers
+   resolve, and a vulnerable transitive package is lifted with an explicit direct reference, visible in `eng/package-dependencies.json` review.
 10. **MinVer** 8.0.0. `MinVerSkip=true` when the repo has no `.git` (Docker builds), so the build does not warn.
 11. **SBOM**: `CycloneDX` .NET tool (6.3.1), pinned; **attestation**: `actions/attest-build-provenance@v4`; **trusted publishing**:
     `NuGet/login` pinned to `8d196754b4036150537f80ac539e15c2f1028841` (v1.2.0). `actions/*` use major tags (spec: only third-party

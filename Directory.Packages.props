@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Lifts a vulnerable transitive package to the central version, so the audit sees what consumers get. -->
-    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <!-- On for tests, samples and tools. src/Directory.Build.props turns it off for shipped packages (it is imported first, so it wins). -->
+    <CentralPackageTransitivePinningEnabled Condition="'$(CentralPackageTransitivePinningEnabled)' == ''">true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Grpc.AspNetCore" Version="2.85.0" />

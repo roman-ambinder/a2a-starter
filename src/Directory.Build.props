@@ -7,6 +7,14 @@
     <A2ARepositoryUrl>https://github.com/roman-ambinder/a2a-starter</A2ARepositoryUrl>
   </PropertyGroup>
 
+  <!-- Shipped packages declare only their direct dependencies, at their floors (rule 7). Transitive pinning would write pinned
+       transitive packages into the nuspec at the central (newest) version and defeat those floors. NuGetAuditMode=all still audits
+       the transitive graph that consumers resolve; a vulnerable transitive package is lifted with an explicit direct reference,
+       so the change is visible in eng/package-dependencies.json review. -->
+  <PropertyGroup Label="Transitive pinning">
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
   <PropertyGroup Label="NuGet metadata">
     <Authors>Roman Ambinder</Authors>
     <Copyright>Copyright (c) Roman Ambinder</Copyright>
