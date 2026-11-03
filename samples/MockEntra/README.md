@@ -26,4 +26,6 @@ curl -s -d grant_type=client_credentials -d client_id=a2a-approver -d client_sec
   http://localhost:5100/a2a00000-0000-0000-0000-000000000001/oauth2/v2.0/token
 ```
 
+Telemetry is off by default. When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, MockEntra exports traces, metrics and logs through `samples/SampleTelemetry` (service name `mockentra`, or `OTEL_SERVICE_NAME`). See [docs/production.md](../../docs/production.md#6-observability-otlp).
+
 Never deploy this. Tokens are signed with a throwaway key.

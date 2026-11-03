@@ -11,7 +11,7 @@ dotnet run --project samples/WebhookReceiver        # http://localhost:5300
 | Endpoint | Purpose |
 |---|---|
 | `POST /api/subscriptions` | Body `{"taskId","token","credentials"}`. Tells the receiver what to expect (`credentials` = the Bearer value you gave the A2A server). `taskId` `"*"` is for when you do not know the task id before the first send: the first accepted push binds the subscription to that push's task, and later pushes for another task with the same credentials and token get 401. Returns 201. |
-| `POST /webhook` | Where the A2A server delivers. 200 `stored` or `duplicate`; 401 on any failed check (nothing stored); 413 over 1 MB. |
+| `POST /webhook` | Where the A2A server delivers. 200 `stored` or `duplicate`; 401 on any failed check (nothing stored); 400 if the body is not JSON; 413 over 1 MB. |
 | `GET /api/notifications?taskId=` | JSON array of the received StreamResponse objects, in arrival order. |
 | `GET /health/live`, `/health/ready` | Health. |
 
@@ -35,6 +35,10 @@ Same body twice (same SHA-256) is stored once. Credentials, tokens and signature
 | `urls` / `ASPNETCORE_URLS` | `http://localhost:5300` |
 
 The server's push sender must be allowed to reach this host: in Development the AgentServer sets `A2A:Push:AllowPrivateNetworks=true`.
+
+## Telemetry
+
+Off by default. When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the receiver exports traces, metrics and logs through `samples/SampleTelemetry` (service name `webhookreceiver`, or `OTEL_SERVICE_NAME`). The server's webhook request carries `traceparent`, so the receiver's request span joins the trace of the call that queued the push. See [docs/production.md](../../docs/production.md#6-observability-otlp).
 
 ## Try it
 

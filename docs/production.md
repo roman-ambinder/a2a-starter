@@ -1,6 +1,6 @@
 # Production notes (Phase 2)
 
-Everything below is **Phase 2 — not implemented**. Phase 1 runs on one machine with mocks. This page lists what you must change to run the AgentServer for real. Back to the [README](../README.md).
+Everything below is **Phase 2 — not implemented**, except section 6 (observability), which is built. Phase 1 runs on one machine with mocks. This page lists what you must change to run the AgentServer for real. Back to the [README](../README.md).
 
 Config keys can be set in `appsettings.json` or as environment variables (double underscore for a colon, for example `Auth__Authority`).
 

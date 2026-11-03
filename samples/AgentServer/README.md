@@ -21,6 +21,7 @@ Other environments need an HTTPS authority and their own `Auth:ApiKeys`.
 | `booking` | `Invoke` | `entra` OR `apiKey` | 5203 | push |
 | `secure` | `InvokeBearer` | `entra` | 5204 | push, extended card (+ skill `audit-log`); extension `https://example.com/a2a/ext/audit/v1` (required) |
 
+The `apiKey` scheme appears on a card only when at least one API key is configured, so in Production (no keys) the cards list `entra` only.
 `Invoke` = authenticated + role `A2A.Invoke`. `InvokeBearer` = `Invoke` and the caller used a bearer token (API key → 403).
 What each agent shows: [flow map](../../README.md#flow-map). Phase 2 settings: [docs/production.md](../../docs/production.md).
 
@@ -63,6 +64,10 @@ curl -s -H "X-API-Key: dev-api-key" -H "A2A-Version: 1.0" http://localhost:5200/
 | `Auth:ApiKeys:{name}` | `dev` = `dev-api-key` in Development | API keys |
 | `FakeAgents:StepDelay` | `00:00:00.5` | pause between agent steps |
 | `Llm:Provider` | `Fake` | `Fake` only; `AzureOpenAI`, `OpenAI`, `Anthropic`, `Ollama` fail at startup (Phase 2) |
+
+## Telemetry
+
+Off by default. When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the host exports traces, metrics and logs through `samples/SampleTelemetry` (service name `agentserver`, or `OTEL_SERVICE_NAME`). Health checks are left out of traces. To see it locally, start the [AppHost](../AppHost/README.md). Spans, metrics and what is never recorded: [docs/production.md](../../docs/production.md#6-observability-otlp).
 
 Settings files are copied to `bin/.../agentserver-config/` (the content root), so a project that references both
 AgentServer and MockEntra does not get two `appsettings.json` files in one folder.

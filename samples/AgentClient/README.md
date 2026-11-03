@@ -35,7 +35,7 @@ Exit code is 0 when every flow passes, 1 otherwise, 2 for a bad option value. A 
 | Option | Default | |
 |---|---|---|
 | `--server` | `http://localhost:5200` | AgentServer base URL |
-| `--agent` | per command | Overrides the agent of `send`, `stream`, `get`, `list`, `cancel`, `resubscribe`, `multi-turn`, `push`, `extended-card` |
+| `--agent` | per command | Overrides the agent of `send`, `stream`, `get`, `list`, `cancel`, `resubscribe`, `multi-turn`, `push`, `extended-card`, `errors` (the calls to the report agent) |
 | `--transport` | `auto` | `jsonrpc`, `rest`, `grpc` or `auto` (first interface of the card) |
 | `--auth` | `mock` | `none`, `apikey` (`dev-api-key`), `mock` (client credentials from MockEntra), `entra` (`DefaultAzureCredential`, needs `--scope`) |
 | `--scope` | `api://a2a-demo/.default` | Scope for `--auth entra` |
@@ -43,5 +43,9 @@ Exit code is 0 when every flow passes, 1 otherwise, 2 for a bad option value. A 
 | `--verbose` | off | Print every request and response. `Authorization`, `X-API-Key`, `X-A2A-Notification-Token`, `X-A2A-Push-Signature`, `client_secret`, `access_token` and push `credentials`/`token` are masked. SSE and gRPC bodies are not logged. |
 
 The `auth` flow always uses the mock identities (`a2a-client`, `a2a-approver`, `a2a-noroles`), because it needs three different callers.
+
+## Telemetry
+
+Off by default. When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, `ClientTelemetry.cs` exports traces and HTTP client metrics (service name `agentclient`, or `OTEL_SERVICE_NAME`). Each flow runs under one root span, `flow <name>`, so each flow is one trace; the `a2a.client` spans and the server spans hang below it. Details: [docs/production.md](../../docs/production.md#6-observability-otlp). From the [AppHost](../AppHost/README.md) dashboard you can start `agentclient` to run all flows with the dashboard attached.
 
 `appsettings.json` holds the dev defaults (MockEntra URL, tenant, client ids and secrets, API key). These are demo values.

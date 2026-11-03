@@ -61,11 +61,22 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
 | [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
+| `samples/SampleTelemetry` | OpenTelemetry setup shared by the three server hosts. Off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. |
+| `tests/` | Four test projects: `A2A.Protocol.Tests`, `A2A.Server.Tests`, `A2A.MockEntra.Tests`, `A2A.Integration.Tests`. |
+| `docker/`, `docker-compose.yml` | Images and the compose stack. |
+| `.github/` | GitHub Actions CI and Dependabot (see [Continuous integration](#continuous-integration)). |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
 | [docs/production.md](docs/production.md) | What to change for Phase 2. |
 | [docs/architecture.html](docs/architecture.html) | Architecture overview (open in a browser). |
 
 `src/` never references `samples/`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `A2A.Reference.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
+It does not run the TCK or start Docker or the AppHost.
+
+`.github/dependabot.yml` opens weekly update pull requests for NuGet packages, GitHub Actions and the Docker base images in `docker/`.
 
 ## Ports and transports
 
@@ -153,13 +164,13 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
 5. Swap `ITaskStore` and `IPushConfigStore` for durable ones before production.
 
-`samples/AgentServer/AgentServerApp.cs` is the full wiring.
+`samples/AgentServer/AgentServerApp.cs` is the full wiring. The default request handler records spans and metrics with `System.Diagnostics`; see [docs/production.md](docs/production.md#6-observability-otlp).
 
 ## Copy the client side
 
 1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Client` ([details](src/A2A.Client/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
 2. Fetch the card with `A2ACardResolver`.
-3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card.
+3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
 4. Pick credentials: `ClientCredentialsProvider` (any OAuth2 token URL, including Entra), `AzureIdentityCredentialProvider`, `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`, or your own `IA2ACredentialProvider`.
    `ClientCredentialsProvider` sends your client secret to the token URL, so it does not trust the card blindly. Either pass the token URL yourself (`tokenUrlOverride`), or list the hosts you trust in `allowedTokenHosts` (for example `login.microsoftonline.com`). A card token URL is used only when its host is in that list and it is `https` (`http` only for localhost, 127.0.0.1 or ::1). Anything else throws `A2AAuthException` (401) and no request is sent.
 
@@ -183,5 +194,7 @@ The official A2A TCK (technology compatibility kit) can check this server. It is
 1. Start the stack (`./run-all.sh` or `docker compose up -d --wait`).
 2. Check out the TCK from the A2A project and point its system-under-test URL at `http://localhost:5200` (the root card is the `report` agent). The `report` agent needs credentials, so give the TCK the header `X-API-Key: dev-api-key` or a MockEntra token. The open `echo` agent is at `http://localhost:5200/agents/echo`.
 3. Run the TCK as described in its own README, and fail the CI job on any failure.
+
+The CI workflow in this repo does not run the TCK.
 
 The exact TCK command and setting names depend on the TCK version, so they are not copied here.
