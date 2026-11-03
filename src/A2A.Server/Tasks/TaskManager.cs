@@ -164,11 +164,6 @@ public sealed class TaskManager : IA2ARequestHandler
     {
         RequireStreaming(GetAgent(call));
         var (snapshot, subscription) = await OpenSubscriptionAsync(call, request.Id, ct).ConfigureAwait(false);
-        if (subscription is null)
-        {
-            yield return new StreamResponse { Task = snapshot }; // interrupted: the stream closes after the snapshot
-            yield break;
-        }
         using (subscription)
         {
             yield return new StreamResponse { Task = snapshot };
@@ -394,7 +389,7 @@ public sealed class TaskManager : IA2ARequestHandler
         }
     }
 
-    private async Task<(AgentTask Snapshot, TaskEventBroker.Subscription? Subscription)> OpenSubscriptionAsync(
+    private async Task<(AgentTask Snapshot, TaskEventBroker.Subscription Subscription)> OpenSubscriptionAsync(
         A2ACallContext call, string taskId, CancellationToken ct)
     {
         using (await _writer.LockAsync(call.AgentName, taskId, ct).ConfigureAwait(false))
@@ -404,7 +399,8 @@ public sealed class TaskManager : IA2ARequestHandler
             if (TaskStateRules.IsTerminal(state))
                 throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be subscribed to.");
             // Registered under the lock, so no event between the snapshot and the first live event is lost or repeated.
-            var subscription = TaskStateRules.IsInterrupted(state) ? null : _writer.Broker.Open(call.AgentName, taskId, ct);
+            // Spec 3.1.6: an interrupted task can be subscribed to; the stream ends only at a terminal state.
+            var subscription = _writer.Broker.Open(call.AgentName, taskId, ct, untilTerminal: true);
             return (stored.Task, subscription);
         }
     }

@@ -52,6 +52,25 @@ public class TaskEventBrokerTests
     }
 
     [Fact]
+    public async Task Until_terminal_subscription_outlives_an_interrupted_state()
+    {
+        var broker = new TaskEventBroker();
+        var sendStream = broker.Subscribe(Agent, TaskId, CancellationToken.None);
+        using var subscription = broker.Open(Agent, TaskId, CancellationToken.None, untilTerminal: true);
+
+        broker.Publish(Agent, TaskId, Status(TaskState.InputRequired));
+        Assert.Single(await TestHost.CollectAsync(sendStream));
+        Assert.Equal(1, broker.SubscriberCount(Agent, TaskId));
+
+        broker.Publish(Agent, TaskId, Status(TaskState.Working));
+        broker.Publish(Agent, TaskId, Status(TaskState.Completed));
+
+        var events = await TestHost.CollectAsync(subscription.ReadAllAsync(CancellationToken.None));
+        Assert.Equal([TaskState.InputRequired, TaskState.Working, TaskState.Completed], events.Select(e => e.StatusUpdate!.Status.State));
+        Assert.Equal(0, broker.SubscriberCount(Agent, TaskId));
+    }
+
+    [Fact]
     public async Task Stream_completes_after_a_message()
     {
         var broker = new TaskEventBroker();

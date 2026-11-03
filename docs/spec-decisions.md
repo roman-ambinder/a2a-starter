@@ -21,6 +21,7 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 | Deprecated OAuth flows | proto `OAuthFlows` | `implicit` and `password` flows are modeled and round-trip through JSON and proto. The client never uses them to get tokens. | Cards from other agents must not lose data. |
 | JSON-RPC batch | 9 | Rejected with `InvalidRequest`. | JSON-RPC batches are not part of A2A. |
 | SSE resume | 3.5.2 | Not supported (`Last-Event-ID` is ignored). | Not defined by the spec (open issue #1635). |
+| When streams close | 3.1.2, 3.1.6, 11.7 | A `SendStreamingMessage` stream closes at a terminal or interrupted state (`INPUT_REQUIRED`, `AUTH_REQUIRED`). A `SubscribeToTask` stream stays open through interrupted states and closes only at a terminal state. | 11.7 closes streams at interrupted states, but 3.1.6 allows subscribing to any non-terminal task and ends that stream at a terminal state. Closing at once would make subscribing to a waiting task useless. |
 
 ## Checking conformance
 
