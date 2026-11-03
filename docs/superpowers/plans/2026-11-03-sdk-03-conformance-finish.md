@@ -8,7 +8,7 @@
 
 **Tech Stack:** .NET 10, xUnit v3 (existing test projects), ASP.NET Core, gRPC; Python 3.11+ with `uv` for the TCK; GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md` (approved 2026-11-03; ACTS moved to package 16).
+**Spec:** `docs/superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md` (approved 2026-11-03, master copy from PR #7 is the authority; ACTS is package 16's; D13 added as Task 7b).
 
 ## Global Constraints
 
@@ -214,6 +214,34 @@ Behaviour changes:
 - [ ] **Step 4: Implement** the client message and any fix the new tests demand.
 - [ ] **Step 5: Run** `dotnet test A2A.Reference.slnx`. Expected: PASS.
 - [ ] **Step 6: Commit** — `test(conformance): cover remaining package 03 acceptance items`.
+
+### Task 7b: Task state transitions (D13)
+
+**Files:**
+- Modify: `src/A2A.Server/Tasks/TaskStateRules.cs` (`CanAgentTransition`)
+- Modify: the call site that rejects an illegal agent move (find it via `CanAgentTransition` usages in `src/A2A.Server/Tasks/AgentEventSink.cs` / `TaskWriter.cs` / `TaskManager.cs`)
+- Create: `tests/A2A.Server.Tests/Tasks/TaskStateRulesTests.cs`
+- Modify: `tests/A2A.Server.Tests/Tasks/TaskManagerTests.cs` (illegal move ends the task FAILED)
+
+**Interfaces:**
+- `TaskStateRules.CanAgentTransition(TaskState from, TaskState to) -> bool` keeps its signature. New truth table (agent moves only, per spec D13):
+  - from `Submitted` or `Working` → `Working`, `InputRequired`, `AuthRequired`, `Completed`, `Failed`, `Rejected`, `Canceled`: true.
+  - from `InputRequired` or `AuthRequired` → anything: false (only the server leaves an interrupted state, by setting `Submitted` when a continuation arrives, or a cancel request sets `Canceled`).
+  - from a terminal state → anything: false.
+  - to `Unspecified` or `Submitted`, or an undefined enum value: false.
+  - from `Unspecified`: false.
+- An illegal agent move throws `A2AException(A2AErrorCode.InvalidAgentResponse, …)` inside the run, and the task ends `Failed`. Keep the existing behaviour if it already does this; the test proves it.
+- Server-side moves (continuation → `Submitted`, cancel → `Canceled`, cancel of an already `Canceled` task returns the task, cancel of another terminal task → `TaskNotCancelable`) are not agent moves; check they still pass through the existing code paths.
+- `TaskStateRules` stays public until package 02 makes it internal (no rename).
+
+- [ ] **Step 1: Write failing tests** in `TaskStateRulesTests`: one `[Theory]` with `MemberData` over every `(from, to)` pair of defined `TaskState` values (including `Unspecified`), asserting `CanAgentTransition` equals the table above. Expected to fail today for `InputRequired → Completed` and similar interrupted-state rows.
+- [ ] **Step 2:** In `TaskManagerTests`, add `Illegal_agent_transition_fails_the_task`: an agent that sets `InputRequired` and then, in the same run, `Completed` → task ends `Failed` and the error code is `InvalidAgentResponse` (assert whatever surface the existing tests use for run failures). Add `Cancel_of_canceled_task_returns_task` and `Cancel_of_completed_task_is_not_cancelable` if not already covered.
+- [ ] **Step 3: Run** `dotnet test tests/A2A.Server.Tests --filter "FullyQualifiedName~TaskStateRules|FullyQualifiedName~TaskManagerTests"`. Expected: new table rows FAIL.
+- [ ] **Step 4: Implement** the table in `CanAgentTransition`.
+- [ ] **Step 5: Run** the filter, then `dotnet test A2A.Reference.slnx`. Expected: PASS (fix any existing test that relied on an agent leaving an interrupted state in the same run; report each one).
+- [ ] **Step 6: Commit** — `feat(server): enforce the D13 task state transition table`.
+
+Note: D13 asks for the tests on the in-memory and EF Core stores. EF Core arrives with package 05, which reuses these tests then.
 
 ### Task 8: Docs
 
