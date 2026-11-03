@@ -33,7 +33,8 @@ public static class A2AClientFactory
             throw new NotSupportedException(interfaces.Count == 0
                 ? "The agent card lists no supported interfaces."
                 : $"None of the agent card's interfaces is supported ({string.Join(", ", interfaces.Select(i => $"{i.ProtocolBinding}/{i.ProtocolVersion}"))}); " +
-                  $"this client supports {string.Join(", ", SupportedBindings)} at A2A version {A2AConstants.ProtocolVersion}.");
+                  $"this client supports {string.Join(", ", SupportedBindings)} at A2A version {A2AConstants.ProtocolVersion}." +
+                  (interfaces.Any(i => IsMinor(i.ProtocolVersion, "0.3")) ? " Add the Ambinder.A2A.Compat.V0_3 package to talk to A2A 0.3 agents." : ""));
         }
 
         var address = Is(chosen, A2AConstants.BindingGrpc) ? GrpcAddress(chosen.Url, options.GrpcUseTls) : chosen.Url;
@@ -68,6 +69,13 @@ public static class A2AClientFactory
     private static bool Is(AgentInterface i, string binding) => string.Equals(i.ProtocolBinding, binding, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSupported(AgentInterface i) => SupportedBindings.Any(b => Is(i, b)) && IsSupportedVersion(i.ProtocolVersion);
+
+    /// <summary>True when <paramref name="version"/> has the given <c>Major.Minor</c> (a patch part is ignored).</summary>
+    private static bool IsMinor(string? version, string majorMinor)
+    {
+        var parts = version?.Trim().Split('.');
+        return parts is { Length: 2 or 3 } && $"{parts[0]}.{parts[1]}" == majorMinor;
+    }
 
     /// <summary>True for an empty version or one whose <c>Major.Minor</c> equals <see cref="A2AConstants.ProtocolVersion"/>.</summary>
     internal static bool IsSupportedVersion(string? version)
