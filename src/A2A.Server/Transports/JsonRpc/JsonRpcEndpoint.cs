@@ -12,7 +12,7 @@ namespace A2A.Server.Transports.JsonRpc;
 
 /// <summary>
 /// <c>POST /agents/{agent}/jsonrpc</c>: a thin JSON-RPC 2.0 adapter over <see cref="IA2ARequestHandler"/>.
-/// Order of checks: unknown agent (HTTP 404) → agent policy (HTTP 401/403) → an <see cref="IA2AVersionDispatcher"/> that claims an
+/// Order of checks: unknown agent (HTTP 404) → agent policy and caller (HTTP 401/403) → an <see cref="IA2AVersionDispatcher"/> that claims an
 /// unsupported version takes the whole request → body size (HTTP 413) → JSON (-32700) →
 /// envelope (-32600) → version (-32009) → method (-32601) → extended card needs an authenticated caller (HTTP 401) →
 /// params (-32602) → handler. Every JSON-RPC error is sent with HTTP 200.
@@ -64,8 +64,9 @@ internal static class JsonRpcEndpoint
 
         try
         {
-            var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
-            if (await TransportRequest.TryDispatchVersionAsync(http, agent).ConfigureAwait(false)) return;
+            var (handled, caller) = await TransportRequest.TryDispatchVersionAsync(http, agent, A2AConstants.BindingJsonRpc, default)
+                .ConfigureAwait(false);
+            if (handled) return;
 
             var body = await RequestBody.ReadAsync(http, options.MaxRequestBodyBytes).ConfigureAwait(false);
             if (body is null)
@@ -95,7 +96,7 @@ internal static class JsonRpcEndpoint
                 }
             }
 
-            await DispatchAsync(http, agent, owner, request, logger, ct).ConfigureAwait(false);
+            await DispatchAsync(http, agent, caller, request, logger, ct).ConfigureAwait(false);
         }
         catch (A2AAuthException ex)
         {
@@ -107,7 +108,7 @@ internal static class JsonRpcEndpoint
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, string owner, JsonRpcRequest request,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, JsonRpcRequest request,
         ILogger logger, CancellationToken ct)
     {
         Method method;
@@ -115,12 +116,12 @@ internal static class JsonRpcEndpoint
         try
         {
             var (version, extensions) = ServiceParameters.Read(http);
-            ServiceParameters.EnsureSupportedVersion(version);
+            TransportRequest.EnsureVersion(version);
             if (!Methods.TryGetValue(request.Method, out method!))
                 throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
             if (method.IsExtendedCard)
             {
-                await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
+                TransportRequest.AuthorizeExtendedCard(agent, caller);
                 http.Response.Headers.CacheControl = "private, no-store";
             }
             ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
@@ -128,7 +129,7 @@ internal static class JsonRpcEndpoint
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);
             RequestValidation.Validate(parameters);
-            var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, parameters, A2ATelemetryNames.TransportJsonRpc);
+            var call = TransportRequest.CreateCallContext(http, agent, caller, version, extensions, parameters, A2ATelemetryNames.TransportJsonRpc);
             var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
             if (method.Stream is { } stream)

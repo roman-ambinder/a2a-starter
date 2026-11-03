@@ -118,21 +118,21 @@ public sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog cata
     {
         var http = context.GetHttpContext();
         var agent = ResolveAgent(http);
-        var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
+        var (caller, _) = await TransportRequest.ResolveCallerAsync(http, agent, requestTenant: null).ConfigureAwait(false);
 
         var version = context.RequestHeaders.GetValue(A2AConstants.GrpcVersionKey)?.Trim();
         var extensions = ServiceParameters.ParseExtensions(
             context.RequestHeaders.Where(e => e.Key == A2AConstants.GrpcExtensionsKey && !e.IsBinary).Select(e => e.Value));
-        ServiceParameters.EnsureSupportedVersion(string.IsNullOrEmpty(version) ? null : version);
+        TransportRequest.EnsureVersion(string.IsNullOrEmpty(version) ? null : version);
         if (isExtendedCard)
-            await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
+            TransportRequest.AuthorizeExtendedCard(agent, caller);
         var active = ServiceParameters.ActivateExtensions(agent.PublicCard, extensions);
         if (active.Count > 0)
             await context.WriteResponseHeadersAsync(new Metadata { { A2AConstants.GrpcExtensionsKey, string.Join(',', active) } }).ConfigureAwait(false);
 
         var model = (TModel)ProtoMapper.FromProtoObject(request);
         RequestValidation.Validate(model);
-        return (model, TransportRequest.CreateCallContext(http, agent, owner, version, extensions, model, A2ATelemetryNames.TransportGrpc));
+        return (model, TransportRequest.CreateCallContext(http, agent, caller, version, extensions, model, A2ATelemetryNames.TransportGrpc));
     }
 
     private AgentRegistration ResolveAgent(HttpContext http)

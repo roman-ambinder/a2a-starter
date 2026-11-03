@@ -1,38 +1,58 @@
 using A2A.Protocol;
-using A2A.Server.Agents;
 using Microsoft.AspNetCore.Http;
 
 namespace A2A.Server.Hosting;
 
 /// <summary>
-/// Serves JSON-RPC and REST requests that ask for an A2A version the core does not support (for example A2A 0.3).
-/// Register implementations as <see cref="IA2AVersionDispatcher"/> services; the core registers none. The HTTP transports
-/// ask each one, in registration order, after the agent is resolved and authorized and before the body is read. The first
-/// that claims the version handles the whole request and the core writes nothing more. gRPC does not use dispatchers.
+/// Serves A2A requests for a protocol version the core does not support, for example 0.3 (added by a separate compat package).
+/// The core registers none.
 /// </summary>
-public interface IA2AVersionDispatcher
+/// <remarks>
+/// The JSON-RPC and REST endpoints call it after they resolve the agent, authenticate the caller and resolve the tenant, and
+/// before they read the JSON-RPC body or resolve the REST operation. Dispatchers are asked in registration order; the first
+/// that claims the version handles the whole request and the core writes nothing more. Register implementations as singletons;
+/// calls can run concurrently. gRPC does not use dispatchers. After 1.0, new members get a default implementation.
+/// </remarks>
+internal interface IA2AVersionDispatcher
 {
-    /// <summary>
-    /// True if this dispatcher serves requests that ask for <paramref name="version"/>: the normalized <c>Major.Minor</c>
-    /// (<c>"0.3"</c> for an empty header), or the trimmed raw value when it does not parse.
-    /// </summary>
-    /// <param name="version">The requested version, normalized as described above.</param>
+    /// <summary>Says whether this dispatcher serves requests that ask for the given protocol version.</summary>
+    /// <param name="version">The requested version as <c>Major.Minor</c> (<c>"0.3"</c> when the request has no version header), or the trimmed raw value when it does not parse.</param>
+    /// <returns><see langword="true"/> if <see cref="HandleAsync"/> should handle the request.</returns>
     bool CanHandle(string version);
 
-    /// <summary>Handles the whole HTTP request (JSON-RPC or REST) for the agent, including writing the response.</summary>
+    /// <summary>Handles the whole HTTP request (JSON-RPC or REST) for the agent and writes the response.</summary>
     /// <remarks>
     /// The dispatcher owns its errors: it should write its own error response rather than throw. A thrown exception gives a bare
     /// 500 on JSON-RPC. The request body is not size-limited before the dispatcher runs, so the dispatcher must enforce its own limit.
     /// </remarks>
-    /// <param name="http">The request; its body has not been read.</param>
-    /// <param name="agent">The resolved agent.</param>
-    /// <param name="version">The requested version, as passed to <see cref="CanHandle"/>.</param>
+    /// <param name="http">The request. Its body has not been read.</param>
+    /// <param name="context">The agent, binding, caller and tenant the core resolved for this request.</param>
     /// <param name="ct">Cancelled when the client goes away.</param>
-    Task HandleAsync(HttpContext http, A2AAgentRoute agent, string version, CancellationToken ct);
+    /// <returns>A task that completes when the response is written.</returns>
+    Task HandleAsync(HttpContext http, A2AVersionDispatchContext context, CancellationToken ct);
 }
 
-/// <summary>The agent a request was routed to, as given to an <see cref="IA2AVersionDispatcher"/>.</summary>
-/// <param name="Name">Catalog name of the agent (the <c>{agent}</c> route value).</param>
-/// <param name="Registration">The agent's registration.</param>
-/// <param name="Card">The agent's public card, with its interfaces filled in.</param>
-public sealed record A2AAgentRoute(string Name, AgentRegistration Registration, AgentCard Card);
+/// <summary>What the core resolved for a request that an <see cref="IA2AVersionDispatcher"/> handles.</summary>
+internal sealed class A2AVersionDispatchContext
+{
+    /// <summary>The agent's registered name, as used in its URLs.</summary>
+    public required string AgentName { get; init; }
+
+    /// <summary>The agent's public card.</summary>
+    public required AgentCard PublicCard { get; init; }
+
+    /// <summary>The binding the request came in on: <c>"JSONRPC"</c> or <c>"HTTP+JSON"</c>.</summary>
+    public required string Binding { get; init; }
+
+    /// <summary>The raw <c>A2A-Version</c> value; empty when the request had none.</summary>
+    public required string RequestedVersion { get; init; }
+
+    /// <summary>The authenticated caller, with the same owner rules as 1.0 requests.</summary>
+    public required DispatchCaller Caller { get; init; }
+
+    /// <summary>The resolved tenant; empty when the agent has none.</summary>
+    public required string Tenant { get; init; }
+
+    /// <summary>For REST, the path after the agent's REST base (for example <c>/v1/tasks/t1</c>); empty for JSON-RPC.</summary>
+    public required PathString RestPath { get; init; }
+}

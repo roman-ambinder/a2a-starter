@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="A2A.Server.Tests" />
+    <InternalsVisibleTo Include="A2A.Integration.Tests" />
   </ItemGroup>
 </Project>

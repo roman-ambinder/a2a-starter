@@ -15,7 +15,7 @@ namespace A2A.Server.Transports.Rest;
 /// <summary>
 /// HTTP+JSON binding under <c>/agents/{agent}/rest</c>: a thin adapter over <see cref="IA2ARequestHandler"/>.
 /// One catch-all route per verb parses the path itself, because the public paths contain <c>:</c> (<c>message:send</c>,
-/// <c>{id}:cancel</c>) next to plain <c>{id}</c> routes. Order of checks: unknown agent (404) → agent policy (401/403) →
+/// <c>{id}:cancel</c>) next to plain <c>{id}</c> routes. Order of checks: unknown agent (404) → agent policy and caller (401/403) →
 /// an <see cref="IA2AVersionDispatcher"/> that claims an unsupported version takes the whole request →
 /// path and verb (404/405) → version (400) → extended card needs an authenticated caller (401) → body size (413) →
 /// body and query (400) → required fields (400) → handler. Errors are google.rpc.Status bodies.
@@ -66,9 +66,13 @@ internal static class RestEndpoints
 
         try
         {
-            var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
-            if (await TransportRequest.TryDispatchVersionAsync(http, agent).ConfigureAwait(false)) return;
-            await DispatchAsync(http, agent, owner, options, logger, ct).ConfigureAwait(false);
+            var path = http.Request.RouteValues["path"] as string ?? "";
+            var restPath = path.Length == 0 ? default : new PathString("/" + path);
+            // The path tenant is only known for the 1.0 routes; another version's paths are the dispatcher's to read.
+            var (handled, caller) = await TransportRequest.TryDispatchVersionAsync(http, agent, A2AConstants.BindingRest, restPath,
+                supported => supported ? Resolve(http.Request.Method, path, out _)?.Tenant : null).ConfigureAwait(false);
+            if (handled) return;
+            await DispatchAsync(http, agent, caller, options, logger, ct).ConfigureAwait(false);
         }
         catch (A2AAuthException ex)
         {
@@ -84,7 +88,7 @@ internal static class RestEndpoints
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, string owner, A2AServerOptions options,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, A2AServerOptions options,
         ILogger logger, CancellationToken ct)
     {
         var path = http.Request.RouteValues["path"] as string ?? "";
@@ -102,10 +106,10 @@ internal static class RestEndpoints
         }
 
         var (version, extensions) = ServiceParameters.Read(http);
-        ServiceParameters.EnsureSupportedVersion(version);
+        TransportRequest.EnsureVersion(version);
         if (route.Op == Op.ExtendedCard)
         {
-            await TransportRequest.AuthorizeExtendedCardAsync(http, agent).ConfigureAwait(false);
+            TransportRequest.AuthorizeExtendedCard(agent, caller);
             http.Response.Headers.CacheControl = "private, no-store";
         }
         ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
@@ -124,7 +128,7 @@ internal static class RestEndpoints
 
         var request = BuildRequest(route, body, http.Request.Query);
         RequestValidation.Validate(request);
-        var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, request, A2ATelemetryNames.TransportRest);
+        var call = TransportRequest.CreateCallContext(http, agent, caller, version, extensions, request, A2ATelemetryNames.TransportRest);
         var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
         switch (route.Op)
