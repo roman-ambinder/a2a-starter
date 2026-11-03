@@ -17,6 +17,7 @@
     <Project Path="samples/WebhookReceiver/WebhookReceiver.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Ambinder.A2A.Coexistence/Ambinder.A2A.Coexistence.csproj" />
     <Project Path="tests/Ambinder.A2A.MockEntra.Tests/Ambinder.A2A.MockEntra.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Protocol.Tests/Ambinder.A2A.Protocol.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Client.Grpc.Tests/Ambinder.A2A.Client.Grpc.Tests.csproj" />
