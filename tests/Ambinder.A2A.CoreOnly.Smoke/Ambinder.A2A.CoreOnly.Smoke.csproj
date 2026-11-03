@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Ambinder.A2A.CoreOnly.Smoke</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The concrete DI container is not ASP.NET Core; the host app brings it. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Only the core packages. eng/check-core-only.sh publishes this app and fails on ASP.NET Core, gRPC or Azure files. -->
+    <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+  </ItemGroup>
+</Project>

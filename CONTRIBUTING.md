@@ -40,6 +40,8 @@ dotnet test --project tests/Ambinder.A2A.Server.Tests -c Release
   Run it locally: `dotnet pack Ambinder.A2A.slnx -c Release -o artifacts/packages`, then
   `dotnet run eng/check-packages.cs -- --packages artifacts/packages --map eng/package-dependencies.json`. Core packages (`Protocol`, `Server`, `Client`) must not depend on
   ASP.NET Core, gRPC, Azure, EF or a database.
+  `eng/check-core-only.sh` publishes `tests/Ambinder.A2A.CoreOnly.Smoke` (Server and Client only), fails when the output holds
+  ASP.NET Core, gRPC, protobuf or Azure files, and runs the app.
 - **Public API files.** Workflow for `PublicAPI.*.txt`: added by package 02.
 - **Performance rules.** Added by package 14.
 
