@@ -1182,6 +1182,7 @@ internal static class AgentCardETag
     - A `signatures` member already in the input is replaced, not appended to.
     - ETag = `AgentCardETag.Compute(payload, kids)`.
     - Signing the same card twice with the same keys returns the cached entry (the source and `SignAsync` are not called again; count calls on a fake key). After a key change, the card is signed again and the ETag changes.
+    - **Cache key and bound** *(cross-plan review)*: the signer's cache is keyed by (SHA-256 of the canonical signing payload, `KeySetId`), never by agent name, because package 09 builds one card per variant (host, tenant or caller) and signs each one (09 plan Task 10, step 6). Two cards that differ only in a host-specific URL get two entries and two ETags. Two identical payloads share one. The cache is a bounded LRU of 1,000 entries, the same bound as 09's variant cache, so per-host variants cannot grow memory without limit. Test: 1,001 distinct payloads leave at most 1,000 entries (internal count, read through `InternalsVisibleTo` to `Ambinder.A2A.Server.Tests`).
     - No usable key and `FailWhenNoKey = false`: an unsigned result, an error log ("Card signing is configured but no usable key is available ... the card is served unsigned"), and ETag = `Compute(payload, [])`.
     - With `FailWhenNoKey = true`: an `InvalidOperationException`.
   - Registration:

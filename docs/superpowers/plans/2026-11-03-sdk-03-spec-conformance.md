@@ -540,7 +540,7 @@ The owner approved decisions D1 and D2 of the package 15 plan (`docs/superpowers
 
 **Files:**
 - Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `.../Hosting/A2AVersionDispatchContext.cs`, `.../Hosting/IA2ACallerResolver.cs`
-- Modify: the JSON-RPC and REST endpoints, `TransportRequest.cs` (07's `ResolveCallerAsync` becomes the default `IA2ACallerResolver`), the gRPC call-context path, DI registration, the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
+- Modify: the JSON-RPC and REST endpoints, `TransportRequest.cs` and 07's internal caller-resolution class (07's `ResolveCallerAsync` becomes the default `IA2ACallerResolver`), the gRPC call-context path, DI registration, the `PublicAPI.Unshipped.txt` of `Ambinder.A2A.AspNetCore` if package 02 tracking is on
 - Test: `VersionNegotiationTests` (add)
 
 - [ ] **Step 1: Write failing tests.** Register a fake dispatcher with `CanHandle("0.3") == true`. It records the context it gets and writes `200` with a marker body. Then:
