@@ -55,7 +55,7 @@ Package 12 is M2. Task 0 records which seams exist. **Gate rule (binding):** a t
 | `TaskUpdater` (`AgentRequestContext.Create`) | 11 | Tasks 5, 6 | Stop before Task 6; Task 5 uses `IAgentEventSink` directly and `AgentRequestContext.Create` only if present. |
 | `ScriptedChatClient` test double in `tests/Ambinder.A2A.Extensions.AI.Tests/Fakes/` and `Ambinder.A2A.Extensions.AI` | 11 | Task 13 | Stop before Task 13. |
 | `A2AClientOverride` (client factory override seam), `IA2AClientFactory`, `AddA2AClient`, `IA2AClient` with `A2ARequestOptions`; `tests/Ambinder.A2A.Client.Tests` | 10 | Tasks 3, 8, 9, 18 | Stop before Task 8. |
-| Receiver-side verifier in `Ambinder.A2A.Push.Receiver`; push HTTP client name `"a2a-push"`; `PushDeliveryService` | 08 | Task 10 | Task 10 records deliveries and scripts responses, without the verification result; note it. |
+| Public receiver API in `Ambinder.A2A.Push.Receiver` (`AddA2APushReceiver`, `MapA2APushReceiver`, `A2APushNotification.Verified`); push HTTP client name `"a2a-push"`; `PushDeliveryService` | 08 | Task 10 | Task 10 records deliveries and scripts responses, without the verification result; note it. The verifier itself is internal, so Task 10 never calls it directly (review item 2). |
 | Claim and owner rules (`tid`, `azp`/`appid`, `oid`, `scp`, `roles`; `OwnerKey`) | 07 | Task 4 | Stop before Task 4. |
 | gRPC routing without ports; `TimeProvider` everywhere; `UseA2AHosting` on `TestServer` | 09 | Task 3 | Task 3 ships JSON-RPC and REST only and lists gRPC as blocked. |
 | `StartClusterAsync` (06 plan Task 16 adds it to the slice if missing) | 06 | Task 12 | Build the shared-store part (spec §3 "Cluster") in Task 12; 06 adds forwarding. |
@@ -73,6 +73,17 @@ Package 12 is M2. Task 0 records which seams exist. **Gate rule (binding):** a t
 6. **Assertion-free test check:** xunit analyzers (shipped with xunit v3) on as errors for the empty-body and `xUnit2013`-style rules, plus a `Repo.Tests` source scan that flags a `[Fact]`/`[Theory]` method whose body contains none of: `Assert.`, `.Should`, `Verify`, `WaitFor`, `ThrowsAsync`, `Throws`. Each exception carries a `// no-assert: <reason>` comment.
 7. **Golden files:** the JSON samples in `tests/…Protocol.Tests/Samples.cs` move to `testdata/protocol/*.json`; `Protocol.Tests` reads them. Golden files that 03 or 04 placed elsewhere move there too, with their tests updated.
 8. **Owner-only steps** (cannot be done in code): required checks in branch protection, secret scanning and push protection. Task 28 lists them for the owner and records the evidence the spec asks for.
+
+### 0.4 Changes after the cross-plan review (2026-11-03)
+
+This plan was checked against the plans merged after it (05, 06, 08, 09, 10, 11). These edits came out of that review. Each is marked in its task:
+
+| # | Gap | Fix | Task |
+|---|---|---|---|
+| 1 | Tasks 3 and 18 use `A2ABinding.All`, but the slice's `A2ABinding` is an enum (09 plan Task 1) and its list is `A2ABindings.All`; §0.3 item 1 says to keep the slice's shapes | use `A2ABindings.All`; the docs say so | 3, 18, 27 |
+| 2 | the push double called 08's internal `PushSignatureVerifier`, which 01 rule 6 forbids; `Push.Receiver` is not a `Testing` dependency in 01's map | verify through 08's public receiver API; add the dependency with owner approval, else ship without the verification result | 10 |
+| 3 | 11's `ScriptedChatClient` has a `TaskCompletionSource` wait hook, and the test expected a `Gate` | add a `Gate` overload; keep the TCS one | 13 |
+| 4 | the soak test read `Ambinder.A2A.Server` internals from `Stress.Tests` (01 rule 6) | internal-counter checks in `Server.Tests` with `Category=Stress`; push queue through the public `GetPendingStatsAsync` | 26 |
 
 ---
 
@@ -212,7 +223,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 **Files:** Modify `A2ATestServer.cs`, `A2ATestServerOptions.cs`, `A2ABinding.cs`; create `TransportMatrix.cs`. Test: `tests/Ambinder.A2A.Testing.Tests/A2ATestServerTests.cs`.
 
 - [ ] **Step 1: Write failing tests:**
-  - For each `A2ABinding` in `A2ABinding.All` (JSON-RPC, REST, gRPC): `server.CreateClient(binding)` sends to an echo agent and gets the answer. gRPC goes over a `GrpcChannel` on the `TestServer` handler.
+  - For each binding in `A2ABindings.All` (JSON-RPC, REST, gRPC). The slice (09 plan Task 1) defines `A2ABinding` as an enum, and a C# enum cannot have an `All` member, so the list lives on the static class `A2ABindings`. Spec 12 §3 writes `A2ABinding.All`. Keep the slice's names (§0.3 item 1), and use `A2ABindings.All` in the docs (Task 27); see review item 1: `server.CreateClient(binding)` sends to an echo agent and gets the answer. gRPC goes over a `GrpcChannel` on the `TestServer` handler.
   - `CreateClient(agent: "b")` targets the second of two agents.
   - `CreateClient(record: true)` returns a `RecordingA2AClient` (Task 9; mark this one test as added in Task 9 if Task 9 is not done yet).
   - `CreateHttpClient()` reaches raw endpoints (status codes, SSE).
@@ -322,7 +333,10 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - A task with a push config on `A2ATestServer` → the double records URL, headers, raw body, parsed `StreamResponse`.
   - `.Respond(500, 500, 200)` → with the fake clock advanced past 08's backoff, three attempts are recorded and the third succeeds (no sleeps).
   - `WaitForAsync(count | predicate, timeout)` is event-driven.
-  - Verification result per delivery from 08's receiver-side verifier: valid; invalid signature (tamper the body in a handler test); wrong task id.
+  - Verification result per delivery: valid; invalid signature (tamper the body in a handler test); wrong task id. **How (review item 2):** 08's verifier (`PushSignatureVerifier`) is internal to `Ambinder.A2A.Push.Receiver`, and 01 rule 6 forbids `InternalsVisibleTo` between shipped packages. 01's package map also does not list `Push.Receiver` as a dependency of `Ambinder.A2A.Testing`. So:
+    - The double verifies through 08's **public** receiver. Inside, it hosts `AddA2APushReceiver(...)` and `MapA2APushReceiver(...)` on its own in-memory `TestServer`, forwards each delivery to it, and records the receiver's HTTP status and `A2APushNotification.Verified` flags. The double's handler registers the delivery's subscription, so credentials match.
+    - This adds `Ambinder.A2A.Push.Receiver` to `Ambinder.A2A.Testing`'s dependencies. It brings in no new third-party package beyond `Microsoft.IdentityModel.JsonWebTokens`, because Client and ASP.NET Core are already in the graph. Update 01's package map row and `eng/package-dependencies.json` in the same PR, and ask the owner to approve the map change (01 §1: a map change is made in the PR that needs it).
+    - If the owner declines, or 08 has not landed: ship the double without the verification result (§0.2 row for 08), and leave this acceptance bullet open.
   - Optional Kestrel listener (port 0) for real-socket tests.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement.
@@ -353,7 +367,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `git mv tests/Ambinder.A2A.Extensions.AI.Tests/Fakes/ScriptedChatClient.cs src/Ambinder.A2A.Testing.AI/`; create `FakeChatClient.cs` (moved from `samples/AgentServer/Llm/FakeChatClient.cs`; the sample keeps its own copy). Test: `tests/Ambinder.A2A.Testing.Tests/ChatClientTests.cs` (or a `Testing.AI.Tests` folder in that project).
 
-- [ ] **Step 1: Write failing tests:** scripted answers by turn and by predicate; streaming word by word; throws; waits on a `Gate`; records received `ChatMessage`s; `FakeChatClient` echoes. 11's `Extensions.AI.Tests` now use the package type (delete the test-only copy).
+- [ ] **Step 1: Write failing tests:** scripted answers by turn and by predicate; streaming word by word; throws; waits on a `Gate` (11's test double has a `TaskCompletionSource` wait hook, and the 11 plan says "12 swaps in its `Gate` later". Add a `Gate` overload and keep the TCS one, so 11's tests compile unchanged; review item 3); records received `ChatMessage`s; `FakeChatClient` echoes. 11's `Extensions.AI.Tests` now use the package type (delete the test-only copy).
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement and switch 11's tests.
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -407,7 +421,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `tests/Ambinder.A2A.Integration.Tests/**`; delete `Fixtures/MinimalServer.cs`, `Fixtures/TransportMatrix.cs`, `tests/Shared/`.
 
-- [ ] **Step 1:** Replace `MinimalServer` with `A2ATestServer`; the `Protected` agent becomes tests with `TestIdentity`. Replace `TransportMatrix.cs` with the package `TransportMatrix`/`A2ABinding.All`. Library push tests use `PushReceiverDouble` instead of the sample `WebhookReceiver`.
+- [ ] **Step 1:** Replace `MinimalServer` with `A2ATestServer`; the `Protected` agent becomes tests with `TestIdentity`. Replace `TransportMatrix.cs` with the package `TransportMatrix`/`A2ABindings.All` (review item 1). Library push tests use `PushReceiverDouble` instead of the sample `WebhookReceiver`.
 - [ ] **Step 2:** Run. Expected: green, case count not lower.
 - [ ] **Step 3:** Commit `test(integration): use A2ATestServer; delete MinimalServer and tests/Shared`.
 
@@ -495,7 +509,9 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** `tests/Ambinder.A2A.Stress.Tests/` (trait `Category=Stress`, excluded from `build-test`), `Directory.Packages.props` (FsCheck, newest stable), FsCheck properties in `Protocol.Tests` and `Client.Tests`.
 
-- [ ] **Step 1: Write the soak test:** on one long-lived `A2ATestServer`: create and finish 10,000 tasks; open and drop 1,000 subscribed streams; create 1,000 push configs. After warm-up and after the run, force GC (`GC.Collect(2, Forced, true, true)` twice with `WaitForPendingFinalizers`) and compare managed memory and the sizes of the lock table, running-task table, broker and push queue (read through internal counters exposed to the test assembly by `InternalsVisibleTo` on `Ambinder.A2A.Server`, which 01 rule 6 allows for test assemblies). Growth must be under 10% above warm-up.
+- [ ] **Step 1: Write the soak test:** on one long-lived `A2ATestServer`: create and finish 10,000 tasks; open and drop 1,000 subscribed streams; create 1,000 push configs. After warm-up and after the run, force GC (`GC.Collect(2, Forced, true, true)` twice with `WaitForPendingFinalizers`) and compare managed memory and the sizes of the lock table, running-task table, broker and push queue. Growth must be under 10% above warm-up.
+  - **Where (review item 4):** 01 rule 6 allows `InternalsVisibleTo` only to an assembly's *matching* test project (and the benchmarks assembly). `Stress.Tests` is neither, so the internal-counter assertions go in `tests/Ambinder.A2A.Server.Tests/Stress/SoakTests.cs`, with the trait `Category=Stress`, so `build-test` excludes them and the nightly job runs them. The push-queue size is 08's outbox, read through the public `IOutboxStore.GetPendingStatsAsync`, so it needs no internals. Package 06's cluster plan uses the same split for its leak test.
+  - `Stress.Tests` keeps the fuzz properties and any soak checks that need only public APIs (managed memory, public metrics). Do not add `InternalsVisibleTo` from `Ambinder.A2A.Server` to `Stress.Tests`.
 - [ ] **Step 2: Write the properties:** JSON round trip for every protocol model (generators from the model types, using `A2AJson` typed metadata); the SSE reader yields the same events for any split of a valid byte stream, including 1-byte chunks; malformed input throws only `A2AException` and never allocates beyond the client's size limits (measure with `GC.GetAllocatedBytesForCurrentThread` around the read).
 - [ ] **Step 3:** Run locally: `dotnet test tests/Ambinder.A2A.Stress.Tests`. Expected: PASS (fix real leaks in the owning package's code only if the fix is small and obviously local; otherwise report to that package and mark the test as failing in the PR body — never loosen the 10% bound).
 - [ ] **Step 4:** Commit `test: soak, leak and fuzz tests`. Acceptance "pass nightly three times in a row" is recorded in the PR body after three nightly runs.
