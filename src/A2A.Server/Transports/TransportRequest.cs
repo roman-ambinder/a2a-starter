@@ -6,6 +6,7 @@ using A2A.Server.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace A2A.Server.Transports;
 
@@ -123,8 +124,25 @@ internal static class TransportRequest
 
     public static A2ACallContext CreateCallContext(HttpContext http, AgentRegistration agent, DispatchCaller caller, string? version,
         IReadOnlyList<string> extensions, object request, string transport)
-        => new(agent.Name, caller.User, caller.Owner, TenantOf(request), ServiceParameters.NormalizeVersion(version), extensions)
+        => new(agent.Name, caller.User, caller.Owner,
+            ResolveTenant(agent.Name, TenantOf(request), http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value),
+            ServiceParameters.NormalizeVersion(version), extensions)
         { Transport = transport };
+
+    /// <summary>
+    /// The tenant of a request to <paramref name="agentName"/> (spec 8.3.2): the interface's tenant from
+    /// <see cref="A2AServerOptions.InterfaceTenants"/>, which an empty request tenant is filled with. Without an interface tenant
+    /// the request value is kept.
+    /// </summary>
+    /// <exception cref="A2AException"><c>InvalidParams</c>: the request names a different tenant than the interface.</exception>
+    public static string? ResolveTenant(string agentName, string? requestTenant, A2AServerOptions options)
+    {
+        if (!options.InterfaceTenants.TryGetValue(agentName, out var interfaceTenant) || string.IsNullOrEmpty(interfaceTenant))
+            return requestTenant;
+        if (string.IsNullOrEmpty(requestTenant) || requestTenant == interfaceTenant) return interfaceTenant;
+        throw new A2AException(A2AErrorCode.InvalidParams,
+            $"tenant '{requestTenant}' does not match this interface (tenant '{interfaceTenant}'). Leave tenant empty or send '{interfaceTenant}'.");
+    }
 
     /// <summary>The <c>tenant</c> field of a request record, or null.</summary>
     public static string? TenantOf(object request) => request switch
