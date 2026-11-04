@@ -124,6 +124,11 @@ Ambinder.A2A.Server.Push.IPushConfigStore.GetAllAsync(string! agentName, string!
 Ambinder.A2A.Server.Push.IPushConfigStore.GetAsync(string! agentName, string! taskId, string! configId, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Protocol.TaskPushNotificationConfig?>
 Ambinder.A2A.Server.Push.IPushConfigStore.ListAsync(string! agentName, string! taskId, int? pageSize, string? pageToken, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse!>
 Ambinder.A2A.Server.Push.IPushConfigStore.SaveAsync(string! agentName, string! taskId, Ambinder.A2A.Protocol.TaskPushNotificationConfig! config, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>
+Ambinder.A2A.Server.Push.IPushCredentialProtector
+Ambinder.A2A.Server.Push.IPushCredentialProtector.Protect(string! plaintext) -> string!
+Ambinder.A2A.Server.Push.IPushCredentialProtector.Unprotect(string! protectedValue) -> string!
+Ambinder.A2A.Server.Push.IPushRequestAuthenticator
+Ambinder.A2A.Server.Push.IPushRequestAuthenticator.AuthenticateAsync(System.Net.Http.HttpRequestMessage! request, Ambinder.A2A.Protocol.TaskPushNotificationConfig! config, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
 Ambinder.A2A.Server.Push.PushOptions
 Ambinder.A2A.Server.Push.PushOptions.AllowPrivateNetworks.get -> bool
 Ambinder.A2A.Server.Push.PushOptions.AllowPrivateNetworks.set -> void

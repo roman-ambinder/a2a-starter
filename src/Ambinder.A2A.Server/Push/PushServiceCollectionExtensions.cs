@@ -14,6 +14,9 @@ internal static class PushServiceCollectionExtensions
         services.TryAddSingleton<IPushConfigStore, InMemoryPushConfigStore>();
         // TryAddEnumerable, so package 15 can add a formatter for another protocol version.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IPushPayloadFormatter, DefaultPushPayloadFormatter>());
+        services.TryAddSingleton<IPushCredentialProtector, PassThroughPushCredentialProtector>();
+        services.TryAddSingleton<IPushRequestAuthenticator, NoOpPushRequestAuthenticator>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, PushCredentialProtectorStartupCheck>());
         services.TryAddSingleton<PushSigningKey>();
         services.TryAddKeyedSingleton<Func<System.Text.Json.Nodes.JsonObject>>(InternalServiceKeys.PushJwks,
             (sp, _) => () => sp.GetRequiredService<PushSigningKey>().GetJwks());

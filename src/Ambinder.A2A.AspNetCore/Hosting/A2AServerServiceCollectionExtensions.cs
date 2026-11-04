@@ -41,6 +41,9 @@ public static class A2AServerServiceCollectionExtensions
     {
         var builder = services.AddA2AServerCore(configure);
         services.AddAuthorization();
+        // Replace, not TryAdd: AddA2AServerCore registered the core pass-through default.
+        services.AddDataProtection();
+        services.Replace(ServiceDescriptor.Singleton<Ambinder.A2A.Server.Push.IPushCredentialProtector, Ambinder.A2A.AspNetCore.Push.DataProtectionPushCredentialProtector>());
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
         services.TryAddSingleton<AgentCardRenderer>();

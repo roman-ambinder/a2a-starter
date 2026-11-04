@@ -24,4 +24,8 @@ internal static partial class Log
     [LoggerMessage(EventId = 1105, EventName = nameof(PushRetrying), Level = LogLevel.Information,
         Message = "Push to {Url} for task {TaskId} failed ({Failure}); retry {Attempt} of {Retries} in {Delay}")]
     public static partial void PushRetrying(ILogger logger, string url, string taskId, string failure, int attempt, int retries, TimeSpan delay);
+
+    [LoggerMessage(EventId = 1106, EventName = nameof(PushCredentialsUnprotected), Level = LogLevel.Warning,
+        Message = "Push credentials are stored unprotected. Reference Ambinder.A2A.AspNetCore (Data Protection) or register an IPushCredentialProtector.")]
+    public static partial void PushCredentialsUnprotected(ILogger logger);
 }
