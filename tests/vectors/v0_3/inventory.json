@@ -1,0 +1,2874 @@
+{
+  "_meta": {
+    "purpose": "Single checklist of A2A v0.3.0 names, shapes, codes and paths. Extracted only from the vendored files in src/Compat.V0_3.Shared/spec/v0.3.0/. Later tasks test against this file.",
+    "sources": {
+      "specification.md": "docs/specification.md at tag v0.3.0",
+      "a2a.json": "specification/json/a2a.json at tag v0.3.0 (JSON Schema draft-07)",
+      "a2a.proto": "specification/grpc/a2a.proto at tag v0.3.0 (package a2a.v1)"
+    },
+    "refShape": "Every entry has specRef = place in specification.md (section number, heading, line). 'schemaRef' = a2a.json (definition, line). 'protoRef' = a2a.proto line. inSpecMd=false means the specification.md text does not state the item itself (types are '--8<-- types.ts' include directives that are not expanded in the vendored file); specRef then names the section that includes or should describe it.",
+    "knownFileCaveat": "specification.md embeds TypeScript types by include directives (for example line 305: --8<-- \"types/src/types.ts:AgentCard\"). The vendored text does not contain those types, so enum values, field lists and kind values come from a2a.json and a2a.proto."
+  },
+  "jsonRpcMethods": {
+    "count": 10,
+    "countNote": "10 methods are JSON-RPC methods (a2a.json A2ARequest anyOf lists exactly these 10 request types). tasks/list is listed separately and is NOT a JSON-RPC method.",
+    "a2aRequestRef": {
+      "file": "a2a.json",
+      "definition": "A2ARequest",
+      "line": 45
+    },
+    "envelope": {
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.11",
+        "heading": "JSON-RPC Structures",
+        "line": 623
+      },
+      "jsonrpcConst": "2.0",
+      "requestMembers": [
+        "jsonrpc",
+        "method",
+        "params",
+        "id"
+      ],
+      "responseMembers": [
+        "jsonrpc",
+        "id",
+        "result|error"
+      ],
+      "requestRef": {
+        "file": "a2a.json",
+        "definition": "JSONRPCRequest",
+        "line": 1419
+      },
+      "responseRef": {
+        "file": "a2a.json",
+        "definition": "JSONRPCResponse",
+        "line": 1451
+      },
+      "contentType": "application/json",
+      "contentTypeRef": {
+        "file": "specification.md",
+        "section": "7",
+        "heading": "Protocol RPC Methods",
+        "line": 654
+      }
+    },
+    "methods": [
+      {
+        "method": "message/send",
+        "paramsType": "MessageSendParams",
+        "resultType": "Task | Message",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.1",
+          "heading": "message/send",
+          "line": 660
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 667,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "SendMessageRequest",
+          "line": 1977
+        },
+        "schemaMethodConst": "message/send"
+      },
+      {
+        "method": "message/stream",
+        "paramsType": "MessageSendParams",
+        "resultType": "stream of SendStreamingMessageResponse (SSE)",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.2",
+          "heading": "message/stream",
+          "line": 724
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 731,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "SendStreamingMessageRequest",
+          "line": 2056
+        },
+        "schemaMethodConst": "message/stream"
+      },
+      {
+        "method": "tasks/get",
+        "paramsType": "TaskQueryParams",
+        "resultType": "Task",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.3",
+          "heading": "tasks/get",
+          "line": 807
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 814,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "GetTaskRequest",
+          "line": 1069
+        },
+        "schemaMethodConst": "tasks/get"
+      },
+      {
+        "method": "tasks/cancel",
+        "paramsType": "TaskIdParams",
+        "resultType": "Task",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.4",
+          "heading": "tasks/cancel",
+          "line": 873
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 880,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "CancelTaskRequest",
+          "line": 574
+        },
+        "schemaMethodConst": "tasks/cancel"
+      },
+      {
+        "method": "tasks/pushNotificationConfig/set",
+        "paramsType": "TaskPushNotificationConfig",
+        "resultType": "TaskPushNotificationConfig",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.5",
+          "heading": "tasks/pushNotificationConfig/set",
+          "line": 918
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 925,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "SetTaskPushNotificationConfigRequest",
+          "line": 2141
+        },
+        "schemaMethodConst": "tasks/pushNotificationConfig/set"
+      },
+      {
+        "method": "tasks/pushNotificationConfig/get",
+        "paramsType": "TaskIdParams | GetTaskPushNotificationConfigParams",
+        "resultType": "TaskPushNotificationConfig",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.6",
+          "heading": "tasks/pushNotificationConfig/get",
+          "line": 954
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 961,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "GetTaskPushNotificationConfigRequest",
+          "line": 990
+        },
+        "schemaMethodConst": "tasks/pushNotificationConfig/get"
+      },
+      {
+        "method": "tasks/pushNotificationConfig/list",
+        "paramsType": "ListTaskPushNotificationConfigParams",
+        "resultType": "TaskPushNotificationConfig[]",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.7",
+          "heading": "tasks/pushNotificationConfig/list",
+          "line": 996
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 1003,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "ListTaskPushNotificationConfigRequest",
+          "line": 1531
+        },
+        "schemaMethodConst": "tasks/pushNotificationConfig/list"
+      },
+      {
+        "method": "tasks/pushNotificationConfig/delete",
+        "paramsType": "DeleteTaskPushNotificationConfigParams",
+        "resultType": "null",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.8",
+          "heading": "tasks/pushNotificationConfig/delete",
+          "line": 1036
+        },
+        "inSpecMd": true,
+        "mdUrlLine": null,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "DeleteTaskPushNotificationConfigRequest",
+          "line": 742
+        },
+        "schemaMethodConst": "tasks/pushNotificationConfig/delete",
+        "note": "specification.md 7.8 has no tabbed block; JSON-RPC only, params/result given as bullets (line 1040)"
+      },
+      {
+        "method": "tasks/resubscribe",
+        "paramsType": "TaskIdParams",
+        "resultType": "stream of SendStreamingMessageResponse (SSE)",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.9",
+          "heading": "tasks/resubscribe",
+          "line": 1052
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 1061,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TaskResubscriptionRequest",
+          "line": 2407
+        },
+        "schemaMethodConst": "tasks/resubscribe"
+      },
+      {
+        "method": "agent/getAuthenticatedExtendedCard",
+        "paramsType": "none (params absent)",
+        "resultType": "AgentCard",
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.10",
+          "heading": "agent/getAuthenticatedExtendedCard",
+          "line": 1109
+        },
+        "inSpecMd": true,
+        "mdUrlLine": 1121,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "GetAuthenticatedExtendedCardRequest",
+          "line": 901
+        },
+        "schemaMethodConst": "agent/getAuthenticatedExtendedCard"
+      },
+      {
+        "method": "tasks/list",
+        "paramsType": null,
+        "resultType": null,
+        "availableOnJsonRpc": false,
+        "specRef": {
+          "file": "specification.md",
+          "section": "(none: heading has no number)",
+          "heading": "`tasks/list`",
+          "line": 846
+        },
+        "inSpecMd": true,
+        "quote": "JSON-RPC: N/A  (specification.md line 851)",
+        "schemaRef": null,
+        "note": "Not in a2a.json A2ARequest (line 45) and not a method const anywhere in a2a.json. Heading has no section number and sits between 7.3 and 7.4. md table row line 218 says 'List tasks (gRPC/REST only)'."
+      }
+    ],
+    "mdInconsistency": [
+      {
+        "text": "11.1.3 names the extended-card method `agent/authenticatedExtendedCard`; 7.10 and a2a.json use `agent/getAuthenticatedExtendedCard`.",
+        "specRef": {
+          "file": "specification.md",
+          "section": "11.1.3",
+          "heading": "Optional Method Implementation",
+          "line": 1945
+        },
+        "quote": "- `agent/authenticatedExtendedCard` - Retrieve authenticated agent card (requires `supportsAuthenticatedExtendedCard: true`)"
+      }
+    ]
+  },
+  "restEndpoints": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "3.2.3",
+      "heading": "HTTP+JSON/REST Transport",
+      "line": 94
+    },
+    "prefix": "/v1",
+    "prefixQuote": "URL Patterns: MUST follow the URL patterns documented in each method section (e.g., `/v1/message:send`, `/v1/tasks/{id}`).",
+    "prefixLine": 99,
+    "patternRule": {
+      "text": "- Use resource-based URLs: `/v1/{resource}[/{id}][:{action}]`",
+      "line": 186
+    },
+    "endpoints": [
+      {
+        "jsonRpcMethod": "message/send",
+        "verb": "POST",
+        "path": "/v1/message:send",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 215
+        },
+        "mdTableLine": 215,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.1",
+          "heading": "message/send",
+          "line": 660
+        },
+        "mdUrlLine": 693,
+        "mdUrlText": "-   **URL:** `/v1/message:send`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 36,
+          "verb": "POST",
+          "path": "/v1/message:send"
+        },
+        "agreesWithMdVerbAndPath": true
+      },
+      {
+        "jsonRpcMethod": "message/stream",
+        "verb": "POST",
+        "path": "/v1/message:stream",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 216
+        },
+        "mdTableLine": 216,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.2",
+          "heading": "message/stream",
+          "line": 724
+        },
+        "mdUrlLine": 759,
+        "mdUrlText": "-   **URL:** `/v1/message:stream`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 44,
+          "verb": "POST",
+          "path": "/v1/message:stream"
+        },
+        "agreesWithMdVerbAndPath": true
+      },
+      {
+        "jsonRpcMethod": "tasks/get",
+        "verb": "GET",
+        "path": "/v1/tasks/{id}",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 217
+        },
+        "mdTableLine": 217,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.3",
+          "heading": "tasks/get",
+          "line": 807
+        },
+        "mdUrlLine": 833,
+        "mdUrlText": "-   **URL:** `v1/tasks/{id}?historyLength={historyLength}`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 52,
+          "verb": "GET",
+          "path": "/v1/{name=tasks/*}"
+        },
+        "agreesWithMdVerbAndPath": false,
+        "mdUrlNote": "7.3 text is 'v1/tasks/{id}?historyLength={historyLength}' (no leading slash, query parameter historyLength)",
+        "queryParams": [
+          "historyLength"
+        ]
+      },
+      {
+        "jsonRpcMethod": "tasks/list",
+        "verb": "GET",
+        "path": "/v1/tasks",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 218
+        },
+        "mdTableLine": 218,
+        "specRef": {
+          "file": "specification.md",
+          "section": "(none)",
+          "heading": "`tasks/list`",
+          "line": 846
+        },
+        "mdUrlLine": 863,
+        "mdUrlText": "-   **URL:** `/v1/tasks`",
+        "protoHttpAnnotation": null
+      },
+      {
+        "jsonRpcMethod": "tasks/cancel",
+        "verb": "POST",
+        "path": "/v1/tasks/{id}:cancel",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 219
+        },
+        "mdTableLine": 219,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.4",
+          "heading": "tasks/cancel",
+          "line": 873
+        },
+        "mdUrlLine": 898,
+        "mdUrlText": "-   **URL:** `/v1/tasks/{id}:cancel`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 60,
+          "verb": "POST",
+          "path": "/v1/{name=tasks/*}:cancel"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "tasks/resubscribe",
+        "verb": "POST",
+        "path": "/v1/tasks/{id}:subscribe",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 220
+        },
+        "mdTableLine": 220,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.9",
+          "heading": "tasks/resubscribe",
+          "line": 1052
+        },
+        "mdUrlLine": 1089,
+        "mdUrlText": "-   **URL:** `/v1/tasks/{id}:subscribe`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 71,
+          "verb": "GET",
+          "path": "/v1/{name=tasks/*}:subscribe"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "tasks/pushNotificationConfig/set",
+        "verb": "POST",
+        "path": "/v1/tasks/{id}/pushNotificationConfigs",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 221
+        },
+        "mdTableLine": 221,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.5",
+          "heading": "tasks/pushNotificationConfig/set",
+          "line": 918
+        },
+        "mdUrlLine": 942,
+        "mdUrlText": "-   **URL:** `/v1/tasks/{id}/pushNotificationConfigs`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 79,
+          "verb": "POST",
+          "path": "/v1/{parent=task/*/pushNotificationConfigs}"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "tasks/pushNotificationConfig/get",
+        "verb": "GET",
+        "path": "/v1/tasks/{id}/pushNotificationConfigs/{configId}",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 222
+        },
+        "mdTableLine": 222,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.6",
+          "heading": "tasks/pushNotificationConfig/get",
+          "line": 954
+        },
+        "mdUrlLine": 979,
+        "mdUrlText": "-   **URL:** `/v1/tasks/{taskId}/pushNotificationConfigs/{configId}`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 88,
+          "verb": "GET",
+          "path": "/v1/{name=tasks/*/pushNotificationConfigs/*}"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "tasks/pushNotificationConfig/list",
+        "verb": "GET",
+        "path": "/v1/tasks/{id}/pushNotificationConfigs",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 223
+        },
+        "mdTableLine": 223,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.7",
+          "heading": "tasks/pushNotificationConfig/list",
+          "line": 996
+        },
+        "mdUrlLine": 1021,
+        "mdUrlText": "-   **URL:** `/v1/tasks/{id}/pushNotificationConfigs`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 96,
+          "verb": "GET",
+          "path": "/v1/{parent=tasks/*}/pushNotificationConfigs"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "tasks/pushNotificationConfig/delete",
+        "verb": "DELETE",
+        "path": "/v1/tasks/{id}/pushNotificationConfigs/{configId}",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 224
+        },
+        "mdTableLine": 224,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.8",
+          "heading": "tasks/pushNotificationConfig/delete",
+          "line": 1036
+        },
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 110,
+          "verb": "DELETE",
+          "path": "/v1/{name=tasks/*/pushNotificationConfigs/*}"
+        },
+        "agreesWithMdVerbAndPath": false
+      },
+      {
+        "jsonRpcMethod": "agent/getAuthenticatedExtendedCard",
+        "verb": "GET",
+        "path": "/v1/card",
+        "mdTableRef": {
+          "file": "specification.md",
+          "section": "3.5.6",
+          "heading": "Method Mapping Reference Table",
+          "line": 225
+        },
+        "mdTableLine": 225,
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.10",
+          "heading": "agent/getAuthenticatedExtendedCard",
+          "line": 1109
+        },
+        "mdUrlLine": 1133,
+        "mdUrlText": "-   **URL:** `/v1/card`",
+        "protoHttpAnnotation": {
+          "file": "a2a.proto",
+          "line": 103,
+          "verb": "GET",
+          "path": "/v1/card"
+        },
+        "agreesWithMdVerbAndPath": true
+      }
+    ],
+    "restErrorFormat": {
+      "found": false,
+      "mdSays": "- **Error Format**: **MUST** return error responses in a consistent JSON format that maps to A2A error types.",
+      "line": 104,
+      "note": "No RFC 9457 / problem+json text in any of the three files. specification.md 3.2.3 only requires 'a consistent JSON format that maps to A2A error types' and HTTP status codes '(200, 400, 401, 403, 404, 500, etc.)'. No A2A-code-to-HTTP-status table exists in the files."
+    },
+    "sse": {
+      "specRef": {
+        "file": "specification.md",
+        "section": "3.3.3",
+        "heading": "HTTP+JSON/REST Streaming",
+        "line": 131
+      },
+      "quote": "If REST transport is supported it **MUST** implement streaming using Server-Sent Events similar to JSON-RPC.",
+      "line": 133,
+      "streamEventShape": "{ message?, task?, statusUpdate?, artifactUpdate? } (7.2 REST response, 7.9 REST response)",
+      "streamShapeLine": 774
+    }
+  },
+  "grpcRpcs": {
+    "service": "A2AService",
+    "protoPackage": "a2a.v1",
+    "protoPackageLine": 3,
+    "csharpNamespaceOption": "A2a.V1",
+    "serviceRef": {
+      "file": "a2a.proto",
+      "line": 31
+    },
+    "specRef": {
+      "file": "specification.md",
+      "section": "3.2.2",
+      "heading": "gRPC Transport",
+      "line": 82
+    },
+    "serviceNameQuote": "- **Service Definition**: **MUST** implement the `A2AService` gRPC service as defined in the proto file.",
+    "serviceNameLine": 88,
+    "rpcCountInProto": 10,
+    "rpcs": [
+      {
+        "rpc": "SendMessage",
+        "service": "A2AService",
+        "request": "SendMessageRequest",
+        "response": "SendMessageResponse",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "message/send",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 34
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.1",
+          "heading": "message/send",
+          "line": 660
+        },
+        "mdTableLine": 215,
+        "mdGrpcName": "SendMessage",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "SendStreamingMessage",
+        "service": "A2AService",
+        "request": "SendMessageRequest",
+        "response": "StreamResponse",
+        "serverStreaming": true,
+        "jsonRpcEquivalent": "message/stream",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 42
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.2",
+          "heading": "message/stream",
+          "line": 724
+        },
+        "mdTableLine": 216,
+        "mdGrpcName": "SendStreamingMessage",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "GetTask",
+        "service": "A2AService",
+        "request": "GetTaskRequest",
+        "response": "Task",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/get",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 50
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.3",
+          "heading": "tasks/get",
+          "line": 807
+        },
+        "mdTableLine": 217,
+        "mdGrpcName": "GetTask",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "CancelTask",
+        "service": "A2AService",
+        "request": "CancelTaskRequest",
+        "response": "Task",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/cancel",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 58
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.4",
+          "heading": "tasks/cancel",
+          "line": 873
+        },
+        "mdTableLine": 219,
+        "mdGrpcName": "CancelTask",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "TaskSubscription",
+        "service": "A2AService",
+        "request": "TaskSubscriptionRequest",
+        "response": "StreamResponse",
+        "serverStreaming": true,
+        "jsonRpcEquivalent": "tasks/resubscribe",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 68
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.9",
+          "heading": "tasks/resubscribe",
+          "line": 1052
+        },
+        "mdTableLine": 220,
+        "mdGrpcName": "TaskSubscription",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "CreateTaskPushNotificationConfig",
+        "service": "A2AService",
+        "request": "CreateTaskPushNotificationConfigRequest",
+        "response": "TaskPushNotificationConfig",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/pushNotificationConfig/set",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 76
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.5",
+          "heading": "tasks/pushNotificationConfig/set",
+          "line": 918
+        },
+        "mdTableLine": 221,
+        "mdGrpcName": "CreateTaskPushNotification",
+        "mdNameMatchesProto": false
+      },
+      {
+        "rpc": "GetTaskPushNotificationConfig",
+        "service": "A2AService",
+        "request": "GetTaskPushNotificationConfigRequest",
+        "response": "TaskPushNotificationConfig",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/pushNotificationConfig/get",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 85
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.6",
+          "heading": "tasks/pushNotificationConfig/get",
+          "line": 954
+        },
+        "mdTableLine": 222,
+        "mdGrpcName": "GetTaskPushNotification",
+        "mdNameMatchesProto": false
+      },
+      {
+        "rpc": "ListTaskPushNotificationConfig",
+        "service": "A2AService",
+        "request": "ListTaskPushNotificationConfigRequest",
+        "response": "ListTaskPushNotificationConfigResponse",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/pushNotificationConfig/list",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 93
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.7",
+          "heading": "tasks/pushNotificationConfig/list",
+          "line": 996
+        },
+        "mdTableLine": 223,
+        "mdGrpcName": "ListTaskPushNotification",
+        "mdNameMatchesProto": false
+      },
+      {
+        "rpc": "GetAgentCard",
+        "service": "A2AService",
+        "request": "GetAgentCardRequest",
+        "response": "AgentCard",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "agent/getAuthenticatedExtendedCard",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 101
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.10",
+          "heading": "agent/getAuthenticatedExtendedCard",
+          "line": 1109
+        },
+        "mdTableLine": 225,
+        "mdGrpcName": "GetAgentCard",
+        "mdNameMatchesProto": true
+      },
+      {
+        "rpc": "DeleteTaskPushNotificationConfig",
+        "service": "A2AService",
+        "request": "DeleteTaskPushNotificationConfigRequest",
+        "response": "google.protobuf.Empty",
+        "serverStreaming": false,
+        "jsonRpcEquivalent": "tasks/pushNotificationConfig/delete",
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 107
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.8",
+          "heading": "tasks/pushNotificationConfig/delete",
+          "line": 1036
+        },
+        "mdTableLine": 224,
+        "mdGrpcName": "DeleteTaskPushNotification",
+        "mdNameMatchesProto": false
+      },
+      {
+        "rpc": null,
+        "mdGrpcName": "ListTask",
+        "jsonRpcEquivalent": "tasks/list",
+        "protoRef": null,
+        "inProto": false,
+        "specRef": {
+          "file": "specification.md",
+          "section": "(none)",
+          "heading": "`tasks/list`",
+          "line": 846
+        },
+        "mdTableLine": 218,
+        "quote": "-   **URL:** `ListTask`",
+        "quoteLine": 854,
+        "note": "Named in specification.md only. No rpc, request or response message for it in a2a.proto."
+      }
+    ],
+    "errorMappingClaim": {
+      "quote": "- **Error Handling**: **MUST** map A2A error codes to appropriate gRPC status codes as defined in the proto annotations.",
+      "line": 91,
+      "foundInProto": false,
+      "note": "a2a.proto has no google.rpc or gRPC status annotations (grep for 'google.rpc' and 'status' found nothing)."
+    }
+  },
+  "taskStates": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "6.3",
+      "heading": "TaskState Enum",
+      "line": 513
+    },
+    "inSpecMd": false,
+    "note": "specification.md 6.3 only includes types.ts (line 518). Values come from a2a.json.",
+    "schemaRef": {
+      "file": "a2a.json",
+      "definition": "TaskState",
+      "line": 2440
+    },
+    "jsonEnumOrder": [
+      "submitted",
+      "working",
+      "input-required",
+      "completed",
+      "canceled",
+      "failed",
+      "rejected",
+      "auth-required",
+      "unknown"
+    ],
+    "values": [
+      {
+        "json": "submitted",
+        "jsonLine": 2443,
+        "protoName": "TASK_STATE_SUBMITTED",
+        "protoLine": 160
+      },
+      {
+        "json": "working",
+        "jsonLine": 2444,
+        "protoName": "TASK_STATE_WORKING",
+        "protoLine": 162
+      },
+      {
+        "json": "input-required",
+        "jsonLine": 2445,
+        "protoName": "TASK_STATE_INPUT_REQUIRED",
+        "protoLine": 172
+      },
+      {
+        "json": "completed",
+        "jsonLine": 2446,
+        "protoName": "TASK_STATE_COMPLETED",
+        "protoLine": 164
+      },
+      {
+        "json": "canceled",
+        "jsonLine": 2447,
+        "protoName": "TASK_STATE_CANCELLED",
+        "protoLine": 169
+      },
+      {
+        "json": "failed",
+        "jsonLine": 2448,
+        "protoName": "TASK_STATE_FAILED",
+        "protoLine": 166
+      },
+      {
+        "json": "rejected",
+        "jsonLine": 2449,
+        "protoName": "TASK_STATE_REJECTED",
+        "protoLine": 176
+      },
+      {
+        "json": "auth-required",
+        "jsonLine": 2450,
+        "protoName": "TASK_STATE_AUTH_REQUIRED",
+        "protoLine": 180
+      },
+      {
+        "json": "unknown",
+        "jsonLine": 2451,
+        "protoName": null,
+        "protoLine": null
+      }
+    ],
+    "protoEnumRef": {
+      "file": "a2a.proto",
+      "line": 157
+    },
+    "mdProseMentions": [
+      {
+        "text": "terminal states: completed, canceled, rejected, or failed",
+        "line": 499
+      },
+      {
+        "text": "`auth-required` state (4.5)",
+        "line": 259
+      },
+      {
+        "text": "state examples in 9.x: submitted, completed, input-required",
+        "line": 1378
+      }
+    ],
+    "mdTerminalDefinition": {
+      "line": 499,
+      "quote": "A task which has reached a terminal state (completed, canceled, rejected, or failed) can't be restarted."
+    }
+  },
+  "roles": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "6.4",
+      "heading": "Message Object",
+      "line": 521
+    },
+    "inSpecMd": true,
+    "specExampleLines": [
+      1226,
+      1513
+    ],
+    "schemaRef": {
+      "file": "a2a.json",
+      "definition": "Message",
+      "line": 1648,
+      "property": "role"
+    },
+    "jsonEnum": [
+      "agent",
+      "user"
+    ],
+    "jsonDescription": "Identifies the sender of the message. `user` for the client, `agent` for the service.",
+    "protoEnumRef": {
+      "file": "a2a.proto",
+      "line": 222,
+      "values": [
+        "ROLE_UNSPECIFIED",
+        "ROLE_USER",
+        "ROLE_AGENT"
+      ]
+    },
+    "values": [
+      {
+        "json": "user",
+        "proto": "ROLE_USER"
+      },
+      {
+        "json": "agent",
+        "proto": "ROLE_AGENT"
+      }
+    ]
+  },
+  "errorCodes": {
+    "errors": [
+      {
+        "code": -32700,
+        "name": "JSONParseError",
+        "nameSource": "a2a.json (specification.md 8.1 gives no type name)",
+        "category": "standard JSON-RPC",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.1",
+          "heading": "Standard JSON-RPC Errors",
+          "line": 1156
+        },
+        "mdMessage": "Invalid JSON payload",
+        "jsonDefaultMessage": "Invalid JSON payload",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "JSONParseError",
+          "line": 1285
+        }
+      },
+      {
+        "code": -32600,
+        "name": "InvalidRequestError",
+        "nameSource": "a2a.json (specification.md 8.1 gives no type name)",
+        "category": "standard JSON-RPC",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.1",
+          "heading": "Standard JSON-RPC Errors",
+          "line": 1157
+        },
+        "mdMessage": "Invalid JSON-RPC Request",
+        "jsonDefaultMessage": "Request payload validation error",
+        "messagesAgree": false,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "InvalidRequestError",
+          "line": 1262
+        }
+      },
+      {
+        "code": -32601,
+        "name": "MethodNotFoundError",
+        "nameSource": "a2a.json (specification.md 8.1 gives no type name)",
+        "category": "standard JSON-RPC",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.1",
+          "heading": "Standard JSON-RPC Errors",
+          "line": 1158
+        },
+        "mdMessage": "Method not found",
+        "jsonDefaultMessage": "Method not found",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "MethodNotFoundError",
+          "line": 1716
+        }
+      },
+      {
+        "code": -32602,
+        "name": "InvalidParamsError",
+        "nameSource": "a2a.json (specification.md 8.1 gives no type name)",
+        "category": "standard JSON-RPC",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.1",
+          "heading": "Standard JSON-RPC Errors",
+          "line": 1159
+        },
+        "mdMessage": "Invalid method parameters",
+        "jsonDefaultMessage": "Invalid parameters",
+        "messagesAgree": false,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "InvalidParamsError",
+          "line": 1239
+        }
+      },
+      {
+        "code": -32603,
+        "name": "InternalError",
+        "nameSource": "a2a.json (specification.md 8.1 gives no type name)",
+        "category": "standard JSON-RPC",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.1",
+          "heading": "Standard JSON-RPC Errors",
+          "line": 1160
+        },
+        "mdMessage": "Internal server error",
+        "jsonDefaultMessage": "Internal error",
+        "messagesAgree": false,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "InternalError",
+          "line": 1193
+        }
+      },
+      {
+        "code": -32001,
+        "name": "TaskNotFoundError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1169
+        },
+        "mdMessage": "Task not found",
+        "jsonDefaultMessage": "Task not found",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TaskNotFoundError",
+          "line": 2344
+        }
+      },
+      {
+        "code": -32002,
+        "name": "TaskNotCancelableError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1170
+        },
+        "mdMessage": "Task cannot be canceled",
+        "jsonDefaultMessage": "Task cannot be canceled",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TaskNotCancelableError",
+          "line": 2321
+        }
+      },
+      {
+        "code": -32003,
+        "name": "PushNotificationNotSupportedError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1171
+        },
+        "mdMessage": "Push Notification is not supported",
+        "jsonDefaultMessage": "Push Notification is not supported",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "PushNotificationNotSupportedError",
+          "line": 1924
+        }
+      },
+      {
+        "code": -32004,
+        "name": "UnsupportedOperationError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1172
+        },
+        "mdMessage": "This operation is not supported",
+        "jsonDefaultMessage": "This operation is not supported",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "UnsupportedOperationError",
+          "line": 2551
+        }
+      },
+      {
+        "code": -32005,
+        "name": "ContentTypeNotSupportedError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1173
+        },
+        "mdMessage": "Incompatible content types",
+        "jsonDefaultMessage": "Incompatible content types",
+        "messagesAgree": true,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "ContentTypeNotSupportedError",
+          "line": 671
+        }
+      },
+      {
+        "code": -32006,
+        "name": "InvalidAgentResponseError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1174
+        },
+        "mdMessage": "Invalid agent response type",
+        "jsonDefaultMessage": "Invalid agent response",
+        "messagesAgree": false,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "InvalidAgentResponseError",
+          "line": 1216
+        }
+      },
+      {
+        "code": -32007,
+        "name": "AuthenticatedExtendedCardNotConfiguredError",
+        "nameSource": "specification.md 8.2 and a2a.json",
+        "category": "A2A-specific",
+        "specRef": {
+          "file": "specification.md",
+          "section": "8.2",
+          "heading": "A2A-Specific Errors",
+          "line": 1175
+        },
+        "mdMessage": "Authenticated Extended Card not configured",
+        "jsonDefaultMessage": "Authenticated Extended Card is not configured",
+        "messagesAgree": false,
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "AuthenticatedExtendedCardNotConfiguredError",
+          "line": 521
+        }
+      }
+    ],
+    "serverErrorRange": {
+      "from": -32099,
+      "to": -32000,
+      "specRef": {
+        "file": "specification.md",
+        "section": "8.1",
+        "heading": "Standard JSON-RPC Errors",
+        "line": 1161
+      },
+      "quote": "Reserved for implementation-defined server-errors. A2A-specific errors use this range."
+    },
+    "jsonRpcErrorObject": {
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.12",
+        "heading": "JSONRPCError Object",
+        "line": 646
+      },
+      "schemaRef": {
+        "file": "a2a.json",
+        "definition": "JSONRPCError",
+        "line": 1308
+      },
+      "members": [
+        "code (integer, required)",
+        "message (string, required)",
+        "data (any, optional: 'A primitive or structured value containing additional information about the error.')"
+      ],
+      "dataRef": {
+        "file": "a2a.json",
+        "definition": "JSONRPCError",
+        "line": 1315,
+        "property": "data"
+      }
+    },
+    "dataFieldNote": {
+      "quote": "ese clearly. The `data` field of the `JSONRPCError` object can be used to provide more structured details for any error.",
+      "line": 1177
+    },
+    "a2aErrorUnion": {
+      "file": "a2a.json",
+      "definition": "A2AError",
+      "line": 4
+    },
+    "restOrGrpcErrorCodes": "Not defined in the files (see restEndpoints.restErrorFormat and grpcRpcs.errorMappingClaim)."
+  },
+  "kinds": {
+    "values": [
+      {
+        "kind": "task",
+        "definition": "Task",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "Task",
+          "line": 2238,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.1",
+          "heading": "Task Object",
+          "line": 497
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1278
+      },
+      {
+        "kind": "message",
+        "definition": "Message",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "Message",
+          "line": 1620,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.4",
+          "heading": "Message Object",
+          "line": 521
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1326
+      },
+      {
+        "kind": "status-update",
+        "definition": "TaskStatusUpdateEvent",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TaskStatusUpdateEvent",
+          "line": 2490,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.2.2",
+          "heading": "TaskStatusUpdateEvent Object",
+          "line": 791
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1473
+      },
+      {
+        "kind": "artifact-update",
+        "definition": "TaskArtifactUpdateEvent",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TaskArtifactUpdateEvent",
+          "line": 2276,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.2.3",
+          "heading": "TaskArtifactUpdateEvent Object",
+          "line": 799
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1421
+      },
+      {
+        "kind": "text",
+        "definition": "TextPart",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "TextPart",
+          "line": 2521,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.5.1",
+          "heading": "TextPart Object",
+          "line": 543
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1229
+      },
+      {
+        "kind": "file",
+        "definition": "FilePart",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "FilePart",
+          "line": 842,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.5.2",
+          "heading": "FilePart Object",
+          "line": 551
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1352
+      },
+      {
+        "kind": "data",
+        "definition": "DataPart",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "DataPart",
+          "line": 702,
+          "property": "kind"
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.5.3",
+          "heading": "DataPart Object",
+          "line": 559
+        },
+        "inSpecMd": false,
+        "mdExampleLine": 1599
+      }
+    ],
+    "requiredOnDefinitions": "kind is in required[] of Task, Message, TaskStatusUpdateEvent, TaskArtifactUpdateEvent, TextPart, FilePart, DataPart in a2a.json",
+    "noKindOn": [
+      "FileWithBytes",
+      "FileWithUri (discriminated by presence of 'bytes' vs 'uri')",
+      "AgentCard",
+      "TaskStatus",
+      "Artifact",
+      "PushNotificationConfig"
+    ],
+    "protoNote": "a2a.proto has no kind field anywhere; Part is a oneof (text|file|data), StreamResponse is a oneof (task|message|status_update|artifact_update)."
+  },
+  "parts": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "6.5",
+      "heading": "Part Union Type",
+      "line": 529
+    },
+    "json": {
+      "TextPart": {
+        "properties": [
+          "kind",
+          "metadata",
+          "text"
+        ],
+        "required": [
+          "kind",
+          "text"
+        ],
+        "ref": {
+          "file": "a2a.json",
+          "definition": "TextPart",
+          "line": 2518
+        }
+      },
+      "FilePart": {
+        "properties": [
+          "file",
+          "kind",
+          "metadata"
+        ],
+        "required": [
+          "file",
+          "kind"
+        ],
+        "ref": {
+          "file": "a2a.json",
+          "definition": "FilePart",
+          "line": 828
+        },
+        "fileAnyOf": [
+          "FileWithBytes",
+          "FileWithUri"
+        ]
+      },
+      "DataPart": {
+        "properties": [
+          "data",
+          "kind",
+          "metadata"
+        ],
+        "required": [
+          "data",
+          "kind"
+        ],
+        "ref": {
+          "file": "a2a.json",
+          "definition": "DataPart",
+          "line": 694
+        }
+      },
+      "FileWithBytes": {
+        "properties": [
+          "bytes",
+          "mimeType",
+          "name"
+        ],
+        "required": [
+          "bytes"
+        ],
+        "ref": {
+          "file": "a2a.json",
+          "definition": "FileWithBytes",
+          "line": 859
+        }
+      },
+      "FileWithUri": {
+        "properties": [
+          "mimeType",
+          "name",
+          "uri"
+        ],
+        "required": [
+          "uri"
+        ],
+        "ref": {
+          "file": "a2a.json",
+          "definition": "FileWithUri",
+          "line": 880
+        }
+      }
+    },
+    "proto": {
+      "Part": {
+        "oneof": [
+          "text",
+          "file (FilePart)",
+          "data (DataPart)"
+        ],
+        "line": 197
+      },
+      "FilePart": {
+        "oneof": [
+          "file_with_uri",
+          "file_with_bytes"
+        ],
+        "otherFields": [
+          "mime_type"
+        ],
+        "line": 209
+      },
+      "DataPart": {
+        "fields": [
+          "data (Struct)"
+        ],
+        "line": 218
+      }
+    },
+    "jsonVsProtoDifferences": [
+      "Part metadata: in a2a.json (PartBase.metadata); no metadata field on proto Part/TextPart/FilePart/DataPart.",
+      "File name: in a2a.json (FileBase.name); no name on proto FilePart.",
+      "Message parts field: json 'parts' (Message.parts); proto 'content' (Message.content, a2a.proto line 251).",
+      "referenceTaskIds: json Message.referenceTaskIds; no such field in proto Message."
+    ]
+  },
+  "agentCard": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "5.5",
+      "heading": "AgentCard Object Structure",
+      "line": 303
+    },
+    "inSpecMd": false,
+    "schemaRef": {
+      "file": "a2a.json",
+      "definition": "AgentCard",
+      "line": 138
+    },
+    "protoRef": {
+      "file": "a2a.proto",
+      "line": 345
+    },
+    "fields": [
+      {
+        "field": "additionalInterfaces",
+        "requiredInJson": false,
+        "jsonLine": 141,
+        "protoField": "additional_interfaces = 15",
+        "protoLine": 361
+      },
+      {
+        "field": "capabilities",
+        "requiredInJson": true,
+        "jsonLine": 148,
+        "protoField": "capabilities = 7",
+        "protoLine": 370
+      },
+      {
+        "field": "defaultInputModes",
+        "requiredInJson": true,
+        "jsonLine": 152,
+        "protoField": "default_input_modes = 10",
+        "protoLine": 391
+      },
+      {
+        "field": "defaultOutputModes",
+        "requiredInJson": true,
+        "jsonLine": 159,
+        "protoField": "default_output_modes = 11",
+        "protoLine": 393
+      },
+      {
+        "field": "description",
+        "requiredInJson": true,
+        "jsonLine": 166,
+        "protoField": "description = 2",
+        "protoLine": 353
+      },
+      {
+        "field": "documentationUrl",
+        "requiredInJson": false,
+        "jsonLine": 173,
+        "protoField": "documentation_url = 6",
+        "protoLine": 368
+      },
+      {
+        "field": "iconUrl",
+        "requiredInJson": false,
+        "jsonLine": 177,
+        "protoField": null,
+        "protoLine": null
+      },
+      {
+        "field": "name",
+        "requiredInJson": true,
+        "jsonLine": 181,
+        "protoField": "name = 1",
+        "protoLine": 350
+      },
+      {
+        "field": "preferredTransport",
+        "requiredInJson": false,
+        "jsonLine": 188,
+        "protoField": "preferred_transport = 14",
+        "protoLine": 358
+      },
+      {
+        "field": "protocolVersion",
+        "requiredInJson": true,
+        "jsonLine": 198,
+        "protoField": "protocol_version = 16",
+        "protoLine": 347
+      },
+      {
+        "field": "provider",
+        "requiredInJson": false,
+        "jsonLine": 203,
+        "protoField": "provider = 4",
+        "protoLine": 363
+      },
+      {
+        "field": "security",
+        "requiredInJson": false,
+        "jsonLine": 207,
+        "protoField": "security = 9",
+        "protoLine": 387
+      },
+      {
+        "field": "securitySchemes",
+        "requiredInJson": false,
+        "jsonLine": 233,
+        "protoField": "security_schemes = 8",
+        "protoLine": 372
+      },
+      {
+        "field": "signatures",
+        "requiredInJson": false,
+        "jsonLine": 240,
+        "protoField": "signatures = 17",
+        "protoLine": 403
+      },
+      {
+        "field": "skills",
+        "requiredInJson": true,
+        "jsonLine": 247,
+        "protoField": "skills = 12",
+        "protoLine": 397
+      },
+      {
+        "field": "supportsAuthenticatedExtendedCard",
+        "requiredInJson": false,
+        "jsonLine": 254,
+        "protoField": "supports_authenticated_extended_card = 13",
+        "protoLine": 401
+      },
+      {
+        "field": "url",
+        "requiredInJson": true,
+        "jsonLine": 258,
+        "protoField": "url = 3",
+        "protoLine": 356
+      },
+      {
+        "field": "version",
+        "requiredInJson": true,
+        "jsonLine": 265,
+        "protoField": "version = 5",
+        "protoLine": 366
+      }
+    ],
+    "subObjects": {
+      "AgentProvider": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.1",
+          "heading": "AgentProvider Object",
+          "line": 309
+        },
+        "fields": [
+          {
+            "field": "organization",
+            "requiredInJson": true,
+            "jsonLine": 379
+          },
+          {
+            "field": "url",
+            "requiredInJson": true,
+            "jsonLine": 383
+          }
+        ]
+      },
+      "AgentCapabilities": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.2",
+          "heading": "AgentCapabilities Object",
+          "line": 317
+        },
+        "fields": [
+          {
+            "field": "extensions",
+            "requiredInJson": false,
+            "jsonLine": 116
+          },
+          {
+            "field": "pushNotifications",
+            "requiredInJson": false,
+            "jsonLine": 123
+          },
+          {
+            "field": "stateTransitionHistory",
+            "requiredInJson": false,
+            "jsonLine": 127
+          },
+          {
+            "field": "streaming",
+            "requiredInJson": false,
+            "jsonLine": 131
+          }
+        ],
+        "protoFields": [
+          "streaming = 1",
+          "push_notifications = 2",
+          "extensions = 3"
+        ],
+        "protoLacks": [
+          "stateTransitionHistory"
+        ]
+      },
+      "AgentExtension": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.2.1",
+          "heading": "AgentExtension Object",
+          "line": 325
+        },
+        "fields": [
+          {
+            "field": "description",
+            "requiredInJson": false,
+            "jsonLine": 319
+          },
+          {
+            "field": "params",
+            "requiredInJson": false,
+            "jsonLine": 323
+          },
+          {
+            "field": "required",
+            "requiredInJson": false,
+            "jsonLine": 328
+          },
+          {
+            "field": "uri",
+            "requiredInJson": true,
+            "jsonLine": 332
+          }
+        ]
+      },
+      "AgentSkill": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.4",
+          "heading": "AgentSkill Object",
+          "line": 341
+        },
+        "fields": [
+          {
+            "field": "description",
+            "requiredInJson": true,
+            "jsonLine": 397
+          },
+          {
+            "field": "examples",
+            "requiredInJson": false,
+            "jsonLine": 401
+          },
+          {
+            "field": "id",
+            "requiredInJson": true,
+            "jsonLine": 413
+          },
+          {
+            "field": "inputModes",
+            "requiredInJson": false,
+            "jsonLine": 417
+          },
+          {
+            "field": "name",
+            "requiredInJson": true,
+            "jsonLine": 424
+          },
+          {
+            "field": "outputModes",
+            "requiredInJson": false,
+            "jsonLine": 428
+          },
+          {
+            "field": "security",
+            "requiredInJson": false,
+            "jsonLine": 435
+          },
+          {
+            "field": "tags",
+            "requiredInJson": true,
+            "jsonLine": 457
+          }
+        ]
+      },
+      "AgentInterface": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.5",
+          "heading": "AgentInterface Object",
+          "line": 349
+        },
+        "fields": [
+          {
+            "field": "transport",
+            "requiredInJson": true,
+            "jsonLine": 345
+          },
+          {
+            "field": "url",
+            "requiredInJson": true,
+            "jsonLine": 354
+          }
+        ]
+      },
+      "AgentCardSignature": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.6",
+          "heading": "AgentCardSignature Object",
+          "line": 369
+        },
+        "fields": [
+          {
+            "field": "header",
+            "requiredInJson": false,
+            "jsonLine": 289
+          },
+          {
+            "field": "protected",
+            "requiredInJson": true,
+            "jsonLine": 294
+          },
+          {
+            "field": "signature",
+            "requiredInJson": true,
+            "jsonLine": 298
+          }
+        ]
+      },
+      "SecurityScheme": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.3",
+          "heading": "SecurityScheme Object",
+          "line": 333
+        },
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "SecurityScheme",
+          "line": 1947
+        },
+        "typeValues": [
+          "apiKey",
+          "http",
+          "oauth2",
+          "openIdConnect",
+          "mutualTLS"
+        ],
+        "typeConstLines": {
+          "apiKey": 100,
+          "http": 1156,
+          "oauth2": 1772,
+          "openIdConnect": 1817,
+          "mutualTLS": 1746
+        }
+      }
+    },
+    "transportProtocol": {
+      "specRef": {
+        "file": "specification.md",
+        "section": "5.5.5",
+        "heading": "AgentInterface Object",
+        "line": 361
+      },
+      "values": [
+        "JSONRPC",
+        "GRPC",
+        "HTTP+JSON"
+      ],
+      "mdLines": [
+        363,
+        364,
+        365
+      ],
+      "schemaRef": {
+        "file": "a2a.json",
+        "definition": "TransportProtocol",
+        "line": 2542
+      },
+      "note": "a2a.json AgentInterface.transport is a plain string (examples JSONRPC, GRPC, HTTP+JSON); TransportProtocol is a separate enum definition."
+    },
+    "required": [
+      "capabilities",
+      "defaultInputModes",
+      "defaultOutputModes",
+      "description",
+      "name",
+      "protocolVersion",
+      "skills",
+      "url",
+      "version"
+    ],
+    "preferredTransport": {
+      "jsonDefault": "JSONRPC",
+      "jsonRequired": false,
+      "mdRequired": true,
+      "mdQuote": "- **Required declaration**: The `preferredTransport` field is **REQUIRED** and **MUST** be present in every `AgentCard`.",
+      "mdLine": 385,
+      "protoComment": "The transport of the preferred endpoint. If empty, defaults to JSONRPC.",
+      "protoLine": 358
+    },
+    "protocolVersion": {
+      "jsonDefault": "0.3.0",
+      "jsonLine": 198,
+      "sampleCardValue": "0.2.9",
+      "sampleCardLine": 417
+    },
+    "wellKnownPath": {
+      "value": "/.well-known/agent-card.json",
+      "specRef": {
+        "file": "specification.md",
+        "section": "5.3",
+        "heading": "Recommended Location",
+        "line": 290
+      },
+      "line": 293
+    },
+    "transportRules": [
+      {
+        "section": "5.6.1",
+        "heading": "Main URL and Preferred Transport",
+        "line": 381
+      },
+      {
+        "section": "5.6.2",
+        "heading": "Additional Interfaces",
+        "line": 388
+      },
+      {
+        "section": "5.6.3",
+        "heading": "Client Transport Selection Rules",
+        "line": 394
+      },
+      {
+        "section": "5.6.4",
+        "heading": "Validation Requirements",
+        "line": 404
+      }
+    ],
+    "sampleCard": {
+      "file": "specification.md",
+      "section": "5.7",
+      "heading": "Sample Agent Card",
+      "line": 413
+    },
+    "extendedCard": {
+      "flag": "supportsAuthenticatedExtendedCard",
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.10",
+        "heading": "agent/getAuthenticatedExtendedCard",
+        "line": 1109
+      },
+      "quote": "Retrieves a potentially more detailed version of the Agent Card after the client has authenticated. This endpoint is available only if `AgentCard.supportsAuthenticatedExtendedCard` is `true`.",
+      "line": 1111
+    },
+    "jsonVsProtoDifferences": [
+      "iconUrl: in a2a.json AgentCard, not in a2a.proto AgentCard.",
+      "AgentCapabilities.stateTransitionHistory: in a2a.json, not in a2a.proto."
+    ]
+  },
+  "pushNotifications": {
+    "specRef": {
+      "file": "specification.md",
+      "section": "9.5",
+      "heading": "Push Notification Setup and Usage",
+      "line": 1656
+    },
+    "body": {
+      "shape": "Task object serialized as JSON, with kind 'task'. No wrapper.",
+      "quote": "- **HTTP Body (Task object is sent as JSON payload):**",
+      "line": 1715,
+      "exampleLines": [
+        1722
+      ],
+      "definedInSchemaOrProto": false,
+      "note": "a2a.json and a2a.proto define no webhook body type; only this md example. The example elides other fields ('// ... other fields ...')."
+    },
+    "headers": [
+      {
+        "name": "Authorization",
+        "value": "Bearer <server_jwt_for_webhook_audience>",
+        "condition": "(if server authenticates to webhook)",
+        "line": 1712
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json",
+        "line": 1713
+      },
+      {
+        "name": "X-A2A-Notification-Token",
+        "value": "secure-client-token-for-task-aaa",
+        "quote": "- `X-A2A-Notification-Token: secure-client-token-for-task-aaa`",
+        "line": 1714,
+        "validatedAt": 1731,
+        "note": "Header is introduced with 'HTTP Headers might include' (not MUST). Carries PushNotificationConfig.token."
+      }
+    ],
+    "config": {
+      "PushNotificationConfig": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.8",
+          "heading": "PushNotificationConfig Object",
+          "line": 599
+        },
+        "json": [
+          {
+            "field": "authentication",
+            "requiredInJson": false,
+            "jsonLine": 1902
+          },
+          {
+            "field": "id",
+            "requiredInJson": false,
+            "jsonLine": 1906
+          },
+          {
+            "field": "token",
+            "requiredInJson": false,
+            "jsonLine": 1910
+          },
+          {
+            "field": "url",
+            "requiredInJson": true,
+            "jsonLine": 1914
+          }
+        ],
+        "protoFields": [
+          "id = 1",
+          "url = 2",
+          "token = 3",
+          "authentication = 4 (AuthenticationInfo)"
+        ],
+        "protoLine": 310
+      },
+      "PushNotificationAuthenticationInfo": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.9",
+          "heading": "PushNotificationAuthenticationInfo Object",
+          "line": 607
+        },
+        "json": [
+          {
+            "field": "credentials",
+            "requiredInJson": false,
+            "jsonLine": 1882
+          },
+          {
+            "field": "schemes",
+            "requiredInJson": true,
+            "jsonLine": 1886
+          }
+        ],
+        "protoMessage": "AuthenticationInfo",
+        "protoLine": 322
+      },
+      "TaskPushNotificationConfig": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.10",
+          "heading": "TaskPushNotificationConfig Object",
+          "line": 615
+        },
+        "json": [
+          {
+            "field": "pushNotificationConfig",
+            "requiredInJson": true,
+            "jsonLine": 2370
+          },
+          {
+            "field": "taskId",
+            "requiredInJson": true,
+            "jsonLine": 2374
+          }
+        ],
+        "protoFields": [
+          "name = 1 (tasks/{id}/pushNotificationConfigs/{id})",
+          "push_notification_config = 2"
+        ],
+        "protoLine": 486
+      },
+      "MessageSendConfiguration": {
+        "specRef": {
+          "file": "specification.md",
+          "section": "7.1.1",
+          "heading": "MessageSendParams Object",
+          "line": 716
+        },
+        "json": [
+          {
+            "field": "acceptedOutputModes",
+            "requiredInJson": false,
+            "jsonLine": 1672
+          },
+          {
+            "field": "blocking",
+            "requiredInJson": false,
+            "jsonLine": 1679
+          },
+          {
+            "field": "historyLength",
+            "requiredInJson": false,
+            "jsonLine": 1683
+          },
+          {
+            "field": "pushNotificationConfig",
+            "requiredInJson": false,
+            "jsonLine": 1687
+          }
+        ],
+        "protoFields": [
+          "accepted_output_modes = 1",
+          "push_notification = 2 (JSON name pushNotification)",
+          "history_length = 3",
+          "blocking = 4"
+        ],
+        "protoLine": 119,
+        "blockingJsonDescription": "If true, the client will wait for the task to complete. The server may reject this if the task is long-running.",
+        "blockingDefaultStatedInFiles": false
+      }
+    },
+    "requiredCapability": {
+      "quote": "Requires the server to have `AgentCard.capabilities.pushNotifications: true`.",
+      "line": 920
+    }
+  },
+  "streaming": {
+    "jsonRpc": {
+      "specRef": {
+        "file": "specification.md",
+        "section": "3.3.1",
+        "heading": "JSON-RPC 2.0 Streaming",
+        "line": 119
+      },
+      "contentType": "text/event-stream",
+      "eachDataIs": "a complete JSON-RPC 2.0 Response whose result is Task | Message | TaskStatusUpdateEvent | TaskArtifactUpdateEvent",
+      "resultRef": {
+        "file": "a2a.json",
+        "definition": "SendStreamingMessageSuccessResponse",
+        "line": 2116,
+        "property": "result"
+      },
+      "responseSection": {
+        "file": "specification.md",
+        "section": "7.2.1",
+        "heading": "SendStreamingMessageResponse Object",
+        "line": 781
+      }
+    },
+    "final": {
+      "schemaRef": {
+        "file": "a2a.json",
+        "definition": "TaskStatusUpdateEvent",
+        "line": 2486,
+        "property": "final"
+      },
+      "jsonDescription": "If true, this is the final event in the stream for this interaction.",
+      "requiredInJson": true,
+      "protoComment": "Whether this is the last status update expected for this task.",
+      "protoLine": 287,
+      "mdExample": {
+        "line": 1472,
+        "closeQuote": "_(Server closes the SSE connection after the `final:true` event)._",
+        "closeLine": 1478,
+        "specRef": {
+          "file": "specification.md",
+          "section": "9.3",
+          "heading": "Streaming Task Execution (SSE)",
+          "line": 1332
+        }
+      },
+      "mdDefinesWhenFinalIsTrue": false
+    },
+    "artifactUpdateFields": {
+      "append": 2264,
+      "lastChunk": 2281
+    },
+    "protoStreamResponse": {
+      "line": 699,
+      "oneof": [
+        "task",
+        "msg (JSON name message)",
+        "status_update",
+        "artifact_update"
+      ],
+      "streamEndComment": "The stream should complete when the Task if in an interrupted or terminal state."
+    }
+  },
+  "extensionsHeader": {
+    "found": false,
+    "statement": "No HTTP header, gRPC metadata key or JSON-RPC member for extension activation exists in specification.md, a2a.json or a2a.proto.",
+    "searchedTerms": [
+      "A2A-Extensions",
+      "X-A2A-Extensions",
+      "A2A-Version",
+      "extension (case-insensitive)",
+      "header (case-insensitive)"
+    ],
+    "whatExists": [
+      {
+        "item": "AgentCapabilities.extensions[] / AgentExtension {uri, description, required, params}",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "AgentExtension",
+          "line": 309
+        },
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 427
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "5.5.2.1",
+          "heading": "AgentExtension Object",
+          "line": 325
+        }
+      },
+      {
+        "item": "Message.extensions[] and Artifact.extensions[] (arrays of extension URIs)",
+        "schemaRef": {
+          "file": "a2a.json",
+          "definition": "Message",
+          "line": 1613,
+          "property": "extensions"
+        },
+        "protoRef": {
+          "file": "a2a.proto",
+          "line": 256
+        },
+        "specRef": {
+          "file": "specification.md",
+          "section": "6.4",
+          "heading": "Message Object",
+          "line": 521
+        }
+      },
+      {
+        "item": "Extension method naming rule: '{category}/{action}' with a clear namespace, e.g. myorg.extension/action",
+        "specRef": {
+          "file": "specification.md",
+          "section": "3.5.5",
+          "heading": "Extension Method Naming",
+          "line": 199
+        },
+        "line": 203
+      }
+    ],
+    "otherHeadersNamed": [
+      {
+        "header": "X-A2A-Notification-Token",
+        "line": 1714
+      },
+      {
+        "header": "Authorization",
+        "line": 245
+      },
+      {
+        "header": "X-API-Key",
+        "line": 245
+      },
+      {
+        "header": "WWW-Authenticate",
+        "line": 253
+      }
+    ],
+    "versionHeader": {
+      "found": false,
+      "statement": "No A2A-Version header in any of the three files; the version is carried in AgentCard.protocolVersion (default '0.3.0' in a2a.json)."
+    }
+  },
+  "messageAndTaskFields": {
+    "Task": {
+      "fields": [
+        {
+          "field": "artifacts",
+          "requiredInJson": false,
+          "jsonLine": 2216
+        },
+        {
+          "field": "contextId",
+          "requiredInJson": true,
+          "jsonLine": 2223
+        },
+        {
+          "field": "history",
+          "requiredInJson": false,
+          "jsonLine": 2227
+        },
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 2234
+        },
+        {
+          "field": "kind",
+          "requiredInJson": true,
+          "jsonLine": 2238
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 2243
+        },
+        {
+          "field": "status",
+          "requiredInJson": true,
+          "jsonLine": 2248
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.1",
+        "heading": "Task Object",
+        "line": 497
+      },
+      "protoLine": 138
+    },
+    "TaskStatus": {
+      "fields": [
+        {
+          "field": "message",
+          "requiredInJson": false,
+          "jsonLine": 2458
+        },
+        {
+          "field": "state",
+          "requiredInJson": true,
+          "jsonLine": 2462
+        },
+        {
+          "field": "timestamp",
+          "requiredInJson": false,
+          "jsonLine": 2466
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.2",
+        "heading": "TaskStatus Object",
+        "line": 505
+      },
+      "protoLine": 184,
+      "protoMessageJsonName": "update = 2 [json_name = \"message\"]"
+    },
+    "Message": {
+      "fields": [
+        {
+          "field": "contextId",
+          "requiredInJson": false,
+          "jsonLine": 1609
+        },
+        {
+          "field": "extensions",
+          "requiredInJson": false,
+          "jsonLine": 1613
+        },
+        {
+          "field": "kind",
+          "requiredInJson": true,
+          "jsonLine": 1620
+        },
+        {
+          "field": "messageId",
+          "requiredInJson": true,
+          "jsonLine": 1625
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 1629
+        },
+        {
+          "field": "parts",
+          "requiredInJson": true,
+          "jsonLine": 1634
+        },
+        {
+          "field": "referenceTaskIds",
+          "requiredInJson": false,
+          "jsonLine": 1641
+        },
+        {
+          "field": "role",
+          "requiredInJson": true,
+          "jsonLine": 1648
+        },
+        {
+          "field": "taskId",
+          "requiredInJson": false,
+          "jsonLine": 1656
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.4",
+        "heading": "Message Object",
+        "line": 521
+      },
+      "protoLine": 237
+    },
+    "Artifact": {
+      "fields": [
+        {
+          "field": "artifactId",
+          "requiredInJson": true,
+          "jsonLine": 483
+        },
+        {
+          "field": "description",
+          "requiredInJson": false,
+          "jsonLine": 487
+        },
+        {
+          "field": "extensions",
+          "requiredInJson": false,
+          "jsonLine": 491
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 498
+        },
+        {
+          "field": "name",
+          "requiredInJson": false,
+          "jsonLine": 503
+        },
+        {
+          "field": "parts",
+          "requiredInJson": true,
+          "jsonLine": 507
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "6.7",
+        "heading": "Artifact Object",
+        "line": 591
+      },
+      "protoLine": 262
+    },
+    "TaskStatusUpdateEvent": {
+      "fields": [
+        {
+          "field": "contextId",
+          "requiredInJson": true,
+          "jsonLine": 2482
+        },
+        {
+          "field": "final",
+          "requiredInJson": true,
+          "jsonLine": 2486
+        },
+        {
+          "field": "kind",
+          "requiredInJson": true,
+          "jsonLine": 2490
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 2495
+        },
+        {
+          "field": "status",
+          "requiredInJson": true,
+          "jsonLine": 2500
+        },
+        {
+          "field": "taskId",
+          "requiredInJson": true,
+          "jsonLine": 2504
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.2.2",
+        "heading": "TaskStatusUpdateEvent Object",
+        "line": 791
+      },
+      "protoLine": 279
+    },
+    "TaskArtifactUpdateEvent": {
+      "fields": [
+        {
+          "field": "append",
+          "requiredInJson": false,
+          "jsonLine": 2264
+        },
+        {
+          "field": "artifact",
+          "requiredInJson": true,
+          "jsonLine": 2268
+        },
+        {
+          "field": "contextId",
+          "requiredInJson": true,
+          "jsonLine": 2272
+        },
+        {
+          "field": "kind",
+          "requiredInJson": true,
+          "jsonLine": 2276
+        },
+        {
+          "field": "lastChunk",
+          "requiredInJson": false,
+          "jsonLine": 2281
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 2285
+        },
+        {
+          "field": "taskId",
+          "requiredInJson": true,
+          "jsonLine": 2290
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.2.3",
+        "heading": "TaskArtifactUpdateEvent Object",
+        "line": 799
+      },
+      "protoLine": 294
+    },
+    "MessageSendParams": {
+      "fields": [
+        {
+          "field": "configuration",
+          "requiredInJson": false,
+          "jsonLine": 1697
+        },
+        {
+          "field": "message",
+          "requiredInJson": true,
+          "jsonLine": 1701
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 1705
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.1.1",
+        "heading": "MessageSendParams Object",
+        "line": 716
+      },
+      "protoMessage": "SendMessageRequest",
+      "protoLine": 619
+    },
+    "TaskQueryParams": {
+      "fields": [
+        {
+          "field": "historyLength",
+          "requiredInJson": false,
+          "jsonLine": 2388
+        },
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 2392
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 2396
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.3.1",
+        "heading": "TaskQueryParams Object",
+        "line": 840
+      }
+    },
+    "TaskIdParams": {
+      "fields": [
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 2306
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 2310
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.4.1",
+        "heading": "TaskIdParams Object",
+        "line": 910
+      }
+    },
+    "GetTaskPushNotificationConfigParams": {
+      "fields": [
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 971
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 975
+        },
+        {
+          "field": "pushNotificationConfigId",
+          "requiredInJson": false,
+          "jsonLine": 980
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.6.1",
+        "heading": "GetTaskPushNotificationConfigParams Object",
+        "line": 988
+      }
+    },
+    "ListTaskPushNotificationConfigParams": {
+      "fields": [
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 1516
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 1520
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.7.1",
+        "heading": "ListTaskPushNotificationConfigParams Object",
+        "line": 1028
+      }
+    },
+    "DeleteTaskPushNotificationConfigParams": {
+      "fields": [
+        {
+          "field": "id",
+          "requiredInJson": true,
+          "jsonLine": 722
+        },
+        {
+          "field": "metadata",
+          "requiredInJson": false,
+          "jsonLine": 726
+        },
+        {
+          "field": "pushNotificationConfigId",
+          "requiredInJson": true,
+          "jsonLine": 731
+        }
+      ],
+      "specRef": {
+        "file": "specification.md",
+        "section": "7.8.1",
+        "heading": "DeleteTaskPushNotificationConfigParams Object",
+        "line": 1044
+      }
+    }
+  },
+  "fileDisagreements": [
+    {
+      "id": "F1",
+      "topic": "tasks/list",
+      "text": "Described only in specification.md (JSON-RPC 'N/A', gRPC 'ListTask', REST 'GET /v1/tasks'). Not in a2a.json, no rpc in a2a.proto.",
+      "mdLines": [
+        846,
+        218
+      ]
+    },
+    {
+      "id": "F2",
+      "topic": "tasks/resubscribe REST verb",
+      "md": "POST /v1/tasks/{id}:subscribe (lines 220, 1089)",
+      "proto": "get: \"/v1/{name=tasks/*}:subscribe\" (line 71)"
+    },
+    {
+      "id": "F3",
+      "topic": "gRPC rpc names for push configs",
+      "md": "CreateTaskPushNotification, GetTaskPushNotification, ListTaskPushNotification, DeleteTaskPushNotification (lines 221-224)",
+      "proto": "CreateTaskPushNotificationConfig, GetTaskPushNotificationConfig, ListTaskPushNotificationConfig, DeleteTaskPushNotificationConfig (lines 76, 85, 93, 107)"
+    },
+    {
+      "id": "F4",
+      "topic": "gRPC request message shapes",
+      "md": "7.1 'Message msg = 1' (line 678); 7.5 'message SetTaskPushNotificationRequest' with one 'config' field (line 935); 7.6 uses 'message TaskSubscriptionRequest' for get (line 971)",
+      "proto": "SendMessageRequest.request json_name 'message' (line 620); CreateTaskPushNotificationConfigRequest {parent, config_id, config} (line 647); GetTaskPushNotificationConfigRequest {name} (line 637)"
+    },
+    {
+      "id": "F5",
+      "topic": "REST push config create",
+      "md": "POST /v1/tasks/{id}/pushNotificationConfigs, payload { config: TaskPushNotificationConfig } (lines 941-950)",
+      "proto": "post: \"/v1/{parent=task/*/pushNotificationConfigs}\" body: \"config\" (line 79; 'task/*' singular); config_id is REQUIRED in the request message (line 651)"
+    },
+    {
+      "id": "F6",
+      "topic": "TaskState values",
+      "json": "9 values incl. 'unknown', spelled 'canceled' (a2a.json lines 2443-2451)",
+      "proto": "TASK_STATE_CANCELLED (two Ls, line 169); no UNKNOWN value; adds TASK_STATE_UNSPECIFIED = 0 (line 158)"
+    },
+    {
+      "id": "F7",
+      "topic": "Message and Part fields",
+      "json": "Message.parts, Message.referenceTaskIds, part metadata, FileBase.name, kind on every object",
+      "proto": "Message.content (line 251); no referenceTaskIds; no metadata on Part/TextPart/FilePart/DataPart; FilePart has mime_type but no name; no kind"
+    },
+    {
+      "id": "F8",
+      "topic": "MessageSendConfiguration push field",
+      "json": "pushNotificationConfig (a2a.json line 1687)",
+      "proto": "push_notification = 2, ProtoJSON name pushNotification (line 123)",
+      "md": "9.5 step 1 heading text says 'with `pushNotification` config' (line 1660) while its JSON example uses pushNotificationConfig"
+    },
+    {
+      "id": "F9",
+      "topic": "TaskPushNotificationConfig id field",
+      "json": "taskId + pushNotificationConfig (required both)",
+      "proto": "name ('tasks/{id}/pushNotificationConfigs/{id}', line 487) + push_notification_config"
+    },
+    {
+      "id": "F10",
+      "topic": "AgentCard fields",
+      "json": "iconUrl; capabilities.stateTransitionHistory",
+      "proto": "neither field exists"
+    },
+    {
+      "id": "F11",
+      "topic": "preferredTransport required",
+      "md": "REQUIRED (line 385)",
+      "json": "not in AgentCard.required[]; default 'JSONRPC' (line 188)",
+      "proto": "'If empty, defaults to JSONRPC.' (line 357)"
+    },
+    {
+      "id": "F12",
+      "topic": "protocolVersion value",
+      "json": "default '0.3.0' (line 198)",
+      "md": "5.7 sample card has \"protocolVersion\": \"0.2.9\" (line 417)"
+    },
+    {
+      "id": "F13",
+      "topic": "Extended card method name in md",
+      "md": "7.10 'agent/getAuthenticatedExtendedCard' (line 1109); 11.1.3 'agent/authenticatedExtendedCard' (line 1945)",
+      "json": "agent/getAuthenticatedExtendedCard (GetAuthenticatedExtendedCardRequest definition starts at a2a.json line 901)"
+    },
+    {
+      "id": "F14",
+      "topic": "Error message strings",
+      "text": "md 8.1/8.2 'Typical message' differs from a2a.json message default for -32600, -32602, -32603, -32006, -32007",
+      "details": [
+        {
+          "code": -32600,
+          "md": "Invalid JSON-RPC Request",
+          "json": "Request payload validation error"
+        },
+        {
+          "code": -32602,
+          "md": "Invalid method parameters",
+          "json": "Invalid parameters"
+        },
+        {
+          "code": -32603,
+          "md": "Internal server error",
+          "json": "Internal error"
+        },
+        {
+          "code": -32006,
+          "md": "Invalid agent response type",
+          "json": "Invalid agent response"
+        },
+        {
+          "code": -32007,
+          "md": "Authenticated Extended Card not configured",
+          "json": "Authenticated Extended Card is not configured"
+        }
+      ]
+    },
+    {
+      "id": "F15",
+      "topic": "gRPC error mapping",
+      "md": "3.2.2: 'MUST map A2A error codes to appropriate gRPC status codes as defined in the proto annotations.' (line 91)",
+      "proto": "no such annotations"
+    },
+    {
+      "id": "F16",
+      "topic": "proto GetTaskRequest.history_length",
+      "text": "a2a.proto header comment says 'the optional history_length on the get task method is not present' (line 28-29) but GetTaskRequest has 'int32 history_length = 2' (line 629)"
+    },
+    {
+      "id": "F17",
+      "topic": "push config list paging",
+      "json": "ListTaskPushNotificationConfigParams = {id, metadata}; result is an array",
+      "proto": "ListTaskPushNotificationConfigRequest has page_size, page_token (lines 667, 675); response has next_page_token (line 712)"
+    },
+    {
+      "id": "F18",
+      "topic": "tasks/pushNotificationConfig/get params",
+      "json": "params is anyOf TaskIdParams | GetTaskPushNotificationConfigParams (pushNotificationConfigId optional, a2a.json GetTaskPushNotificationConfigRequest line 990)"
+    }
+  ]
+}
