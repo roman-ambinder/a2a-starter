@@ -93,3 +93,89 @@ Differences found by comparing `tests/vectors/v0_3/inventory.json` (extracted on
 | Push config list paging | json:1513 vs proto:665-676, 708-712 | Open (push-config tasks): JSON-RPC `tasks/pushNotificationConfig/list` has no paging and returns an array; gRPC has `page_size`, `page_token` and `next_page_token`. Serve the full list on JSON-RPC and REST; honor the proto fields on gRPC. | `ListTaskPushNotificationConfigParams` is `{ id, metadata }` and the result is `TaskPushNotificationConfig[]` (json:1575). |
 | Push config get/delete params | json:990, 719 | `tasks/pushNotificationConfig/get` params may be a bare `TaskIdParams` (no `pushNotificationConfigId`); `tasks/pushNotificationConfig/delete` requires `pushNotificationConfigId`. Delete result is `null`. | `GetTaskPushNotificationConfigRequest.params` is `anyOf` `TaskIdParams` or `GetTaskPushNotificationConfigParams`; delete params require `id` and `pushNotificationConfigId`; spec:1041: `**Response \`result\` type (on success)**: [\`null\`]`. |
 | Proto comment contradicts proto | proto:28-29 vs proto:629 | Use `GetTaskRequest.history_length` (proto:629). | Header comment says `the optional history_length on the get task method is not present`, but `GetTaskRequest` has `int32 history_length = 2;`. |
+
+### A2A 0.3 compatibility: error codes
+
+Task 6 (`src/Compat.V0_3.Shared/Conversion/V03ErrorMap.cs`). The 0.3 side is `inventory.json` `errorCodes`, from `a2a.json` `A2AError` (json:4). The 1.0 side is `A2AErrorCode` in `src/Ambinder.A2A.Protocol/Errors/`.
+
+| 0.3 code | 0.3 name (a2a.json) | 1.0 `A2AErrorCode` | Direction 1.0 to 0.3 | Direction 0.3 to 1.0 |
+|---|---|---|---|---|
+| -32700 | `JSONParseError` | `ParseError` | identity | identity |
+| -32600 | `InvalidRequestError` | `InvalidRequest` | identity | identity |
+| -32601 | `MethodNotFoundError` | `MethodNotFound` | identity | identity |
+| -32602 | `InvalidParamsError` | `InvalidParams` | identity | identity |
+| -32603 | `InternalError` | `InternalError` | identity | identity |
+| -32001 | `TaskNotFoundError` | `TaskNotFound` | identity | identity |
+| -32002 | `TaskNotCancelableError` | `TaskNotCancelable` | identity | identity |
+| -32003 | `PushNotificationNotSupportedError` | `PushNotificationNotSupported` | identity | identity |
+| -32004 | `UnsupportedOperationError` | `UnsupportedOperation` | identity | identity |
+| -32005 | `ContentTypeNotSupportedError` | `ContentTypeNotSupported` | identity | identity |
+| -32006 | `InvalidAgentResponseError` | `InvalidAgentResponse` | identity | identity |
+| -32007 | `AuthenticatedExtendedCardNotConfiguredError` | `ExtendedAgentCardNotConfigured` | identity (exact counterpart, not `InvalidRequest`) | identity |
+| none | none | `ExtensionSupportRequired` (-32008) | -32600 `InvalidRequest` | not applicable |
+| none | none | `VersionNotSupported` (-32009) | -32600 `InvalidRequest` | not applicable |
+| any other number, including the rest of -32099 to -32000 | none | none | not applicable | `InternalError`; message and `data` kept, the number is lost |
+
+- **Plan writer's call, awaiting owner review:** the two 1.0-only rows. The plan (Task 6) and spec 15 say "nearest 0.3 code" and name `InvalidRequest`. `message` and `data` of the exception are kept, so a 0.3 client still sees why. The original 1.0 code is not carried (0.3 has no member for it, and adding one to `data` would invent a shape).
+- **Implementer default, awaiting owner review:** the last row. `A2AException` can only hold an `A2AErrorCode`, and a 0.3 peer's own code in the server range would not fit. `InternalError` is the code a 1.0 caller already handles for "the other side failed".
+- **`data`:** a2a.json `JSONRPCError.data` is `A primitive or structured value containing additional information about the error. This may be omitted.` (json:1315). The 0.3 `data` member is the exception's `Data` value as it is (for the A2A errors this is a flat JSON object such as `{"taskId": "..."}`, see `errors/jsonrpc-error.32001-task-not-found.json`). It is never the 1.0 `ErrorInfo` array (`type`, `reason`, `domain`, `metadata`); `reason` and `domain` have no 0.3 home. When the exception has no data, `data` is omitted.
+- **Message text:** the exception message is copied. The five code messages where `specification.md` and `a2a.json` differ (see "Error codes and `data`" above) are not rewritten by the map; the server chooses its message.
+- **Not decided here:** the HTTP status of 0.3 REST problem details and gRPC status codes (both are "Open" rows above, for the REST and gRPC tasks).
+
+### A2A 0.3 compatibility: field mapping
+
+Task 6 converters (`src/Compat.V0_3.Shared/Conversion/`). The rule is plan 15 "Lossless conversion": every field with a 1.0 home is carried. This section lists what is not, and the mapping choices that the files leave open. Entries marked **implementer default** are my choice, as the least lossy one, and wait for owner review; none of them is final.
+
+**0.3 fields with no 1.0 home (dropped going 0.3 to 1.0)**
+
+| 0.3 field | Where | What happens |
+|---|---|---|
+| `kind` | every object | Derived. Dropped in, written out. |
+| `final` | `TaskStatusUpdateEvent` | 1.0 has no such member. Dropped in. Out, the converter leaves it `false`; the stream writer (Task 10) sets it from the task state. |
+| `metadata` | `tasks/get`, `tasks/resubscribe`, push-config get, list and delete params | The 1.0 request records have no metadata member. Dropped. (`message/send` and `tasks/cancel` metadata is carried.) |
+| `authentication.schemes` beyond the first | `PushNotificationConfig` | 1.0 `AuthenticationInfo.Scheme` is one string. **Implementer default:** the first scheme is kept, the others are dropped. An empty list gives `Scheme = ""`, and `""` writes an empty list. |
+| `Message.content`, `configuration.pushNotification`, `TaskPushNotificationConfig.name` | proto-shaped names | Read-only aliases in the models (see "Message, part and config field names"). `name` supplies `TaskId` (and `Id`) when `taskId` is absent; it is never written. |
+| `contextId: ""` | `Task` | Read as `null`; `null` is written as `""` because 0.3 requires the member. |
+| unknown `state` string | `TaskStatus` | Read as `Unspecified`, which is written back as `unknown`; the original string is lost. |
+| `role` other than `user`/`agent` | `Message` | Read as `Unspecified`, which is written as no `role`. |
+| `pushNotificationConfigId` absent | push-config get params | 1.0 needs an id: `Id = ""`. **Open for Task 13:** what the server does with an empty id (for example the only config of the task) is not decided here. |
+| `capabilities.stateTransitionHistory`, `iconUrl` | card | Card tasks decide (see below). |
+
+**1.0 fields with no 0.3 home (dropped going 1.0 to 0.3)**
+
+| 1.0 field | Where | What happens |
+|---|---|---|
+| `Tenant` | every request record, `TaskPushNotificationConfig` | Dropped. The dispatcher takes the tenant from the call context. |
+| `Part.MediaType`, `Part.Filename` | text and data parts | 0.3 `TextPart` and `DataPart` have no such members. Dropped. (They are carried for raw and url parts as `mimeType` and `name`.) |
+| `Part.Data` that is not a JSON object | data part | 0.3 `DataPart.data` is an object. **Implementer default:** wrapped as `{"value": <data>}`, not unwrapped on the way back. |
+| `Metadata` that is not a JSON object | message, part, artifact, task, events, request | 0.3 `metadata` is an object. Dropped. |
+| `ListTaskPushNotificationConfigsResponse.NextPageToken`, `ListTaskPushNotificationConfigsRequest.PageSize`/`PageToken` | push-config list | 0.3 JSON-RPC has no paging (open row "Push config list paging"). The caller must fetch all pages first. |
+| `ReturnImmediately` (as a field) | `SendMessageConfiguration` | Carried as `blocking = !ReturnImmediately`, see below. |
+| `ErrorInfo` `reason`, `domain` | errors | See "error codes" above. |
+| `ListTasksRequest`, `ListTasksResponse` | `ListTasks` | 0.3 has no `tasks/list` JSON-RPC method (open row "`tasks/list`"). No converter. |
+| `Role.Unspecified`, `TaskState.Unspecified` | enums | Written as no role and `unknown`. |
+| a 1.0 part that is invalid (none or several of text, raw, url, data) | `Part` | Cannot be written: `A2AException` with `InvalidAgentResponse`. |
+
+**Mapping choices**
+
+- **`blocking`** (`SendMessageConfiguration`): `ReturnImmediately = !blocking`; the vendored files state no default for an absent `blocking` (inventory `blockingDefaultStatedInFiles: false`, closed in the row "`blocking` default" above). **Implementer default:** an absent `blocking`, and an absent `configuration`, read as `false`, so `ReturnImmediately = true`. Going out, `blocking` is always written (`!ReturnImmediately`), so a 1.0 request without a configuration becomes `blocking: true`. Consequence: a 0.3 caller that omits `blocking` gets the task back at once instead of waiting; callers that want to wait must send `blocking: true`. The converter test is named `Blocking_absent_equals_false_so_return_immediately_is_true`.
+- **File parts:** `bytes` is the base64 text in 0.3 and `Raw` bytes in 1.0 (invalid base64 gives `InvalidParams`); a file with both or neither of `bytes` and `uri` gives `InvalidParams`.
+- **Timestamps:** read with the 1.0 rule (no offset means UTC); written as UTC with `Z`. An offset like `+02:00` is normalized to UTC, so the string can change while the instant does not. The Python captures in `tests/vectors` without an offset gain a `Z`.
+- **Artifact update flags:** a missing `append` or `lastChunk` reads as `false`; both are always written on the way out, also when `false`.
+- **Empty lists:** `extensions`, `referenceTaskIds`, `artifacts`, `history`, `acceptedOutputModes` that are empty in 1.0 are omitted in 0.3; absent in 0.3 reads as empty in 1.0.
+- **Missing members at run time:** the 0.3 models do not apply their initializers to a member that is missing on the wire (for example `Message.MessageId`, `Parts`, `Task.Status` are `null` after reading `{}`). The converters accept that: missing `parts` read as empty, a missing `status` as an empty status, a missing `messageId` as `""`, and `message/send` params without `message` give `InvalidParams`. This is a Task 4 model quirk, not a Task 6 choice; fix it there if the models should be strict.
+
+**Cards (Task 7 decides; this list is only what the model types show, to be confirmed there)**
+
+- 0.3 `url`, `preferredTransport`, `additionalInterfaces`, `protocolVersion` have no card-level 1.0 field: they become entries of `supportedInterfaces` (`protocolBinding`, `protocolVersion`) and back. 1.0 `AgentInterface.Tenant` and a per-interface `protocolVersion` other than the 0.3 value have no 0.3 home.
+- 0.3 `security` (and `skills[].security`) is `array of map<string, string[]>`; 1.0 `securityRequirements` is `SecurityRequirement { schemes: map<string, StringList> }` (A2A discussion #1416 on how the two relate). They are carried by name where the shapes line up.
+- 0.3 `securitySchemes` is a flat object with a `type` discriminator; 1.0 `SecurityScheme` is a wrapper with one member per type. 1.0 `OAuthFlows.DeviceCode` has no 0.3 flow (`V03OAuthFlows` has implicit, password, clientCredentials and authorizationCode only).
+- 0.3 `supportsAuthenticatedExtendedCard` pairs with 1.0 `capabilities.extendedAgentCard` (open row "Card: fields spec 15 does not mention"). 0.3 `capabilities.stateTransitionHistory` has no 1.0 member.
+- `iconUrl` is in both the 0.3 JSON schema and the 1.0 card, but not in the 0.3 proto.
+
+**Push configuration (Tasks 13, 16)**
+
+- 0.3 `TaskPushNotificationConfig` is `taskId` + `pushNotificationConfig`; 1.0 is one flat record (`TaskId`, `Id`, `Url`, `Token`, `Authentication`). The converter flattens and un-flattens.
+- `tasks/pushNotificationConfig/list`: 0.3 returns a plain array; 1.0 returns a page (see above).
+- `tasks/pushNotificationConfig/delete`: the 0.3 result is `null` (open row "Push config get/delete params"); the converter has no delete result, the dispatcher writes `null`.
+- `tasks/pushNotificationConfig/set` maps to the 1.0 create call with the flattened config; its `taskId` is required in 0.3 and is carried to `TaskId`.
