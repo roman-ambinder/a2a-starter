@@ -1,8 +1,8 @@
 namespace Ambinder.A2A.Server.Security;
 
 /// <summary>
-/// <see cref="IA2ACallerAccessor"/> backed by one process-wide <see cref="AsyncLocal{T}"/>. The value is only ever set by the task
-/// manager around a run, so sharing the slot between hosts in one process is harmless.
+/// <see cref="IA2ACallerAccessor"/> backed by one process-wide <see cref="AsyncLocal{T}"/>. The task manager is the only writer:
+/// it sets the value around a run, so sharing the slot between hosts in one process is harmless.
 /// </summary>
 internal sealed class A2ACallerAccessor : IA2ACallerAccessor
 {

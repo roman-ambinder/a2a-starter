@@ -40,3 +40,5 @@ A2A.Server.A2ACallContext.A2ACallContext(AgentName,User,Owner,Tenant,ProtocolVer
 A2A.Server.A2ACallContext.User,Ambinder.A2A.Server.A2ACallContext.Caller.Principal,Ambinder.A2A.Server,replaced by Caller (A2ACaller); Principal is a snapshot copy
 A2A.Server.A2ACallContext.Owner,Ambinder.A2A.Server.A2ACallContext.Caller.Owner,Ambinder.A2A.Server,replaced by Caller (A2ACaller)
 A2A.Server.A2ACallContext.Tenant,Ambinder.A2A.Server.A2ACallContext.Tenant,Ambinder.A2A.Server,now a non-null string; empty means no tenant
+Ambinder.A2A.Server.AgentRequestContext.AgentRequestContext(AgentName,TaskId,ContextId,Message,CurrentTask,User,ActiveExtensions,Configuration),Ambinder.A2A.Server.AgentRequestContext(AgentName,TaskId,ContextId,Message,CurrentTask,User,Caller,ActiveExtensions,Configuration),Ambinder.A2A.Server,changed; new positional Caller (A2ACaller) after User; constructor and Deconstruct change; interim shape until package 11
+Ambinder.A2A.Server.AgentRequestContext.Caller,Ambinder.A2A.Server.AgentRequestContext.Caller,Ambinder.A2A.Server,added; same value as IA2ACallerAccessor.Current during the run

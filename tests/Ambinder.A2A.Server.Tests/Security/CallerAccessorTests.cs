@@ -152,4 +152,28 @@ public class CallerAccessorTests
         Assert.Equal("alice", seenA.Accessor!.Owner);
         Assert.Equal("bob", seenB.Accessor!.Owner);
     }
+
+    private static A2ACaller CallerNamed(string owner)
+        => new() { Owner = owner, Kind = CallerKind.Other, Principal = new ClaimsPrincipal(new ClaimsIdentity()) };
+
+    [Fact]
+    public void Set_exposes_the_caller_and_dispose_restores_the_previous_value()
+    {
+        var accessor = new A2ACallerAccessor();
+        var outer = CallerNamed("outer");
+        var inner = CallerNamed("inner");
+        Assert.Null(accessor.Current);
+
+        using (A2ACallerAccessor.Set(outer))
+        {
+            Assert.Same(outer, accessor.Current);
+            using (A2ACallerAccessor.Set(inner))
+            {
+                Assert.Same(inner, accessor.Current);
+            }
+            Assert.Same(outer, accessor.Current); // nested dispose restores the outer caller
+        }
+
+        Assert.Null(accessor.Current); // and the outer dispose restores "no caller"
+    }
 }

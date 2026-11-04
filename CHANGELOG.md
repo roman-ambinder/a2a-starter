@@ -60,6 +60,9 @@ Every preview section keeps a `### Breaking changes` heading.
   non-null `string`; an empty string means no tenant. The transports resolve the caller once per request through `IA2ACallerResolver`, which, with
   `IA2AVersionDispatcher` and `A2AVersionDispatchContext`, is now public in `Ambinder.A2A.AspNetCore`. Set `A2A:Security:KeepCallerToken` to
   `true` to keep the raw bearer token in `A2ACaller.AccessToken` (off by default).
+- **`AgentRequestContext` gains a positional `Caller` parameter** (an `A2ACaller`, after `User`). The constructor and `Deconstruct` change, so
+  code that creates the record or deconstructs it must be updated; reading properties is unaffected. `Caller` is the value
+  `IA2ACallerAccessor.Current` returns during the run. The positional shape is interim; package 11 converts the record.
 
 ### Added
 

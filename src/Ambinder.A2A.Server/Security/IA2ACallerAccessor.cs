@@ -16,6 +16,10 @@ namespace Ambinder.A2A.Server.Security;
 /// The value stays set for the whole run, also after the HTTP request that started it has ended. Outside a run (for example in
 /// a request handler or a hosted service) it is <see langword="null"/>.
 /// </para>
+/// <para>
+/// Implementers and hosts should not replace the registration: the task manager writes to the built-in implementation, so a
+/// replacement would never see a caller.
+/// </para>
 /// </remarks>
 public interface IA2ACallerAccessor
 {
