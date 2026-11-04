@@ -36,7 +36,8 @@ public static class A2AKestrelExtensions
             var baseUri = new Uri(options.PublicBaseUrl.TrimEnd('/'));
             var ports = options.GrpcPorts.Values.Append(baseUri.Port).ToList();
             if (ports.Distinct().Count() != ports.Count)
-                throw new InvalidOperationException("The HTTP port and the gRPC ports of the A2A agents must all be different.");
+                throw new InvalidOperationException($"The HTTP port of A2AServerOptions.PublicBaseUrl ({baseUri.Port}) and the gRPC ports in A2AServerOptions.GrpcPorts ({string.Join(", ", options.GrpcPorts.Values)}) must all be different. " +
+                    "Set a different port in PublicBaseUrl or give each agent its own port in GrpcPorts.");
 
             Listen(kestrel, baseUri.Host, baseUri.Port, HttpProtocols.Http1AndHttp2);
             foreach (var port in options.GrpcPorts.Values)

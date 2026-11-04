@@ -60,6 +60,18 @@ Every preview section keeps a `### Breaking changes` heading.
 - Community files: `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`, issue forms
   and a pull request template.
 - `A2AJson.TypeInfoResolver` and one typed `JsonTypeInfo<T>` accessor per protocol type (for example `A2AJson.AgentTask`, `A2AJson.Message`), so an app with its own source-generated JSON context can add the A2A types.
+- Public API tracking with `Microsoft.CodeAnalysis.PublicApiAnalyzers`: every package has `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`,
+  and the build fails when a public member is added, removed or changed without a matching line (RS0016, RS0017).
+- Complete XML documentation for every public and protected member of the seven packages, with examples on the entry points
+  (`AddA2AServer`, `AddA2AServerCore`, `AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`).
+  A missing doc comment (CS1591) now fails the build.
+- API review checklist in `docs/policies/api-review-checklist.md`.
+
+### Changed
+
+- Options validation messages tell you what to set. `A2AServerOptions.PublicBaseUrl`, `MaxRequestBodyBytes`, `DefaultAgent`, `GrpcPorts`
+  and the Kestrel port check now name the property, show the bad value and say how to fix it. The checks run in `AddA2AServerCore`, so
+  they apply with and without ASP.NET Core.
 
 <!-- No release tag exists yet. With the first tag, change this link to https://github.com/roman-ambinder/a2a-starter/compare/vX.Y.Z...HEAD and add a link per release. -->
 [Unreleased]: https://github.com/roman-ambinder/a2a-starter/commits/master

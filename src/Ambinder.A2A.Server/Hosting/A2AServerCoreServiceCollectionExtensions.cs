@@ -52,10 +52,9 @@ public static class A2AServerCoreServiceCollectionExtensions
 
         services.AddOptions<A2AServerOptions>()
             .Configure(configure)
-            .Validate(o => Uri.TryCreate(o.PublicBaseUrl, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps),
-                "A2AServerOptions.PublicBaseUrl must be an absolute http(s) URL.")
-            .Validate(o => o.MaxRequestBodyBytes > 0, "A2AServerOptions.MaxRequestBodyBytes must be positive.")
             .PostConfigure(o => o.Push.Issuer = o.BaseUrl);
+        // Validation lives here, not in AddA2AServer, so it runs for hosts with and without ASP.NET Core.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<A2AServerOptions>, A2AServerOptionsValidator>());
 
         // One PushOptions instance for the task manager and the sender: the one inside A2AServerOptions.
         services.AddSingleton<IOptions<PushOptions>>(sp => Microsoft.Extensions.Options.Options.Create(sp.GetRequiredService<IOptions<A2AServerOptions>>().Value.Push));

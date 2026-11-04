@@ -29,7 +29,8 @@ internal sealed class A2AStartupValidation : IStartupFilter
         var unknownPorts = options.GrpcPorts.Keys.Where(k => !catalog.TryGet(k, out _)).ToList();
         if (unknownPorts.Count > 0)
             throw new InvalidOperationException(
-                $"A2AServerOptions.GrpcPorts has entries for unknown agents: {string.Join(", ", unknownPorts.Select(k => $"'{k}'"))}.");
+                $"A2AServerOptions.GrpcPorts has entries for unknown agents: {string.Join(", ", unknownPorts.Select(k => $"'{k}'"))}. " +
+                "Remove those entries, or add the agents with AddAgent so every GrpcPorts key is the name of a registered agent.");
 
         var policies = services.GetRequiredService<IAuthorizationPolicyProvider>();
         foreach (var agent in catalog.All)

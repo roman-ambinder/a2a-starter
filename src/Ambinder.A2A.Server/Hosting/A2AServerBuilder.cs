@@ -69,7 +69,9 @@ public sealed partial class A2AServerBuilder
             a.ExtendedCard is null ? null : AgentCardInterfaces.Apply(a.ExtendedCard(services), a.Name, options),
             a.AuthorizationPolicy)).ToList();
         if (options.DefaultAgent is { } d && registrations.All(r => r.Name != d))
-            throw new InvalidOperationException($"A2AServerOptions.DefaultAgent '{d}' is not a registered agent.");
+            throw new InvalidOperationException(
+                $"A2AServerOptions.DefaultAgent is '{d}', which is not a registered agent (registered: {(registrations.Count == 0 ? "none" : string.Join(", ", registrations.Select(r => $"'{r.Name}'")))}). " +
+                "Set DefaultAgent to the name of an agent you added with AddAgent, or leave it null to serve no card at /.well-known/agent-card.json.");
         return new AgentCatalog(registrations);
     }
 
