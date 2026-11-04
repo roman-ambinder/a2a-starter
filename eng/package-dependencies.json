@@ -37,7 +37,9 @@
     },
     "Ambinder.A2A.Client": {
       "dependencies": [
-        "Ambinder.A2A.Protocol"
+        "Ambinder.A2A.Protocol",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Logging.Abstractions"
       ],
       "frameworkReferences": []
     },

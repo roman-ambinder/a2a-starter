@@ -122,3 +122,83 @@ override Ambinder.A2A.Client.A2AResponseInfo.GetHashCode() -> int
 override Ambinder.A2A.Client.A2AResponseInfo.ToString() -> string!
 static Ambinder.A2A.Client.A2AResponseInfo.operator !=(Ambinder.A2A.Client.A2AResponseInfo? left, Ambinder.A2A.Client.A2AResponseInfo? right) -> bool
 static Ambinder.A2A.Client.A2AResponseInfo.operator ==(Ambinder.A2A.Client.A2AResponseInfo? left, Ambinder.A2A.Client.A2AResponseInfo? right) -> bool
+Ambinder.A2A.Client.A2ACallInfo
+Ambinder.A2A.Client.A2ACallInfo.A2ACallInfo() -> void
+Ambinder.A2A.Client.A2ACallInfo.ClientName.get -> string!
+Ambinder.A2A.Client.A2ACallInfo.ClientName.init -> void
+Ambinder.A2A.Client.A2ACallInfo.Method.get -> string!
+Ambinder.A2A.Client.A2ACallInfo.Method.init -> void
+Ambinder.A2A.Client.A2ACallInfo.Safety.get -> Ambinder.A2A.Client.A2ARetrySafety
+Ambinder.A2A.Client.A2ACallInfo.Safety.init -> void
+Ambinder.A2A.Client.A2ACallInfo.Timeout.get -> System.TimeSpan
+Ambinder.A2A.Client.A2ACallInfo.Timeout.init -> void
+Ambinder.A2A.Client.A2ACallInfo.TimeoutOption.get -> string!
+Ambinder.A2A.Client.A2ACallInfo.TimeoutOption.init -> void
+Ambinder.A2A.Client.A2AClientLimits
+Ambinder.A2A.Client.A2AClientLimits.A2AClientLimits() -> void
+Ambinder.A2A.Client.A2AClientLimits.MaxErrorBodyBytes.get -> long
+Ambinder.A2A.Client.A2AClientLimits.MaxErrorBodyBytes.init -> void
+Ambinder.A2A.Client.A2AClientLimits.MaxEventBytes.get -> int
+Ambinder.A2A.Client.A2AClientLimits.MaxEventBytes.init -> void
+Ambinder.A2A.Client.A2AClientLimits.MaxGrpcMessageBytes.get -> int
+Ambinder.A2A.Client.A2AClientLimits.MaxGrpcMessageBytes.init -> void
+Ambinder.A2A.Client.A2AClientLimits.MaxResponseBytes.get -> long
+Ambinder.A2A.Client.A2AClientLimits.MaxResponseBytes.init -> void
+Ambinder.A2A.Client.A2AClientTimeouts
+Ambinder.A2A.Client.A2AClientTimeouts.A2AClientTimeouts() -> void
+Ambinder.A2A.Client.A2AClientTimeouts.BlockingSend.get -> System.TimeSpan
+Ambinder.A2A.Client.A2AClientTimeouts.BlockingSend.init -> void
+Ambinder.A2A.Client.A2AClientTimeouts.CardFetch.get -> System.TimeSpan
+Ambinder.A2A.Client.A2AClientTimeouts.CardFetch.init -> void
+Ambinder.A2A.Client.A2AClientTimeouts.NonBlockingSend.get -> System.TimeSpan
+Ambinder.A2A.Client.A2AClientTimeouts.NonBlockingSend.init -> void
+Ambinder.A2A.Client.A2AClientTimeouts.StreamIdleTimeout.get -> System.TimeSpan
+Ambinder.A2A.Client.A2AClientTimeouts.StreamIdleTimeout.init -> void
+Ambinder.A2A.Client.A2AClientTimeouts.Unary.get -> System.TimeSpan
+Ambinder.A2A.Client.A2AClientTimeouts.Unary.init -> void
+Ambinder.A2A.Client.A2ARetrySafety
+Ambinder.A2A.Client.A2ARetrySafety.Idempotent = 0 -> Ambinder.A2A.Client.A2ARetrySafety
+Ambinder.A2A.Client.A2ARetrySafety.NotSafe = 1 -> Ambinder.A2A.Client.A2ARetrySafety
+Ambinder.A2A.Client.A2ATransportContext
+Ambinder.A2A.Client.A2ATransportContext.A2ATransportContext() -> void
+Ambinder.A2A.Client.A2ATransportContext.ClientName.get -> string!
+Ambinder.A2A.Client.A2ATransportContext.ClientName.init -> void
+Ambinder.A2A.Client.A2ATransportContext.HandlerFactory.get -> System.Net.Http.IHttpMessageHandlerFactory?
+Ambinder.A2A.Client.A2ATransportContext.HandlerFactory.init -> void
+Ambinder.A2A.Client.A2ATransportContext.HttpClient.get -> System.Net.Http.HttpClient!
+Ambinder.A2A.Client.A2ATransportContext.HttpClient.init -> void
+Ambinder.A2A.Client.A2ATransportContext.Limits.get -> Ambinder.A2A.Client.A2AClientLimits!
+Ambinder.A2A.Client.A2ATransportContext.Limits.init -> void
+Ambinder.A2A.Client.A2ATransportContext.Logger.get -> Microsoft.Extensions.Logging.ILogger!
+Ambinder.A2A.Client.A2ATransportContext.Logger.init -> void
+Ambinder.A2A.Client.A2ATransportContext.Time.get -> System.TimeProvider!
+Ambinder.A2A.Client.A2ATransportContext.Time.init -> void
+Ambinder.A2A.Client.A2ATransportContext.Timeouts.get -> Ambinder.A2A.Client.A2AClientTimeouts!
+Ambinder.A2A.Client.A2ATransportContext.Timeouts.init -> void
+Ambinder.A2A.Client.A2ATransportRequest
+Ambinder.A2A.Client.A2ATransportRequest.A2ATransportRequest() -> void
+Ambinder.A2A.Client.A2ATransportRequest.Body.get -> object!
+Ambinder.A2A.Client.A2ATransportRequest.Body.init -> void
+Ambinder.A2A.Client.A2ATransportRequest.CallInfo.get -> Ambinder.A2A.Client.A2ACallInfo!
+Ambinder.A2A.Client.A2ATransportRequest.CallInfo.init -> void
+Ambinder.A2A.Client.A2ATransportRequest.Headers.get -> Ambinder.A2A.Client.A2ARequestHeaders!
+Ambinder.A2A.Client.A2ATransportRequest.Headers.init -> void
+Ambinder.A2A.Client.A2ATransportRequest.Method.get -> string!
+Ambinder.A2A.Client.A2ATransportRequest.Method.init -> void
+Ambinder.A2A.Client.A2ATransportRequest.OnHeaders.get -> System.Action<Ambinder.A2A.Client.A2AResponseInfo!>?
+Ambinder.A2A.Client.A2ATransportRequest.OnHeaders.init -> void
+Ambinder.A2A.Client.A2ATransportRequest.ProtocolVersion.get -> string!
+Ambinder.A2A.Client.A2ATransportRequest.ProtocolVersion.init -> void
+Ambinder.A2A.Client.A2ATransportResponse
+Ambinder.A2A.Client.A2ATransportResponse.A2ATransportResponse() -> void
+Ambinder.A2A.Client.A2ATransportResponse.Body.get -> object!
+Ambinder.A2A.Client.A2ATransportResponse.Body.init -> void
+Ambinder.A2A.Client.A2ATransportResponse.Info.get -> Ambinder.A2A.Client.A2AResponseInfo!
+Ambinder.A2A.Client.A2ATransportResponse.Info.init -> void
+Ambinder.A2A.Client.IA2ATransport
+Ambinder.A2A.Client.IA2ATransport.SendAsync(Ambinder.A2A.Client.A2ATransportRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Client.A2ATransportResponse!>
+Ambinder.A2A.Client.IA2ATransport.StreamAsync(Ambinder.A2A.Client.A2ATransportRequest! request, System.Threading.CancellationToken ct) -> System.Collections.Generic.IAsyncEnumerable<Ambinder.A2A.Protocol.StreamResponse!>!
+Ambinder.A2A.Client.IA2ATransportFactory
+Ambinder.A2A.Client.IA2ATransportFactory.Bindings.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Client.IA2ATransportFactory.Create(Ambinder.A2A.Protocol.AgentInterface! selected, Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2ATransportContext! context) -> Ambinder.A2A.Client.IA2ATransport!
+Ambinder.A2A.Client.IA2ATransportFactory.ProtocolVersions.get -> System.Collections.Generic.IReadOnlyList<string!>!

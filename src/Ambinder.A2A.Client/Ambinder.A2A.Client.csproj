@@ -5,6 +5,11 @@
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Dependency floor (spec 01 rule 7): the lowest .NET 10 version; Directory.Packages.props keeps the newest for tests and samples. -->
+    <PackageReference Include="Microsoft.Extensions.Http" VersionOverride="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
   </ItemGroup>
   <ItemGroup>
