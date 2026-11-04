@@ -184,7 +184,7 @@ internal static class InteropCards
 
 /// <summary>
 /// <c>Authorization: Bearer interop-test-token</c> signs in one fixed app caller (with the <c>tid</c> and <c>azp</c> claims the owner
-/// rules read). No header: anonymous. Any other token: the request fails with 401.
+/// rules read). No header: anonymous. Any other token: authentication fails and the caller stays anonymous (public operations still succeed; the extended card answers 401).
 /// </summary>
 internal sealed class BearerTokenHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
