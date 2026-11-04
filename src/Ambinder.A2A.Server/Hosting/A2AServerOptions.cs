@@ -2,7 +2,7 @@ using Ambinder.A2A.Server.Push;
 
 namespace Ambinder.A2A.Server.Hosting;
 
-/// <summary>Settings for the A2A hosting layer. Configure through <see cref="A2AServiceCollectionExtensions.AddA2AServerCore"/>.</summary>
+/// <summary>Settings for the A2A hosting layer. Configure through <see cref="Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore"/>.</summary>
 public sealed class A2AServerOptions
 {
     /// <summary>

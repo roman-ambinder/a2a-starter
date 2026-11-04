@@ -2,7 +2,6 @@
 // Run by eng/check-core-only.sh on the published output; not part of any test run.
 using Ambinder.A2A.Client;
 using Ambinder.A2A.Server;
-using Ambinder.A2A.Server.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();

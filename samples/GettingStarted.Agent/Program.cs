@@ -1,6 +1,5 @@
-using Ambinder.A2A.AspNetCore.Hosting;
+using Ambinder.A2A.Server;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Server.Agents;
 
 var builder = WebApplication.CreateBuilder(args);
 var baseUrl = builder.Configuration["A2A:PublicBaseUrl"] ?? "http://localhost:5100";

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Ambinder.A2A.Server.Hosting;
 
-/// <summary>Registers the hosted agents. Returned by <see cref="A2AServiceCollectionExtensions.AddA2AServerCore"/>.</summary>
+/// <summary>Registers the hosted agents. Returned by <see cref="Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore"/>.</summary>
 public sealed partial class A2AServerBuilder
 {
     private readonly List<Definition> _agents = [];

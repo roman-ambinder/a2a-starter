@@ -13,3 +13,7 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Registration and mapping extensions live in the namespaces the web SDK imports implicitly (spec 02 section 5).
+[src/**/{*ServiceCollectionExtensions,*ServerBuilderExtensions,*EndpointRouteBuilderExtensions,A2AKestrelExtensions}.cs]
+dotnet_diagnostic.IDE0130.severity = none

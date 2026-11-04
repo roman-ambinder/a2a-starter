@@ -46,6 +46,8 @@ Every preview section keeps a `### Breaking changes` heading.
 - **ASP.NET Core plumbing is now internal** (`Ambinder.A2A.AspNetCore`): `RequestValidation`, `ServiceParameters`, `RestErrorWriter`, `SseWriter` and `AgentAuthorizer` (use `IAgentAuthorizer`).
 - **`GrpcErrorMapper` is now internal** (`Ambinder.A2A.AspNetCore.Grpc`).
 - **Transport clients are now internal**: `RestA2AClient`, `JsonRpcA2AClient`, `TracingA2AClient` and `SseReader` (`Ambinder.A2A.Client`), and `GrpcA2AClient` (`Ambinder.A2A.Client.Grpc`). Create clients with `A2AClientFactory.Create`; for gRPC add `GrpcClientTransport.Instance` to `A2AClientOptions.Transports`.
+- **Registration and mapping extensions moved to the namespaces the web SDK imports implicitly**, so a getting-started `Program.cs` needs no `using` for them. `AddA2AServerCore` is now in `Microsoft.Extensions.DependencyInjection` (class `A2AServerCoreServiceCollectionExtensions`, was `Ambinder.A2A.Server.Hosting.A2AServiceCollectionExtensions`). `AddA2AServer` is now in `Microsoft.Extensions.DependencyInjection` (class `A2AServerServiceCollectionExtensions`, was `Ambinder.A2A.AspNetCore.Hosting.A2AAspNetCoreServiceCollectionExtensions`). `MapA2A` and `ConfigureA2AKestrel` are now in `Microsoft.AspNetCore.Builder`. In `Ambinder.A2A.AspNetCore.Grpc`, `AddA2AGrpc` is now in `Microsoft.Extensions.DependencyInjection` and `MapA2AGrpc` in `Microsoft.AspNetCore.Builder`; the class `A2AGrpcExtensions` is split into `A2AGrpcServerBuilderExtensions` and `A2AGrpcEndpointRouteBuilderExtensions`. Call sites do not change; remove the old `using` lines.
+- **`IAgentHandler`, `IAgentEventSink` and `AgentRequestContext` moved** from `Ambinder.A2A.Server.Agents` to `Ambinder.A2A.Server`.
 
 ### Added
 

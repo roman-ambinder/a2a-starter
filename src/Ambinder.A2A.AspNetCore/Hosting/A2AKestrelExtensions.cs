@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Ambinder.A2A.AspNetCore.Hosting;
+namespace Microsoft.AspNetCore.Builder;
 
 public static class A2AKestrelExtensions
 {

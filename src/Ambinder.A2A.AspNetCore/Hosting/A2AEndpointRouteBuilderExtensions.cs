@@ -1,10 +1,11 @@
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.AspNetCore.Transports.JsonRpc;
 using Ambinder.A2A.AspNetCore.Transports.Rest;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
-namespace Ambinder.A2A.AspNetCore.Hosting;
+namespace Microsoft.AspNetCore.Builder;
 
 public static class A2AEndpointRouteBuilderExtensions
 {

@@ -1,6 +1,6 @@
 using Ambinder.A2A.Protocol;
 
-namespace Ambinder.A2A.Server.Agents;
+namespace Ambinder.A2A.Server;
 
 /// <summary>
 /// An agent's logic. A new instance is created for each execution (and for each cancel).

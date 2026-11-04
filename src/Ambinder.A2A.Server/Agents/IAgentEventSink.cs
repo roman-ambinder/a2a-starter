@@ -1,6 +1,6 @@
 using Ambinder.A2A.Protocol;
 
-namespace Ambinder.A2A.Server.Agents;
+namespace Ambinder.A2A.Server;
 
 /// <summary>
 /// Where an agent reports results. Invalid use throws <see cref="A2AException"/> with

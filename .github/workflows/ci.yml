@@ -82,11 +82,11 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Test (Protocol, Server, Client.Grpc)
+      - name: Test (Protocol, Server, AspNetCore, Client.Grpc)
         shell: bash
         run: |
           set -euo pipefail
-          for project in tests/Ambinder.A2A.Protocol.Tests tests/Ambinder.A2A.Server.Tests tests/Ambinder.A2A.Client.Grpc.Tests; do
+          for project in tests/Ambinder.A2A.Protocol.Tests tests/Ambinder.A2A.Server.Tests tests/Ambinder.A2A.AspNetCore.Tests tests/Ambinder.A2A.Client.Grpc.Tests; do
             echo "::group::$project"
             dotnet test --project "$project" --configuration Release $A2A_AUDIT_ARGS
             echo "::endgroup::"

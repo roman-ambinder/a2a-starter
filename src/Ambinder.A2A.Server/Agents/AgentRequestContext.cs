@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Ambinder.A2A.Protocol;
 
-namespace Ambinder.A2A.Server.Agents;
+namespace Ambinder.A2A.Server;
 
 /// <summary>What an agent gets for one execution.</summary>
 /// <param name="AgentName">The agent's catalog name.</param>

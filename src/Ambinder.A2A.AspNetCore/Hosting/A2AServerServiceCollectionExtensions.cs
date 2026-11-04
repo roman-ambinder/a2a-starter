@@ -1,3 +1,4 @@
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.AspNetCore.Auth;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Hosting;
@@ -7,12 +8,12 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Ambinder.A2A.AspNetCore.Hosting;
+namespace Microsoft.Extensions.DependencyInjection;
 
-public static class A2AAspNetCoreServiceCollectionExtensions
+public static class A2AServerServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the A2A server: options, agent catalog, in-memory task store, event broker, the traced
+    /// Registers the A2A server. It calls <c>AddA2AServerCore</c> (see <c>Ambinder.A2A.Server</c>) and adds the ASP.NET Core parts. Registers: options, agent catalog, in-memory task store, event broker, the traced
     /// <see cref="Ambinder.A2A.Server.IA2ARequestHandler"/>, push delivery (config store, signing key, sender), <see cref="IAgentAuthorizer"/>,
     /// <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>) and a startup check
     /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).

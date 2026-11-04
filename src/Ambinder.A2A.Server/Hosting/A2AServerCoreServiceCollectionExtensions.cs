@@ -1,4 +1,6 @@
+using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
@@ -8,16 +10,16 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ambinder.A2A.Server.Hosting;
+namespace Microsoft.Extensions.DependencyInjection;
 
-public static class A2AServiceCollectionExtensions
+public static class A2AServerCoreServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the host-neutral A2A server core: options, agent catalog, in-memory task store, event broker,
     /// the traced <see cref="IA2ARequestHandler"/> (one span per call),
     /// push delivery (config store, signing key, sender) and <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>).
-    /// A web app calls <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c> instead, which calls this and adds the
-    /// ASP.NET Core parts.
+    /// Use this in a host without ASP.NET Core; web apps call <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c>, which calls this
+    /// method.
     /// </summary>
     public static A2AServerBuilder AddA2AServerCore(this IServiceCollection services, Action<A2AServerOptions> configure)
     {
@@ -33,7 +35,7 @@ public static class A2AServiceCollectionExtensions
             .PostConfigure(o => o.Push.Issuer = o.BaseUrl);
 
         // One PushOptions instance for the task manager and the sender: the one inside A2AServerOptions.
-        services.AddSingleton<IOptions<PushOptions>>(sp => Options.Create(sp.GetRequiredService<IOptions<A2AServerOptions>>().Value.Push));
+        services.AddSingleton<IOptions<PushOptions>>(sp => Microsoft.Extensions.Options.Options.Create(sp.GetRequiredService<IOptions<A2AServerOptions>>().Value.Push));
         services.AddA2APush();
 
         services.TryAddSingleton<ITaskStore, InMemoryTaskStore>();

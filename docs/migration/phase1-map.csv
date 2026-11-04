@@ -24,3 +24,12 @@ A2A.Client.Transports.JsonRpcA2AClient,,Ambinder.A2A.Client,internal; replaced b
 A2A.Client.TracingA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
 A2A.Client.Transports.Sse.SseReader,,Ambinder.A2A.Client,internal
 A2A.Protocol.Grpc.GrpcA2AClient,Ambinder.A2A.Client.Grpc.GrpcClientTransport.Instance,Ambinder.A2A.Client.Grpc,internal; create through GrpcClientTransport (replaced in package 10)
+Ambinder.A2A.Server.Hosting.A2AServiceCollectionExtensions,Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions,Ambinder.A2A.Server,moved; class renamed
+Ambinder.A2A.AspNetCore.Hosting.A2AAspNetCoreServiceCollectionExtensions,Microsoft.Extensions.DependencyInjection.A2AServerServiceCollectionExtensions,Ambinder.A2A.AspNetCore,moved; class renamed
+Ambinder.A2A.AspNetCore.Hosting.A2AEndpointRouteBuilderExtensions,Microsoft.AspNetCore.Builder.A2AEndpointRouteBuilderExtensions,Ambinder.A2A.AspNetCore,moved
+Ambinder.A2A.AspNetCore.Hosting.A2AKestrelExtensions,Microsoft.AspNetCore.Builder.A2AKestrelExtensions,Ambinder.A2A.AspNetCore,moved
+Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.AddA2AGrpc,Microsoft.Extensions.DependencyInjection.A2AGrpcServerBuilderExtensions.AddA2AGrpc,Ambinder.A2A.AspNetCore.Grpc,moved; class split
+Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.MapA2AGrpc,Microsoft.AspNetCore.Builder.A2AGrpcEndpointRouteBuilderExtensions.MapA2AGrpc,Ambinder.A2A.AspNetCore.Grpc,moved; class split
+Ambinder.A2A.Server.Agents.IAgentHandler,Ambinder.A2A.Server.IAgentHandler,Ambinder.A2A.Server,moved
+Ambinder.A2A.Server.Agents.IAgentEventSink,Ambinder.A2A.Server.IAgentEventSink,Ambinder.A2A.Server,moved
+Ambinder.A2A.Server.Agents.AgentRequestContext,Ambinder.A2A.Server.AgentRequestContext,Ambinder.A2A.Server,moved
