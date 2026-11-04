@@ -76,6 +76,9 @@ Every preview section keeps a `### Breaking changes` heading.
 - Options validation messages tell you what to set. `A2AServerOptions.PublicBaseUrl`, `MaxRequestBodyBytes`, `DefaultAgent`, `GrpcPorts`
   and the Kestrel port check now name the property, show the bad value and say how to fix it. The checks run in `AddA2AServerCore`, so
   they apply with and without ASP.NET Core.
+- Response metadata set by middleware (`A2AResponseMetadata`) is checked by the transport. An entry with an invalid header name or a
+  value with control characters (gRPC: non-printable or non-ASCII) is dropped with a debug log, and never changes the response status.
+- On gRPC, the `a2a-extensions` echo is now sent with the first event or at the commit point, not immediately when the call starts.
 
 <!-- No release tag exists yet. With the first tag, change this link to https://github.com/roman-ambinder/a2a-starter/compare/vX.Y.Z...HEAD and add a link per release. -->
 [Unreleased]: https://github.com/roman-ambinder/a2a-starter/commits/master

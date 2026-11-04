@@ -3,7 +3,10 @@ namespace Ambinder.A2A.Server;
 /// <summary>
 /// Response metadata set by middleware: HTTP response headers, or gRPC response headers. Transports write it before the body.
 /// </summary>
-/// <remarks>Names are case-insensitive. Set values before the first byte of the response. One instance serves one call and is thread-safe.</remarks>
+/// <remarks>Names are case-insensitive. Set values before the first byte of the response. One instance serves one call and is thread-safe.
+/// <see cref="Set"/> does not validate names or values. The transport drops, with a debug log, an entry that is not a valid HTTP header (a
+/// name that is not a token, a value with a control character other than tab) or, on gRPC, not valid metadata (lower-case token name,
+/// printable ASCII value). A dropped entry never changes the response status.</remarks>
 public sealed class A2AResponseMetadata
 {
     // Nothing is allocated until first use: most calls never set a header, so the default case has no lock and no dictionary.
@@ -58,6 +61,27 @@ public sealed class A2AResponseMetadata
     public bool IsCommitted
     {
         get => Volatile.Read(ref _committed);
+    }
+
+    /// <summary>
+    /// Called by transports at the commit point: marks the response as started and returns the values set up to that moment, as one
+    /// atomic step, so a concurrent <see cref="Set"/> either lands in the snapshot or throws.
+    /// </summary>
+    /// <param name="entries">The values set so far, when this call committed.</param>
+    /// <returns><see langword="true"/> for the first call; <see langword="false"/> when the response was already committed.</returns>
+    public bool TryCommit(out IReadOnlyList<KeyValuePair<string, string>> entries)
+    {
+        lock (_gate)
+        {
+            if (_committed)
+            {
+                entries = [];
+                return false;
+            }
+            _committed = true;
+            entries = _entries is null ? [] : _entries.ToArray();
+            return true;
+        }
     }
 
     /// <summary>Called by transports when they write the first byte. Later calls to <see cref="Set"/> throw.</summary>

@@ -60,6 +60,32 @@ public sealed class PipelineTransportTests
         }
     }
 
+    private sealed class SetBadAndGoodHeaders : IA2AMiddleware
+    {
+        public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
+        {
+            context.ResponseMetadata.Set("A2A-Bad\r\nInjected", "x");
+            context.ResponseMetadata.Set("A2A-Bad Name", "x");
+            context.ResponseMetadata.Set("A2A-Value", "a\r\nInjected: yes");
+            context.ResponseMetadata.Set("A2A-Value2", "a\nb");
+            context.ResponseMetadata.Set("a2a-lower", "ok");
+            context.ResponseMetadata.Set("A2A-Good", "fine");
+            if (context.Operation == A2AOperation.GetTask) throw new A2AException(A2AErrorCode.TaskNotFound, "nope");
+            return next(context);
+        }
+    }
+
+    private sealed class ThrowBeforeFirstEvent : IA2AMiddleware
+    {
+        public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
+        {
+            context.ResponseMetadata.Set("A2A-Early", "yes");
+            return context.Operation == A2AOperation.SendStreamingMessage
+                ? throw new A2AException(A2AErrorCode.InvalidParams, "early failure")
+                : next(context);
+        }
+    }
+
     private sealed class RejectTaskNotFound : IA2AMiddleware
     {
         public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
@@ -316,6 +342,80 @@ public sealed class PipelineTransportTests
         Assert.Equal(2, frames.Count);
         Assert.Null(frames[0]["error"]);
         Assert.NotNull(frames[1]["error"]);
+    }
+
+    [Theory]
+    [MemberData(nameof(Bindings))]
+    public async Task InvalidHeaderEntriesAreDroppedAndSuccessStaysSuccess(A2ABinding binding)
+    {
+        await using var server = await StartAsync<SetBadAndGoodHeaders>();
+
+        foreach (var streaming in new[] { false, true })
+        {
+            using var response = await RawSendAsync(server, binding, streaming);
+            await ReadAllAsync(response);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            AssertOnlyGoodHeaders(response);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Bindings))]
+    public async Task InvalidHeaderEntriesNeverTurnAMappedErrorIntoAnEmptyResponse(A2ABinding binding)
+    {
+        await using var server = await StartAsync<SetBadAndGoodHeaders>();
+        var http = server.CreateHttpClient();
+        using var request = binding == A2ABinding.JsonRpc
+            ? new HttpRequestMessage(HttpMethod.Post, $"agents/{Agent}/jsonrpc")
+            {
+                Content = new StringContent(new JsonObject { ["jsonrpc"] = "2.0", ["id"] = 1, ["method"] = "GetTask", ["params"] = new JsonObject { ["id"] = "x" } }.ToJsonString(),
+                    Encoding.UTF8, "application/json"),
+            }
+            : new HttpRequestMessage(HttpMethod.Get, $"agents/{Agent}/rest/tasks/x");
+        request.Headers.Add("A2A-Version", "1.0");
+
+        using var response = await http.SendAsync(request, Ct);
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!;
+
+        Assert.NotNull(body["error"]);
+        if (binding == A2ABinding.Rest) Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        AssertOnlyGoodHeaders(response);
+    }
+
+    [Theory]
+    [MemberData(nameof(Bindings))]
+    public async Task MiddlewareThrowBeforeFirstEventIsAPlainErrorWithResponseMetadata(A2ABinding binding)
+    {
+        await using var server = await StartAsync<ThrowBeforeFirstEvent>();
+
+        using var response = await RawSendAsync(server, binding, streaming: true);
+        var body = await ReadAllAsync(response);
+
+        Assert.NotEqual("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+        if (binding == A2ABinding.Rest) Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(JsonNode.Parse(body)!["error"]);
+        Assert.Equal("yes", Assert.Single(response.Headers.GetValues("A2A-Early")));
+    }
+
+    [Theory]
+    [MemberData(nameof(Bindings))]
+    public async Task LowerCasePrefixIsAllowed(A2ABinding binding)
+    {
+        await using var server = await StartAsync<SetBadAndGoodHeaders>();
+
+        using var response = await RawSendAsync(server, binding, streaming: false);
+        await ReadAllAsync(response);
+
+        Assert.Equal("ok", Assert.Single(response.Headers.GetValues("a2a-lower")));
+    }
+
+    private static void AssertOnlyGoodHeaders(HttpResponseMessage response)
+    {
+        Assert.Equal("fine", Assert.Single(response.Headers.GetValues("A2A-Good")));
+        Assert.False(response.Headers.Contains("Injected"));
+        Assert.False(response.Headers.Contains("A2A-Value"));
+        Assert.False(response.Headers.Contains("A2A-Value2"));
+        Assert.DoesNotContain(response.Headers, h => h.Key.Contains("Bad", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

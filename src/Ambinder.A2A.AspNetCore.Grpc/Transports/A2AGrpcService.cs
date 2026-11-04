@@ -151,11 +151,10 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
     {
         var http = context.GetHttpContext();
         var metadata = TransportRequest.GetResponseMetadata(http);
-        if (metadata.IsCommitted) return;
+        if (!metadata.TryCommit(out var entries)) return;
         var headers = new Metadata();
-        foreach (var entry in TransportRequest.AllowedResponseMetadata(http, metadata))
+        foreach (var entry in TransportRequest.AllowedResponseMetadata(http, entries, grpc: true))
             headers.Add(entry.Key.ToLowerInvariant(), entry.Value);
-        metadata.MarkCommitted();
         if (headers.Count > 0) await context.WriteResponseHeadersAsync(headers).ConfigureAwait(false);
     }
 
@@ -166,7 +165,7 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
         {
             await CommitMetadataAsync(context).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or IOException)
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or ArgumentException)
         {
             // The response headers are already sent or the connection is gone.
         }

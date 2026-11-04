@@ -8,4 +8,5 @@ internal static class LogEventIds
 {
     public const int UnhandledTransportError = 2001;
     public const int DroppedResponseMetadata = 2002;
+    public const int InvalidResponseMetadata = 2003;
 }

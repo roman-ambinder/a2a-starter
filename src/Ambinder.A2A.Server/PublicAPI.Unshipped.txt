@@ -57,6 +57,7 @@ Ambinder.A2A.Server.A2AResponseMetadata.Entries.get -> System.Collections.Generi
 Ambinder.A2A.Server.A2AResponseMetadata.IsCommitted.get -> bool
 Ambinder.A2A.Server.A2AResponseMetadata.MarkCommitted() -> void
 Ambinder.A2A.Server.A2AResponseMetadata.Set(string! name, string! value) -> void
+Ambinder.A2A.Server.A2AResponseMetadata.TryCommit(out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>! entries) -> bool
 Ambinder.A2A.Server.A2AResponseMetadata.TryGet(string! name, out string? value) -> bool
 Ambinder.A2A.Server.AgentRequestContext
 Ambinder.A2A.Server.AgentRequestContext.<Clone>$() -> Ambinder.A2A.Server.AgentRequestContext!

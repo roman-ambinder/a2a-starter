@@ -37,11 +37,10 @@ internal static partial class TransportRequest
     public static void WriteResponseMetadata(HttpContext http, A2AResponseMetadata? metadata = null)
     {
         metadata ??= http.Items.ContainsKey(ResponseMetadataKey) ? GetResponseMetadata(http) : null;
-        if (metadata is null || metadata.IsCommitted) return;
+        if (metadata is null || !metadata.TryCommit(out var entries)) return;
         if (!http.Response.HasStarted)
-            foreach (var entry in AllowedResponseMetadata(http, metadata))
+            foreach (var entry in AllowedResponseMetadata(http, entries))
                 http.Response.Headers[entry.Key] = entry.Value;
-        metadata.MarkCommitted();
     }
 
     /// <summary>

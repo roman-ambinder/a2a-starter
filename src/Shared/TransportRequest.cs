@@ -95,9 +95,9 @@ internal static partial class TransportRequest
     }
 
     /// <summary>The metadata entries the transport may send for this request (see <see cref="ResponseMetadataFilter"/>).</summary>
-    public static List<KeyValuePair<string, string>> AllowedResponseMetadata(HttpContext http, A2AResponseMetadata metadata)
-        => ResponseMetadataFilter.Allowed(metadata, http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value.ResponseHeaderAllowList,
-            http.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>().CreateLogger("Ambinder.A2A.Server.ResponseMetadata"));
+    public static List<KeyValuePair<string, string>> AllowedResponseMetadata(HttpContext http, IEnumerable<KeyValuePair<string, string>> entries, bool grpc = false)
+        => ResponseMetadataFilter.Allowed(entries, http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value.ResponseHeaderAllowList,
+            http.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>().CreateLogger("Ambinder.A2A.Server.ResponseMetadata"), grpc);
 
     /// <summary>
     /// The tenant of a request to <paramref name="agentName"/> (spec 8.3.2): the interface's tenant from
