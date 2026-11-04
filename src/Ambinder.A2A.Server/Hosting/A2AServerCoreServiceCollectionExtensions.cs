@@ -78,8 +78,8 @@ public static class A2AServerCoreServiceCollectionExtensions
             sp.GetRequiredService<IOwnerResolver>()));
         services.TryAddSingleton(builder.Middleware);
         services.TryAddSingleton<A2APipelineRequestHandler>();
-        // Tracing still wraps the pipeline here; it becomes the first built-in middleware in the next step (no change in spans).
-        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<A2APipelineRequestHandler>()));
+        services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<A2APipelineRequestHandler>());
+        builder.AddBuiltInMiddleware(A2APipelineMiddleware.TracingSlot, typeof(TracingMiddleware));
 
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
         return builder;

@@ -145,7 +145,7 @@ Tests check this with known secret values.
 **API notes.**
 
 - `A2AClientFactory.Create` returns a `TracingA2AClient`. Use its `Inner` property to get the transport client. A transport client you construct yourself records no spans.
-- The default `IA2ARequestHandler` from `AddA2AServer` is `TracingRequestHandler`, which wraps `TaskManager`.
+- The default `IA2ARequestHandler` from `AddA2AServer` runs the middleware pipeline. Tracing is the built-in middleware in slot 100, so it also covers forwarded calls.
 
 **Point it at an OpenTelemetry Collector on AKS.** Set these on each pod (for example in the Deployment env, or from a ConfigMap):
 

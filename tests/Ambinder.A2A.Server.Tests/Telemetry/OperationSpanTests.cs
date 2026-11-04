@@ -10,10 +10,10 @@ public sealed class OperationSpanTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static (TestHost Host, TracingRequestHandler Handler) Create()
+    private static (TestHost Host, IA2ARequestHandler Handler) Create()
     {
         var host = new TestHost();
-        return (host, new TracingRequestHandler(host.Manager));
+        return (host, host.TracedHandler());
     }
 
     [Fact]

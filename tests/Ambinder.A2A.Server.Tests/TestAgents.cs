@@ -73,6 +73,7 @@ internal sealed class TestHost
     public InMemoryTaskStore Store { get; } = new();
     public TaskEventBroker Broker { get; }
     public TaskManager Manager { get; }
+    private readonly AgentCatalog _catalog;
 
     public TestHost(AgentCard? card = null, AgentCard? extendedCard = null, int brokerCapacity = TaskEventBroker.DefaultCapacity,
         IEnumerable<ITaskEventObserver>? observers = null, Ambinder.A2A.Server.Push.IPushConfigStore? pushConfigs = null,
@@ -81,8 +82,18 @@ internal sealed class TestHost
         var services = new ServiceCollection().AddSingleton(Scripts).BuildServiceProvider();
         var registration = new AgentRegistration(AgentName, typeof(ScriptedAgent), card ?? DefaultCard, extendedCard, null);
         Broker = new TaskEventBroker(brokerCapacity);
-        Manager = new TaskManager(new AgentCatalog([registration]), Store, Broker, services, observers, time: new FixedTimeProvider(Now),
+        _catalog = new AgentCatalog([registration]);
+        Manager = new TaskManager(_catalog, Store, Broker, services, observers, time: new FixedTimeProvider(Now),
             pushConfigs: pushConfigs, pushOptions: pushOptions);
+    }
+
+    /// <summary>The real pipeline handler over <see cref="Manager"/> with only the built-in tracing middleware.</summary>
+    public A2APipelineRequestHandler TracedHandler()
+    {
+        var middleware = new A2APipelineMiddleware();
+        middleware.AddBuiltIn(A2APipelineMiddleware.TracingSlot, typeof(Ambinder.A2A.Server.Telemetry.TracingMiddleware));
+        var root = new ServiceCollection().AddScoped<Ambinder.A2A.Server.Telemetry.TracingMiddleware>().BuildServiceProvider();
+        return new A2APipelineRequestHandler(root, Manager, _catalog, middleware);
     }
 
     public static AgentCard DefaultCard => new()
