@@ -19,3 +19,4 @@ BenchmarkDotNet.Artifacts/
 # TCK run output
 __pycache__/
 /tck-reports/
+coverage/

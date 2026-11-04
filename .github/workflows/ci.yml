@@ -36,6 +36,9 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # finds the latest master run for the coverage baseline
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,14 +54,94 @@ jobs:
       - name: Build
         run: dotnet build Ambinder.A2A.slnx --no-restore --configuration Release $A2A_AUDIT_ARGS
 
+      - name: Coverage gate self-test
+        run: bash eng/coverage/test-gate.sh
+
+      # Unit + library integration tests with the Microsoft.Testing.Platform coverage extension (Cobertura output, one file per test project).
       - name: Test
         run: |
           set -euo pipefail
           mkdir -p TestResults
-          dotnet test --solution Ambinder.A2A.slnx --no-build --configuration Release 2>&1 | tee TestResults/test-output.log
+          dotnet test --solution Ambinder.A2A.slnx --no-build --configuration Release \
+            --coverage --coverage-output-format cobertura --coverage-settings "$PWD/eng/coverage/coverage.settings.xml" \
+            --results-directory "$PWD/coverage/raw" 2>&1 | tee TestResults/test-output.log
 
       - name: Report checker tests
         run: python3 -I tck/test_check_report.py -v
+
+      - name: Install coverage tools
+        run: |
+          set -euo pipefail
+          dotnet tool install --global dotnet-coverage --version 18.12.0
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.12
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Merge coverage and render reports
+        run: bash eng/coverage/report.sh coverage/raw coverage
+
+      - name: Coverage summary
+        run: cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Baseline for the 1-point delta: the summary that the latest successful push run on master uploaded. Pull requests only.
+      - name: Find master coverage summary
+        id: baseline
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=master&event=push&status=success&per_page=1" --jq '.workflow_runs[0].id // empty' || true)
+          if [ -z "$run_id" ]; then
+            echo "::notice::No successful master run found: the coverage delta check is skipped."
+          else
+            echo "run-id=$run_id" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download master coverage summary
+        id: baseline-download
+        if: steps.baseline.outputs.run-id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-summary-master
+          path: coverage/baseline
+          run-id: ${{ steps.baseline.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Coverage gates
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          args=(--coverage coverage/merged.cobertura.xml --thresholds eng/coverage/thresholds.json --summary-out coverage/summary.json)
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            # Packages the PR touches: the src folders it changes (folder name = package name).
+            touched=$(git diff --name-only "$BASE_SHA"...HEAD -- 'src/*' | sed -n 's#^src/\([^/]*\)/.*#\1#p' | sort -u | paste -sd, -)
+            if [ -f coverage/baseline/summary.json ] && [ -n "$touched" ]; then
+              args+=(--baseline coverage/baseline/summary.json --touched "$touched")
+            else
+              echo "::notice::No master baseline or no touched package: the coverage delta check is skipped."
+            fi
+          fi
+          bash eng/coverage/gate.sh "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: |
+            coverage/report/
+            coverage/summary.json
+          if-no-files-found: ignore
+
+      - name: Upload master coverage summary
+        if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-summary-master
+          path: coverage/summary.json
+          if-no-files-found: error
 
       - name: Upload test logs
         if: failure()

@@ -1,0 +1,7 @@
+<Project>
+  <!-- Microsoft.Testing.Platform code coverage extension (eng/coverage). Only for projects that are xunit v3 test projects: the extension makes
+       'dotnet test' treat a project as a test application, which would start the web apps and tools under tests/ instead of skipping them. -->
+  <ItemGroup Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'xunit.v3'))">
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
+</Project>
