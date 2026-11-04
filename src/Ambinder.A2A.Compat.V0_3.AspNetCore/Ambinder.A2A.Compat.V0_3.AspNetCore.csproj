@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A2A 0.3 compatibility for the Ambinder.A2A server: one agent serves 0.3 and 1.0 clients from the same handler over JSON-RPC, REST and (opt-in) gRPC.</Description>
+    <PackageTags>$(PackageTags);server;compat;a2a-0.3</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Generated protobuf code is internal and not documented. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Compat.V0_3/Ambinder.A2A.Compat.V0_3.csproj" />
+    <ProjectReference Include="../Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Same 0.3 models, JSON and converters as the client package, as internal source (plan D5). -->
+    <Compile Include="../Compat.V0_3.Shared/**/*.cs" LinkBase="Shared" />
+    <!-- Shared server SSE loop, frame writer and heartbeats (plan D3): add <Compile Include="../Shared/Sse/**/*.cs" LinkBase="Shared/Sse" /> when packages 09/14 create src/Shared/Sse. -->
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="../Compat.V0_3.Shared/spec/v0.3.0/a2a.proto" ProtoRoot="../Compat.V0_3.Shared/spec/v0.3.0" GrpcServices="Server" Access="Internal" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ambinder.A2A.Compat.V0_3.AspNetCore.Tests" />
+    <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+  </ItemGroup>
+</Project>

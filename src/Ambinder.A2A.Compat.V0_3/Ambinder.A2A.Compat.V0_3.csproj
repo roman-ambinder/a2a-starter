@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A2A 0.3 compatibility for the Ambinder.A2A client: lets the normal IA2AClient call agents that still speak A2A 0.3 over JSON-RPC, REST and gRPC.</Description>
+    <PackageTags>$(PackageTags);client;compat;a2a-0.3</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Generated protobuf code is internal and not documented. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 0.3 models, JSON and converters, compiled internal here and in Ambinder.A2A.Compat.V0_3.AspNetCore (plan D5, spec 01 rule 10). -->
+    <Compile Include="../Compat.V0_3.Shared/**/*.cs" LinkBase="Shared" />
+    <!-- Shared client SSE parser (plan D4): add <Compile Include="../Shared/Sse/SseParser.cs" LinkBase="Shared/Sse" /> when package 10 creates it. -->
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <Protobuf Include="../Compat.V0_3.Shared/spec/v0.3.0/a2a.proto" ProtoRoot="../Compat.V0_3.Shared/spec/v0.3.0" GrpcServices="Client" Access="Internal" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ambinder.A2A.Compat.V0_3.Tests" />
+    <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+  </ItemGroup>
+  <PropertyGroup>
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
+  </PropertyGroup>
+</Project>

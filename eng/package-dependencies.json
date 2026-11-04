@@ -57,6 +57,27 @@
         "Azure.Identity"
       ],
       "frameworkReferences": []
+    },
+    "Ambinder.A2A.Compat.V0_3": {
+      "dependencies": [
+        "Ambinder.A2A.Client",
+        "Google.Api.CommonProtos",
+        "Google.Protobuf",
+        "Grpc.Net.Client"
+      ],
+      "frameworkReferences": []
+    },
+    "Ambinder.A2A.Compat.V0_3.AspNetCore": {
+      "dependencies": [
+        "Ambinder.A2A.AspNetCore",
+        "Ambinder.A2A.Compat.V0_3",
+        "Google.Api.CommonProtos",
+        "Google.Protobuf",
+        "Grpc.AspNetCore"
+      ],
+      "frameworkReferences": [
+        "Microsoft.AspNetCore.App"
+      ]
     }
   }
 }
