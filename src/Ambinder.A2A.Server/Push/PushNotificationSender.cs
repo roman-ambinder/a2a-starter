@@ -42,16 +42,18 @@ internal sealed class PushNotificationSender : BackgroundService, ITaskEventObse
     private readonly IPushConfigStore _store;
     private readonly PushSigningKey _signingKey;
     private readonly PushOptions _options;
+    private readonly PushAttemptAddressCheck _addressCheck;
     private readonly ILogger<PushNotificationSender> _logger;
     private readonly TimeProvider _time;
 
     public PushNotificationSender(IHttpClientFactory httpClients, IPushConfigStore store, PushSigningKey signingKey,
-        IOptions<PushOptions> options, ILogger<PushNotificationSender> logger, TimeProvider? time = null)
+        IOptions<PushOptions> options, PushAttemptAddressCheck addressCheck, ILogger<PushNotificationSender> logger, TimeProvider? time = null)
     {
         _httpClients = httpClients;
         _store = store;
         _signingKey = signingKey;
         _options = options.Value;
+        _addressCheck = addressCheck;
         _logger = logger;
         _time = time ?? TimeProvider.System;
     }
@@ -180,6 +182,8 @@ internal sealed class PushNotificationSender : BackgroundService, ITaskEventObse
                 using var request = BuildRequest(item, config, target, body);
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeout.CancelAfter(_options.Timeout);
+                // Proxy mode only: the connect-time check cannot see the webhook address, so check it before every attempt.
+                await _addressCheck.CheckAsync(target, timeout.Token).ConfigureAwait(false);
                 using var response = await _httpClients.CreateClient(HttpClientName)
                     .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode) return "delivered";

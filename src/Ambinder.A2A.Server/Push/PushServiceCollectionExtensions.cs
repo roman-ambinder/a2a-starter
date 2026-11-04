@@ -23,20 +23,12 @@ internal static class PushServiceCollectionExtensions
         services.TryAddSingleton<PushNotificationSender>();
         services.AddSingleton<Tasks.ITaskEventObserver>(sp => sp.GetRequiredService<PushNotificationSender>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<PushNotificationSender>());
+        services.TryAddSingleton<IWebhookAddressResolver, DnsWebhookAddressResolver>();
+        services.TryAddSingleton<PushDeliveryMode>();
+        services.TryAddSingleton<PushAttemptAddressCheck>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, PushStartupChecks>());
+        // The plain named client. Ambinder.A2A.AspNetCore adds the primary handler (connect-time SSRF check, proxy); the core has no host code.
         services.AddHttpClient(PushNotificationSender.HttpClientName)
-            .ConfigurePrimaryHttpMessageHandler(sp =>
-            {
-                // Checked again at connect time, so DNS rebinding after config creation cannot reach private addresses.
-                var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PushOptions>>().Value;
-                var policy = new PushAddressPolicy(options);
-                return new SocketsHttpHandler
-                {
-                    AllowAutoRedirect = false,
-                    // A proxy would make the connect-time address check see the proxy, not the webhook host.
-                    UseProxy = false,
-                    ConnectCallback = (context, ct) => WebhookUrlValidator.ConnectCheckedAsync(policy, context.DnsEndPoint, ct),
-                };
-            })
             .ConfigureHttpClient(c => c.Timeout = System.Threading.Timeout.InfiniteTimeSpan); // the sender applies PushOptions.Timeout per attempt
         return services;
     }

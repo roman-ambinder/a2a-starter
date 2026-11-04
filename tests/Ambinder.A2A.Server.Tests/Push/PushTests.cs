@@ -51,7 +51,7 @@ public class PushTests
         public IPushConfigStore Configs { get; }
         public TestHost Host { get; }
 
-        public Harness(Action<PushOptions>? configure = null, bool pushCapable = true)
+        public Harness(Action<PushOptions>? configure = null, bool pushCapable = true, Action<IServiceCollection>? configureServices = null)
         {
             var services = new ServiceCollection().AddLogging();
             services.AddA2APush(o =>
@@ -63,6 +63,7 @@ public class PushTests
                 configure?.Invoke(o);
             });
             services.AddHttpClient("a2a-push").ConfigurePrimaryHttpMessageHandler(() => Handler);
+            configureServices?.Invoke(services);
             Provider = services.BuildServiceProvider();
             Sender = Provider.GetRequiredService<PushNotificationSender>();
             Configs = Provider.GetRequiredService<IPushConfigStore>();
@@ -387,18 +388,23 @@ public class PushTests
         }
     }
 
-    [Fact]
-    public void Push_http_client_never_uses_a_proxy_or_follows_redirects()
+    private sealed class PrivateResolver : IWebhookAddressResolver
     {
-        using var provider = new ServiceCollection().AddLogging().AddA2APush().BuildServiceProvider();
-        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+        public ValueTask<System.Net.IPAddress[]> ResolveAsync(string host, CancellationToken ct) => ValueTask.FromResult(new[] { System.Net.IPAddress.Parse("10.0.0.5") });
+    }
 
-        HttpMessageHandler? handler = factory.CreateHandler(PushNotificationSender.HttpClientName);
-        while (handler is DelegatingHandler d) handler = d.InnerHandler;
+    [Fact]
+    public async Task Proxy_mode_sender_sends_nothing_when_webhook_resolves_to_a_private_address()
+    {
+        await using var h = new Harness(
+            o => { o.AllowPrivateNetworks = false; o.Proxy = new Uri("http://proxy.contoso.com:3128"); o.MaxAttempts = 2; },
+            configureServices: s => s.AddSingleton<IWebhookAddressResolver, PrivateResolver>());
+        using var deliveries = new ActivityCollector(A2ATelemetryNames.ServerSource);
 
-        var sockets = Assert.IsType<SocketsHttpHandler>(handler);
-        Assert.False(sockets.UseProxy);
-        Assert.False(sockets.AllowAutoRedirect);
-        Assert.NotNull(sockets.ConnectCallback);
+        // A public literal passes config create; the resolver then answers privately, as after DNS rebinding.
+        await h.SendWithPushAsync(Config("https://93.184.216.34/hook"));
+        await deliveries.WaitForCountAsync("a2a.push.deliver", 1, TestHost.Timeout);
+
+        Assert.Empty(h.Handler.Requests);
     }
 }

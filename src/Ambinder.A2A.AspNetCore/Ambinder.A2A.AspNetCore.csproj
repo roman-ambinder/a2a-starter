@@ -22,6 +22,11 @@
     <Compile Include="../Shared/AgentCardETag.cs" Link="Shared/AgentCardETag.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The SSRF address rules and the connect-time check, compiled into this package from the core's source (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Ambinder.A2A.Server/Push/PushAddressPolicy.cs" Link="Shared/PushAddressPolicy.cs" />
+    <Compile Include="../Ambinder.A2A.Server/Push/WebhookUrlValidator.cs" Link="Shared/WebhookUrlValidator.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.AspNetCore.Tests" />
     <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
   </ItemGroup>

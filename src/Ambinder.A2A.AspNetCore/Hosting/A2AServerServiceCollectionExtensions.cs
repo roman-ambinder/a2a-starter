@@ -1,5 +1,6 @@
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.AspNetCore.Auth;
+using Ambinder.A2A.AspNetCore.Push;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Hosting;
@@ -44,6 +45,7 @@ public static class A2AServerServiceCollectionExtensions
         // Replace, not TryAdd: AddA2AServerCore registered the core pass-through default.
         services.AddDataProtection();
         services.Replace(ServiceDescriptor.Singleton<Ambinder.A2A.Server.Push.IPushCredentialProtector, Ambinder.A2A.AspNetCore.Push.DataProtectionPushCredentialProtector>());
+        services.AddA2APushHttpClient();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
         services.TryAddSingleton<AgentCardRenderer>();

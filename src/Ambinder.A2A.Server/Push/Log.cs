@@ -28,4 +28,8 @@ internal static partial class Log
     [LoggerMessage(EventId = 1106, EventName = nameof(PushCredentialsUnprotected), Level = LogLevel.Warning,
         Message = "Push credentials are stored unprotected. Reference Ambinder.A2A.AspNetCore (Data Protection) or register an IPushCredentialProtector.")]
     public static partial void PushCredentialsUnprotected(ILogger logger);
+
+    [LoggerMessage(EventId = 1107, EventName = nameof(PushProxyEnabled), Level = LogLevel.Information,
+        Message = "Push deliveries go through the proxy {Proxy}. The webhook address is checked before every attempt.")]
+    public static partial void PushProxyEnabled(ILogger logger, string proxy);
 }
