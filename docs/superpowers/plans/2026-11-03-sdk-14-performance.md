@@ -530,6 +530,7 @@ Layers (spec §1). Each layer has `[Params(Transport.JsonRpc, Transport.Rest, Tr
 **Shared with 05 (review item A).** 05's plan (Task 30) creates the same four files, and creates this project if it does not exist yet. Before Step 1, check `ls benchmarks/Ambinder.A2A.Benchmarks/Store/`. If 05's files are there, keep its class names and add only the operations listed below that are missing; do not create a parallel class. If this task lands first, use 05's file names, so 05 extends them later. The SQLite class is `SqliteStoreBenchmarks` (05's name), not `EfSqliteStoreBenchmarks`.
 
 - [ ] **Step 1: In-memory** (spec §1, PD6). Benchmark: save a new task; save an update (history +1) at history 0, 20 and 200; get; list a page of 50 out of 10,000. Use the public store interface (`ITaskStore`, or the 05 contract), so a replacement store can run the same class (spec principle 5).
+  - **Reusable by third-party stores** (spec 14 "Provides to 12", owner decision 2026-11-03): put the operations in an abstract `StoreBenchmarkBase` that takes package 05's `StoreSet` from an abstract `CreateStores()` method. `InMemoryStoreBenchmarks`, `SqliteStoreBenchmarks` and the `Db` classes are subclasses. A store author runs the same scenarios by subclassing it with their own `StoreSet`. Add a short "Benchmark your own store" section to `benchmarks/README.md`. Package 12 may publish the base class in M2 with its other testing helpers. If 05's `StoreSet` has not landed, take the `ITaskStore` directly and switch when it lands.
 - [ ] **Step 2: When package 05 has landed:**
   - EF Core on SQLite (in-memory and file) runs always, with the same operations, plus a concurrent write that hits a version conflict and retries.
   - The "2,000 streamed chunks into one task" scenario runs on SQLite always and on PostgreSQL in `Db` (05 §7.10).
@@ -755,6 +756,7 @@ The perf gate reads this table. One row per accepted regression. The owner appro
 - [ ] **Step 7: `NightlyCommand`** (`PerfTool nightly --current <dir> --previous <dir> --startup startup.json --size size.json --out nightly-summary.json --md nightly-summary.md`).
   - It compares with the previous nightly run using `nightlyAlert` (more than 20% slower or more than 10% extra allocation, spec Goal 4). With no `--previous` (the first run), it skips the comparison.
   - It writes a summary with events per second for the `Stream` category, the startup and size numbers, and the machine info. This is the JSON that package 13 consumes (spec Goal 11).
+  - **Test server start time** (spec 12 principle 4: "tracked by package 14", owner decision 2026-11-03): an optional `--test-server-start <file>` reads the JSON that package 12's start-time test writes (`{ "p50Ms": ..., "p95Ms": ..., "runs": 20 }`) and adds it to the summary next to the startup numbers, with the same 20% trend alert. `perf.yml` runs that one test in the nightly job and passes the file. If the file is missing (12 has not landed), the summary omits the row.
   - It sets exit code 2 when there is an alert, so the workflow can comment.
 
 - [ ] **Step 8: `.github/workflows/perf.yml`.** Skeleton (fill in action SHAs and match 01's reusable-workflow conventions):
@@ -1452,6 +1454,10 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
 
 ---
 
+## Owner review (2026-11-03)
+
+The plan writer's calls are accepted as written: the in-repo `PerfTool gate` with a Mann-Whitney U test (Task 14), the `AllocationBudget` helper design (Task 2), benchmark data generated in code (Task 3), `JsonNode` kept on the REST path (Task 17), and the 16 KB flush threshold (Task 18). Both minor review notes are fixed in the plan text (Tasks 8 and 14 Step 7, and the 12 plan Task 3).
+
 ## Owner actions (cannot be done by code)
 
 | # | Action | When |
@@ -1492,5 +1498,5 @@ Ask the owner before opening these. They are throwaway PRs and get closed withou
 
 Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
 
-- Spec 12 says `A2ATestServer` start time (150 ms p50) is "tracked by package 14"; plan 14 only measures HelloAgent process start (Task 12) and plan 12 just prints the p50. Nobody tracks it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:542. Spec: 12 spec Principle 4, Dependencies. Fix: add an M2 scenario measuring `A2ATestServer.StartAsync`, or have 12 Task 3 write the p50 to JSON the nightly summary reads.
-- Spec 14 says store scenarios are "reusable by the `Testing` package" for third-party stores ("Provides to 12"); no task in 14 or 12 does it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:488 (Task 8). Spec: 14 spec Principle 5, Dependencies. Fix: write Task 8's benchmark against `StoreSet`/`ITaskStore` so authors can subclass it and document it, or record a deferral with a reason.
+- **Fixed in this plan's text (owner decision 2026-11-03, Task 14 Step 7; 12 plan Task 3).** Spec 12 says `A2ATestServer` start time (150 ms p50) is "tracked by package 14"; plan 14 only measures HelloAgent process start (Task 12) and plan 12 just prints the p50. Nobody tracks it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:542. Spec: 12 spec Principle 4, Dependencies. Fix: add an M2 scenario measuring `A2ATestServer.StartAsync`, or have 12 Task 3 write the p50 to JSON the nightly summary reads.
+- **Fixed in this plan's text (owner decision 2026-11-03, Task 8 Step 1).** Spec 14 says store scenarios are "reusable by the `Testing` package" for third-party stores ("Provides to 12"); no task in 14 or 12 does it. Plan: docs/superpowers/plans/2026-11-03-sdk-14-performance.md:488 (Task 8). Spec: 14 spec Principle 5, Dependencies. Fix: write Task 8's benchmark against `StoreSet`/`ITaskStore` so authors can subclass it and document it, or record a deferral with a reason.
