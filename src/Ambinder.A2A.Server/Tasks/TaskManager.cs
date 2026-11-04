@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
-using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +23,6 @@ internal sealed class TaskManager : IA2ARequestHandler
     private readonly ILogger _logger;
     private readonly TaskWriter _writer;
     private readonly PushConfigService _push;
-    private readonly IOwnerResolver _owners;
     private readonly ConcurrentDictionary<(string Agent, string TaskId), TaskExecution> _running = new();
 
     // Tasks with a CancelTask in progress. Set and checked under the task lock; continuations are rejected
@@ -40,13 +38,10 @@ internal sealed class TaskManager : IA2ARequestHandler
     /// <param name="pushConfigs">Where push configs live. Default: a new in-memory store (share it with the sender).</param>
     /// <param name="pushOptions">Webhook URL rules. Default <see cref="PushOptions"/>.</param>
     /// <param name="time">Clock for status timestamps. Default <see cref="TimeProvider.System"/>.</param>
-    /// <param name="owners">Ownership rules; only <see cref="IOwnerResolver.CanContinueInterrupted"/> is used here (the transports
-    /// compute <see cref="A2ACallContext.Owner"/>). Default <see cref="DefaultOwnerResolver.Instance"/>.</param>
     public TaskManager(AgentCatalog catalog, ITaskStore store, TaskEventBroker broker, IServiceProvider services,
         IEnumerable<ITaskEventObserver>? observers = null, ILogger<TaskManager>? logger = null, TimeProvider? time = null,
-        IPushConfigStore? pushConfigs = null, PushOptions? pushOptions = null, IOwnerResolver? owners = null)
+        IPushConfigStore? pushConfigs = null, PushOptions? pushOptions = null)
     {
-        _owners = owners ?? DefaultOwnerResolver.Instance;
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _logger = (ILogger?)logger ?? NullLogger.Instance;
@@ -429,16 +424,27 @@ internal sealed class TaskManager : IA2ARequestHandler
     }
 
     /// <summary>
-    /// Like <see cref="LoadOwnedAsync"/>, but another owner may continue the task when <see cref="IOwnerResolver.CanContinueInterrupted"/>
-    /// allows it (default: step-up of an AUTH_REQUIRED task within one tenant). The task keeps its owner.
+    /// Like <see cref="LoadOwnedAsync"/>, but another app of the same tenant may continue an AUTH_REQUIRED task. The task keeps its owner.
+    /// Temporary: spec 07 (B6) replaces this tenant rule with single-use continuation grants.
     /// </summary>
     private async Task<StoredTask> LoadForContinuationAsync(A2ACallContext call, string taskId, CancellationToken ct)
     {
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         if (stored is null
-            || (stored.Owner != call.Owner && !_owners.CanContinueInterrupted(stored.Owner, call.Owner, stored.Task.Status.State)))
+            || (stored.Owner != call.Owner && !IsTenantStepUp(stored.Owner, call.Owner, stored.Task.Status.State)))
             throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found. Check the task id.");
         return stored;
+    }
+
+    /// <summary>True only for AUTH_REQUIRED when both owners are app owners (<c>tid:{tid}/app:{id}</c>) of the same tenant.</summary>
+    private static bool IsTenantStepUp(string taskOwner, string callerOwner, TaskState state)
+        => state == TaskState.AuthRequired && AppTenantPrefix(taskOwner) is { } tenant && tenant == AppTenantPrefix(callerOwner);
+
+    private static string? AppTenantPrefix(string owner)
+    {
+        if (!owner.StartsWith("tid:", StringComparison.Ordinal)) return null;
+        var slash = owner.IndexOf("/app:", StringComparison.Ordinal);
+        return slash > "tid:".Length ? owner[..slash] : null;
     }
 
     private AgentRegistration GetAgent(A2ACallContext call)

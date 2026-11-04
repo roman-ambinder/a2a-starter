@@ -4,7 +4,7 @@ namespace Ambinder.A2A.Server.Tasks;
 
 /// <summary>A task together with the agent and owner it belongs to.</summary>
 /// <param name="AgentName">The name of the agent the task belongs to.</param>
-/// <param name="Owner">The owner key of the task, from the registered <see cref="Auth.IOwnerResolver"/>.</param>
+/// <param name="Owner">The owner key of the task, from the registered <see cref="Security.IOwnerResolver"/>.</param>
 /// <param name="Tenant">The tenant the caller named, or <see langword="null"/>.</param>
 /// <param name="Task">The task, with its status, history and artifacts.</param>
 /// <remarks>The tenant is stored as the caller sent it. This version does not separate tasks by tenant.</remarks>

@@ -142,16 +142,16 @@ public class TaskManagerTests
     }
 
     [Theory]
-    [InlineData(TaskState.AuthRequired, "tenant:t1/app:b", true)]   // step-up within the tenant
-    [InlineData(TaskState.AuthRequired, "tenant:t2/app:b", false)]  // other tenant
-    [InlineData(TaskState.InputRequired, "tenant:t1/app:b", false)] // not a step-up
+    [InlineData(TaskState.AuthRequired, "tid:t1/app:b", true)]   // step-up within the tenant
+    [InlineData(TaskState.AuthRequired, "tid:t2/app:b", false)]  // other tenant
+    [InlineData(TaskState.InputRequired, "tid:t1/app:b", false)] // not a step-up
     public async Task Another_owner_may_continue_only_an_auth_required_task_of_the_same_tenant(TaskState paused, string caller, bool allowed)
     {
         var host = new TestHost();
         host.Scripts.Execute = (ctx, sink, ct) => ctx.CurrentTask is null
             ? sink.UpdateStatusAsync(paused, null, ct)
             : sink.UpdateStatusAsync(TaskState.Completed, null, ct);
-        var first = (await host.SendAsync(TestHost.Text("start"), owner: "tenant:t1/app:a")).Task!;
+        var first = (await host.SendAsync(TestHost.Text("start"), owner: "tid:t1/app:a")).Task!;
 
         if (allowed)
         {
@@ -159,12 +159,12 @@ public class TaskManagerTests
             Assert.Equal(TaskState.Completed, done.Status.State);
             // The task keeps its owner: the continuing app still cannot read it.
             await ThrowsA2A(A2AErrorCode.TaskNotFound, () => host.GetAsync(first.Id, owner: caller));
-            Assert.Equal(TaskState.Completed, (await host.GetAsync(first.Id, owner: "tenant:t1/app:a")).Status.State);
+            Assert.Equal(TaskState.Completed, (await host.GetAsync(first.Id, owner: "tid:t1/app:a")).Status.State);
         }
         else
         {
             await ThrowsA2A(A2AErrorCode.TaskNotFound, () => host.SendAsync(TestHost.Text("go", first.Id), owner: caller));
-            Assert.Equal(paused, (await host.GetAsync(first.Id, owner: "tenant:t1/app:a")).Status.State);
+            Assert.Equal(paused, (await host.GetAsync(first.Id, owner: "tid:t1/app:a")).Status.State);
         }
         await ThrowsA2A(A2AErrorCode.TaskNotFound, () => host.Manager.CancelTaskAsync(TestHost.Call(caller), new CancelTaskRequest { Id = first.Id }, CancellationToken.None));
     }

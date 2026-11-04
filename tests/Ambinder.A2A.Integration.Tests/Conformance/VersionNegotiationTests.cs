@@ -195,8 +195,11 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
         Assert.Equal("", context.Tenant);
         Assert.False(context.RestPath.HasValue);
         Assert.True(context.Caller.User.Identity?.IsAuthenticated);
-        var owners = server.Services.GetRequiredService<IOwnerResolver>();
-        Assert.Equal(owners.GetOwner(context.Caller.User), context.Caller.Owner);
+        var owners = server.Services.GetRequiredService<Ambinder.A2A.Server.Security.IOwnerResolver>();
+        var agent = server.Services.GetRequiredService<Ambinder.A2A.Server.Agents.AgentCatalog>().TryGet("echo", out var registered)
+            ? registered
+            : throw new InvalidOperationException("The echo agent is not registered.");
+        Assert.Equal((await owners.ResolveAsync(context.Caller.User, agent, Ct)).Owner, context.Caller.Owner);
         Assert.NotEmpty(context.Caller.Owner);
         // D2: the core has not read the body; the dispatcher gets the bytes the client sent.
         Assert.Equal(JsonRpcListTasks, seen.Body);

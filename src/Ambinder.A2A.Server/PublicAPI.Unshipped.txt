@@ -59,17 +59,8 @@ Ambinder.A2A.Server.Agents.AgentRegistration.Name.get -> string!
 Ambinder.A2A.Server.Agents.AgentRegistration.Name.init -> void
 Ambinder.A2A.Server.Agents.AgentRegistration.PublicCard.get -> Ambinder.A2A.Protocol.AgentCard!
 Ambinder.A2A.Server.Agents.AgentRegistration.PublicCard.init -> void
-Ambinder.A2A.Server.Auth.CallerIdentity
-Ambinder.A2A.Server.Auth.DefaultOwnerResolver
-Ambinder.A2A.Server.Auth.DefaultOwnerResolver.ApiKeyAuthenticationType.get -> string!
-Ambinder.A2A.Server.Auth.DefaultOwnerResolver.CanContinueInterrupted(string! taskOwner, string! callerOwner, Ambinder.A2A.Protocol.TaskState state) -> bool
-Ambinder.A2A.Server.Auth.DefaultOwnerResolver.DefaultOwnerResolver(string! apiKeyAuthenticationType = "ApiKey") -> void
-Ambinder.A2A.Server.Auth.DefaultOwnerResolver.GetOwner(System.Security.Claims.ClaimsPrincipal! user) -> string!
 Ambinder.A2A.Server.Auth.IAgentAuthorizer
 Ambinder.A2A.Server.Auth.IAgentAuthorizer.AuthorizeAsync(Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Security.Claims.ClaimsPrincipal! user, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
-Ambinder.A2A.Server.Auth.IOwnerResolver
-Ambinder.A2A.Server.Auth.IOwnerResolver.CanContinueInterrupted(string! taskOwner, string! callerOwner, Ambinder.A2A.Protocol.TaskState state) -> bool
-Ambinder.A2A.Server.Auth.IOwnerResolver.GetOwner(System.Security.Claims.ClaimsPrincipal! user) -> string!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder
 Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string! name, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>! publicCard, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>? extendedCard = null, string? authorizationPolicy = null) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
@@ -136,6 +127,34 @@ Ambinder.A2A.Server.Push.PushOptions.MaxRetries.set -> void
 Ambinder.A2A.Server.Push.PushOptions.PushOptions() -> void
 Ambinder.A2A.Server.Push.PushOptions.Timeout.get -> System.TimeSpan
 Ambinder.A2A.Server.Push.PushOptions.Timeout.set -> void
+Ambinder.A2A.Server.Security.A2ACaller
+Ambinder.A2A.Server.Security.A2ACaller.<Clone>$() -> Ambinder.A2A.Server.Security.A2ACaller!
+Ambinder.A2A.Server.Security.A2ACaller.A2ACaller() -> void
+Ambinder.A2A.Server.Security.A2ACaller.AccessToken.get -> string?
+Ambinder.A2A.Server.Security.A2ACaller.AccessToken.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.AppId.get -> string?
+Ambinder.A2A.Server.Security.A2ACaller.AppId.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.EntraTenantId.get -> string?
+Ambinder.A2A.Server.Security.A2ACaller.EntraTenantId.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.Equals(Ambinder.A2A.Server.Security.A2ACaller? other) -> bool
+Ambinder.A2A.Server.Security.A2ACaller.Kind.get -> Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.A2ACaller.Kind.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.Owner.get -> string!
+Ambinder.A2A.Server.Security.A2ACaller.Owner.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+Ambinder.A2A.Server.Security.A2ACaller.Principal.init -> void
+Ambinder.A2A.Server.Security.A2ACaller.UserObjectId.get -> string?
+Ambinder.A2A.Server.Security.A2ACaller.UserObjectId.init -> void
+Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.CallerKind.Anonymous = 0 -> Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.CallerKind.Application = 1 -> Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.CallerKind.Other = 3 -> Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.CallerKind.User = 2 -> Ambinder.A2A.Server.Security.CallerKind
+Ambinder.A2A.Server.Security.DefaultOwnerResolver
+Ambinder.A2A.Server.Security.DefaultOwnerResolver.DefaultOwnerResolver() -> void
+Ambinder.A2A.Server.Security.DefaultOwnerResolver.ResolveAsync(System.Security.Claims.ClaimsPrincipal! user, Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Security.A2ACaller!>
+Ambinder.A2A.Server.Security.IOwnerResolver
+Ambinder.A2A.Server.Security.IOwnerResolver.ResolveAsync(System.Security.Claims.ClaimsPrincipal! user, Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Security.A2ACaller!>
 Ambinder.A2A.Server.Security.OwnerKey
 Ambinder.A2A.Server.Security.OwnerKey.Equals(Ambinder.A2A.Server.Security.OwnerKey other) -> bool
 Ambinder.A2A.Server.Security.OwnerKey.OwnerKey() -> void
@@ -160,11 +179,6 @@ Ambinder.A2A.Server.Tasks.StoredTask.Task.init -> void
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.get -> string?
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.init -> void
 Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
-const Ambinder.A2A.Server.Auth.CallerIdentity.Anonymous = "anonymous" -> string!
-const Ambinder.A2A.Server.Auth.CallerIdentity.ApiKeyClaim = "a2a:apikey" -> string!
-const Ambinder.A2A.Server.Auth.CallerIdentity.MappedTenantIdClaim = "http://schemas.microsoft.com/identity/claims/tenantid" -> string!
-const Ambinder.A2A.Server.Auth.CallerIdentity.TenantIdClaim = "tid" -> string!
-const Ambinder.A2A.Server.Auth.DefaultOwnerResolver.DefaultApiKeyAuthenticationType = "ApiKey" -> string!
 override Ambinder.A2A.Server.A2ACallContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.A2ACallContext.GetHashCode() -> int
 override Ambinder.A2A.Server.A2ACallContext.ToString() -> string!
@@ -177,6 +191,9 @@ override Ambinder.A2A.Server.Agents.AgentRegistration.ToString() -> string!
 override Ambinder.A2A.Server.Hosting.AgentCardContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Hosting.AgentCardContext.GetHashCode() -> int
 override Ambinder.A2A.Server.Hosting.AgentCardContext.ToString() -> string!
+override Ambinder.A2A.Server.Security.A2ACaller.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Security.A2ACaller.GetHashCode() -> int
+override Ambinder.A2A.Server.Security.A2ACaller.ToString() -> string!
 override Ambinder.A2A.Server.Security.OwnerKey.GetHashCode() -> int
 override Ambinder.A2A.Server.Security.OwnerKey.ToString() -> string!
 override Ambinder.A2A.Server.Tasks.StoredTask.Equals(object? obj) -> bool
@@ -188,10 +205,10 @@ static Ambinder.A2A.Server.AgentRequestContext.operator !=(Ambinder.A2A.Server.A
 static Ambinder.A2A.Server.AgentRequestContext.operator ==(Ambinder.A2A.Server.AgentRequestContext? left, Ambinder.A2A.Server.AgentRequestContext? right) -> bool
 static Ambinder.A2A.Server.Agents.AgentRegistration.operator !=(Ambinder.A2A.Server.Agents.AgentRegistration? left, Ambinder.A2A.Server.Agents.AgentRegistration? right) -> bool
 static Ambinder.A2A.Server.Agents.AgentRegistration.operator ==(Ambinder.A2A.Server.Agents.AgentRegistration? left, Ambinder.A2A.Server.Agents.AgentRegistration? right) -> bool
-static Ambinder.A2A.Server.Auth.CallerIdentity.GetOwner(System.Security.Claims.ClaimsPrincipal! user) -> string!
-static Ambinder.A2A.Server.Auth.DefaultOwnerResolver.Instance.get -> Ambinder.A2A.Server.Auth.DefaultOwnerResolver!
 static Ambinder.A2A.Server.Hosting.AgentCardContext.operator !=(Ambinder.A2A.Server.Hosting.AgentCardContext? left, Ambinder.A2A.Server.Hosting.AgentCardContext? right) -> bool
 static Ambinder.A2A.Server.Hosting.AgentCardContext.operator ==(Ambinder.A2A.Server.Hosting.AgentCardContext? left, Ambinder.A2A.Server.Hosting.AgentCardContext? right) -> bool
+static Ambinder.A2A.Server.Security.A2ACaller.operator !=(Ambinder.A2A.Server.Security.A2ACaller? left, Ambinder.A2A.Server.Security.A2ACaller? right) -> bool
+static Ambinder.A2A.Server.Security.A2ACaller.operator ==(Ambinder.A2A.Server.Security.A2ACaller? left, Ambinder.A2A.Server.Security.A2ACaller? right) -> bool
 static Ambinder.A2A.Server.Security.OwnerKey.ForApp(string! tenantId, string! appId) -> Ambinder.A2A.Server.Security.OwnerKey
 static Ambinder.A2A.Server.Security.OwnerKey.ForUser(string! tenantId, string! userObjectId) -> Ambinder.A2A.Server.Security.OwnerKey
 static Ambinder.A2A.Server.Security.OwnerKey.Parse(string! value) -> Ambinder.A2A.Server.Security.OwnerKey

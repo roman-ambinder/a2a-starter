@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
-using Ambinder.A2A.Server.Auth;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -21,7 +21,7 @@ internal static partial class TransportRequest
 {
     /// <summary>
     /// True when the primary identity (<see cref="ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
-    /// <see cref="DefaultOwnerResolver.GetOwner"/>, so a caller is never authorized and then treated as anonymous for ownership.
+    /// <see cref="DefaultOwnerResolver.ResolveAsync"/>, so a caller is never authorized and then treated as anonymous for ownership.
     /// </summary>
     public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
 

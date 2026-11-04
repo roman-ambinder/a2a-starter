@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.AspNetCore.Auth;
-using Ambinder.A2A.Server.Auth;
+using Ambinder.A2A.Server.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +16,9 @@ public class AgentAuthorizerTests
         new ClaimsIdentity([new Claim("sub", "s1")], "secondary"),     // secondary: authenticated
     ]);
 
+    private static A2ACaller OwnerOf(ClaimsPrincipal user)
+        => new DefaultOwnerResolver().ResolveAsync(user, Agent(null), CancellationToken.None).AsTask().GetAwaiter().GetResult();
+
     private static AgentRegistration Agent(string? policy)
         => new("a", typeof(object), new AgentCard { Name = "a" }, null, policy);
 
@@ -27,15 +30,15 @@ public class AgentAuthorizerTests
     }
 
     [Fact]
-    public void Authenticated_rule_is_the_primary_identity_like_caller_identity()
+    public void Authenticated_rule_is_the_primary_identity_like_the_owner_resolver()
     {
         var user = SecondaryOnly();
         Assert.False(AgentAuthorizer.IsAuthenticated(user));
-        Assert.Equal(CallerIdentity.Anonymous, CallerIdentity.GetOwner(user));
+        Assert.Equal(CallerKind.Anonymous, OwnerOf(user).Kind);
 
-        var primary = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "s1")], "primary"));
+        var primary = new ClaimsPrincipal(new ClaimsIdentity([new Claim("tid", "t1"), new Claim("azp", "a1")], "primary"));
         Assert.True(AgentAuthorizer.IsAuthenticated(primary));
-        Assert.Equal("user:s1", CallerIdentity.GetOwner(primary));
+        Assert.Equal("tid:t1/app:a1", OwnerOf(primary).Owner);
     }
 
     [Fact]

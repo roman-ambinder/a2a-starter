@@ -29,25 +29,25 @@ public readonly record struct OwnerKey
     public string Value => _value ?? string.Empty;
 
     /// <summary>Builds the key of an application (app-only token): <c>tid:{tenantId}/app:{appId}</c>.</summary>
-    /// <param name="tenantId">The Entra tenant id. It must not be empty or contain <c>/</c>.</param>
-    /// <param name="appId">The application (client) id. It must not be empty or contain <c>/</c>.</param>
+    /// <param name="tenantId">The Entra tenant id. It must not be empty or whitespace only, or contain <c>/</c>.</param>
+    /// <param name="appId">The application (client) id. It must not be empty or whitespace only, or contain <c>/</c>.</param>
     /// <returns>The owner key.</returns>
-    /// <exception cref="ArgumentException">An argument is null, empty or contains <c>/</c>, or the key is longer than 256 characters.</exception>
+    /// <exception cref="ArgumentException">An argument is null, empty, whitespace only or contains <c>/</c>, or the key is longer than 256 characters.</exception>
     public static OwnerKey ForApp(string tenantId, string appId)
         => Build("app", tenantId, appId, nameof(tenantId), nameof(appId));
 
     /// <summary>Builds the key of a user (delegated token): <c>tid:{tenantId}/user:{userObjectId}</c>.</summary>
-    /// <param name="tenantId">The Entra tenant id. It must not be empty or contain <c>/</c>.</param>
-    /// <param name="userObjectId">The user object id. It must not be empty or contain <c>/</c>.</param>
+    /// <param name="tenantId">The Entra tenant id. It must not be empty or whitespace only, or contain <c>/</c>.</param>
+    /// <param name="userObjectId">The user object id. It must not be empty or whitespace only, or contain <c>/</c>.</param>
     /// <returns>The owner key.</returns>
-    /// <exception cref="ArgumentException">An argument is null, empty or contains <c>/</c>, or the key is longer than 256 characters.</exception>
+    /// <exception cref="ArgumentException">An argument is null, empty, whitespace only or contains <c>/</c>, or the key is longer than 256 characters.</exception>
     public static OwnerKey ForUser(string tenantId, string userObjectId)
         => Build("user", tenantId, userObjectId, nameof(tenantId), nameof(userObjectId));
 
     /// <summary>Wraps an owner key string, for example <c>apikey:ops</c> from a resolver for another authentication scheme.</summary>
-    /// <param name="value">The key string. It must not be empty and at most 256 characters long.</param>
+    /// <param name="value">The key string. It must not be empty and must be at most 256 characters long.</param>
     /// <returns>The owner key.</returns>
-    /// <exception cref="ArgumentException"><paramref name="value"/> is null, empty or longer than 256 characters.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is null, empty, whitespace only or longer than 256 characters.</exception>
     public static OwnerKey Parse(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);

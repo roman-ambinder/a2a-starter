@@ -1,6 +1,7 @@
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.AspNetCore.Transports;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -23,6 +24,7 @@ internal sealed class DefaultA2ACallerResolver(AgentCatalog catalog, IAgentAutho
             throw new ArgumentException($"Unknown agent '{agentName}'.", nameof(agentName));
         await authorizer.AuthorizeAsync(agent, http.User, ct).ConfigureAwait(false);
         var tenant = TransportRequest.ResolveTenant(agentName, requestTenant, options.Value) ?? "";
-        return (new DispatchCaller(http.User, owners.GetOwner(http.User)), tenant);
+        var caller = await owners.ResolveAsync(http.User, agent, ct).ConfigureAwait(false);
+        return (new DispatchCaller(http.User, caller.Owner), tenant);
     }
 }

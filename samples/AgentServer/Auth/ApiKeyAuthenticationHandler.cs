@@ -2,7 +2,6 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
-using Ambinder.A2A.Server.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -25,6 +24,8 @@ public sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthentica
     : AuthenticationHandler<ApiKeyAuthenticationOptions>(options, logger, encoder)
 {
     public const string SchemeName = "ApiKey";
+    /// <summary>Claim that carries the key name.</summary>
+    public const string ApiKeyClaim = "a2a:apikey";
     public const string HeaderName = "X-API-Key";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -51,7 +52,7 @@ public sealed class ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthentica
 
         var identity = new ClaimsIdentity(
             [
-                new Claim(CallerIdentity.ApiKeyClaim, match),
+                new Claim(ApiKeyClaim, match),
                 new Claim(ClaimTypes.Name, match),
                 new Claim(ClaimTypes.Role, AuthSetup.InvokeRole),
             ],

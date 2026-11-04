@@ -48,6 +48,13 @@ Every preview section keeps a `### Breaking changes` heading.
 - **Transport clients are now internal**: `RestA2AClient`, `JsonRpcA2AClient`, `TracingA2AClient` and `SseReader` (`Ambinder.A2A.Client`), and `GrpcA2AClient` (`Ambinder.A2A.Client.Grpc`). Create clients with `A2AClientFactory.Create`; for gRPC add `GrpcClientTransport.Instance` to `A2AClientOptions.Transports`.
 - **Registration and mapping extensions moved to the namespaces the web SDK imports implicitly**, so a getting-started `Program.cs` needs no `using` for them. `AddA2AServerCore` is now in `Microsoft.Extensions.DependencyInjection` (class `A2AServerCoreServiceCollectionExtensions`, was `Ambinder.A2A.Server.Hosting.A2AServiceCollectionExtensions`). `AddA2AServer` is now in `Microsoft.Extensions.DependencyInjection` (class `A2AServerServiceCollectionExtensions`, was `Ambinder.A2A.AspNetCore.Hosting.A2AAspNetCoreServiceCollectionExtensions`). `MapA2A` and `ConfigureA2AKestrel` are now in `Microsoft.AspNetCore.Builder`. In `Ambinder.A2A.AspNetCore.Grpc`, `AddA2AGrpc` is now in `Microsoft.Extensions.DependencyInjection` and `MapA2AGrpc` in `Microsoft.AspNetCore.Builder`; the class `A2AGrpcExtensions` is split into `A2AGrpcServerBuilderExtensions` and `A2AGrpcEndpointRouteBuilderExtensions`. Call sites do not change; remove the old `using` lines.
 - **`IAgentHandler`, `IAgentEventSink` and `AgentRequestContext` moved** from `Ambinder.A2A.Server.Agents` to `Ambinder.A2A.Server`.
+- **Owner keys are per app or per user, and unknown authentication schemes are refused.** `CallerIdentity` is removed. `IOwnerResolver` moved to
+  `Ambinder.A2A.Server.Security` and now has one method, `ResolveAsync(ClaimsPrincipal, AgentRegistration, CancellationToken)`, which returns an
+  `A2ACaller` (`GetOwner` and `CanContinueInterrupted` are gone). `DefaultOwnerResolver` has no constructor arguments and no `Instance`.
+  Owner keys change format: `tenant:{tid}/app:{id}` is now `tid:{tid}/app:{appid}` (app-only token) or `tid:{tid}/user:{oid}` (delegated
+  token), so tasks stored under the old keys are no longer found. A caller that is authenticated but has no `tid` (for example an API key) now gets 401 until you
+  register an `IOwnerResolver` for that scheme, and `apikey:{name}` is no longer built in. The "another app of the same tenant may continue an
+  `AUTH_REQUIRED` task" rule still applies to app owners, as a temporary rule until continuation grants replace it.
 
 ### Added
 

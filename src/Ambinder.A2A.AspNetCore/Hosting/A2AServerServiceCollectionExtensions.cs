@@ -1,6 +1,7 @@
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.AspNetCore.Auth;
 using Ambinder.A2A.Server.Auth;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;

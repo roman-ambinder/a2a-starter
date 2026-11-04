@@ -14,6 +14,7 @@
     <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
     <Compile Include="../Shared/RequestValidator.cs" Link="Shared/RequestValidator.cs" />
     <Compile Include="../Shared/InternalServiceKeys.cs" Link="Shared/InternalServiceKeys.cs" />
+    <Compile Include="../Shared/Security/OwnerClaims.cs" Link="Shared/Security/OwnerClaims.cs" />
     <Compile Include="../Shared/TransportErrors.cs" Link="Shared/TransportErrors.cs" />
     <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
     <Compile Include="../Shared/RequestValidation.cs" Link="Shared/RequestValidation.cs" />

@@ -1,7 +1,7 @@
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Hosting;
-using Ambinder.A2A.Server.Auth;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
 using Ambinder.A2A.Server.Tasks;
@@ -72,11 +72,10 @@ public static class A2AServerCoreServiceCollectionExtensions
             sp.GetService<ILogger<TaskManager>>(),
             sp.GetService<TimeProvider>(),
             sp.GetRequiredService<IPushConfigStore>(),
-            sp.GetRequiredService<IOptions<PushOptions>>().Value,
-            sp.GetRequiredService<IOwnerResolver>()));
+            sp.GetRequiredService<IOptions<PushOptions>>().Value));
         services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
 
-        services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
+        services.TryAddSingleton<IOwnerResolver, DefaultOwnerResolver>();
         return builder;
     }
 }

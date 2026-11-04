@@ -262,7 +262,8 @@ public sealed class StatesAgent : IAgentHandler
 }
 
 /// <summary>
-/// Test scheme: <c>X-Test-User: name</c> → authenticated principal with <c>sub</c> = name (no <c>tid</c>);
+/// Test scheme: <c>X-Test-User: name</c> → authenticated app-only principal with <c>tid</c> = <c>test-tenant</c>, <c>azp</c> = name and <c>sub</c> = name
+/// (the default owner resolver refuses authenticated callers without <c>tid</c>);
 /// <c>X-Test-Roles: a,b</c> → role claims. No header → no result (anonymous).
 /// </summary>
 public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
@@ -277,7 +278,7 @@ public sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions>
         var user = Request.Headers[UserHeader].ToString();
         if (user.Length == 0) return Task.FromResult(AuthenticateResult.NoResult());
 
-        var claims = new List<Claim> { new("sub", user), new(ClaimTypes.Name, user) };
+        var claims = new List<Claim> { new("sub", user), new("tid", "test-tenant"), new("azp", user), new(ClaimTypes.Name, user) };
         foreach (var role in Request.Headers[RolesHeader].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             claims.Add(new Claim(ClaimTypes.Role, role));
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName));

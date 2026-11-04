@@ -2,6 +2,7 @@ using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,8 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 // package applies the same default rules itself: agent policy, then the owner from IOwnerResolver, then the tenant rule.
 internal static partial class TransportRequest
 {
+    private static readonly DefaultOwnerResolver FallbackOwners = new();
+
     /// <summary>
     /// Runs the agent's policy (<see cref="IAgentAuthorizer"/>), takes the owner from <see cref="IOwnerResolver"/> and resolves the
     /// tenant with <see cref="ResolveTenant"/>. An <see cref="A2AAuthException"/> is tagged on the request activity
@@ -31,9 +34,10 @@ internal static partial class TransportRequest
             TagError(ex.HttpStatus.ToString(System.Globalization.CultureInfo.InvariantCulture));
             throw;
         }
-        var owners = http.RequestServices.GetService<IOwnerResolver>() ?? DefaultOwnerResolver.Instance;
+        var owners = http.RequestServices.GetService<IOwnerResolver>() ?? FallbackOwners;
         var options = http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value;
         var tenant = ResolveTenant(agent.Name, requestTenant, options) ?? "";
-        return (new DispatchCaller(http.User, owners.GetOwner(http.User)), tenant);
+        var caller = await owners.ResolveAsync(http.User, agent, http.RequestAborted).ConfigureAwait(false);
+        return (new DispatchCaller(http.User, caller.Owner), tenant);
     }
 }

@@ -39,7 +39,8 @@ public class OwnerKeyTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void Null_or_empty_arguments_throw(string? bad)
+    [InlineData("   ")]
+    public void Null_empty_or_whitespace_arguments_throw(string? bad)
     {
         Assert.ThrowsAny<ArgumentException>(() => OwnerKey.ForApp(bad!, "a1"));
         Assert.ThrowsAny<ArgumentException>(() => OwnerKey.ForApp("t1", bad!));
@@ -62,6 +63,23 @@ public class OwnerKeyTests
     {
         Assert.Equal(256, OwnerKey.Parse(new string('x', 256)).Value.Length);
         Assert.Throws<ArgumentException>(() => OwnerKey.Parse(new string('x', 257)));
+    }
+
+    [Fact]
+    public void Built_key_of_exactly_256_chars_is_accepted()
+    {
+        // "tid:" (4) + 100 + "/app:" (5) + 147 = 256
+        var key = OwnerKey.ForApp(new string('t', 100), new string('a', 147));
+        Assert.Equal(256, key.Value.Length);
+    }
+
+    [Fact]
+    public void Default_instance_has_an_empty_value_and_is_not_a_real_key()
+    {
+        var empty = default(OwnerKey);
+        Assert.Equal("", empty.Value);
+        Assert.Equal("", empty.ToString());
+        Assert.NotEqual(OwnerKey.Parse("apikey:ops"), empty);
     }
 
     [Fact]

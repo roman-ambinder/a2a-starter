@@ -1,3 +1,4 @@
+using Ambinder.A2A.Server.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -34,6 +35,8 @@ public static class AuthSetup
                 $"Auth:Authority '{auth.Authority}' is not https while Auth:RequireHttpsMetadata is true; every bearer request would fail. " +
                 "Set ASPNETCORE_ENVIRONMENT=Development (enables Auth:RequireHttpsMetadata=false for the local MockEntra) or use an https authority.");
         services.AddSingleton(auth);
+        // The default owner resolver refuses schemes it does not know; this one adds the API key.
+        services.AddSingleton<IOwnerResolver, ApiKeyOwnerResolver>();
 
         services.AddAuthentication(PolicyScheme)
             .AddPolicyScheme(PolicyScheme, "API key or bearer token", o => o.ForwardDefaultSelector = context =>

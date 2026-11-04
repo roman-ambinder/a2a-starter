@@ -33,3 +33,6 @@ Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.MapA2AGrpc,Microsoft.AspNetCore.B
 Ambinder.A2A.Server.Agents.IAgentHandler,Ambinder.A2A.Server.IAgentHandler,Ambinder.A2A.Server,moved
 Ambinder.A2A.Server.Agents.IAgentEventSink,Ambinder.A2A.Server.IAgentEventSink,Ambinder.A2A.Server,moved
 Ambinder.A2A.Server.Agents.AgentRequestContext,Ambinder.A2A.Server.AgentRequestContext,Ambinder.A2A.Server,moved
+A2A.Server.Auth.CallerIdentity,,Ambinder.A2A.Server,removed; the default resolver reads claims through OwnerKey and A2ACaller (Ambinder.A2A.Server.Security)
+A2A.Server.Auth.IOwnerResolver,Ambinder.A2A.Server.Security.IOwnerResolver,Ambinder.A2A.Server,moved; GetOwner and CanContinueInterrupted removed; ResolveAsync returns A2ACaller
+A2A.Server.Auth.DefaultOwnerResolver,Ambinder.A2A.Server.Security.DefaultOwnerResolver,Ambinder.A2A.Server,moved; owner keys are tid:{tid}/app:{appid} or tid:{tid}/user:{oid}; no constructor arguments; no Instance; no API key rule
