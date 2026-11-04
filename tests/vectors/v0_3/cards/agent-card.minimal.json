@@ -1,0 +1,15 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "Minimal",
+  "description": "Only required members.",
+  "url": "https://min.example.com/a2a",
+  "version": "1.0.0",
+  "capabilities": {},
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "skills": []
+}

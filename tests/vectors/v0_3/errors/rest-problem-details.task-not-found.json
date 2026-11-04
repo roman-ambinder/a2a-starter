@@ -1,0 +1,7 @@
+{
+  "type": "https://a2a-protocol.org/errors/task-not-found",
+  "title": "Task not found",
+  "status": 404,
+  "detail": "No task with id 5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10.",
+  "instance": "/v1/tasks/5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10"
+}

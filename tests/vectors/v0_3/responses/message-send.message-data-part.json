@@ -1,0 +1,30 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "role": "agent",
+    "parts": [
+      {
+        "kind": "data",
+        "data": {
+          "confirmationId": "XYZ123",
+          "legs": [
+            {
+              "from": "JFK",
+              "to": "LHR"
+            }
+          ],
+          "paid": true,
+          "total": 1234.5,
+          "note": null
+        },
+        "metadata": {
+          "mimeType": "application/json"
+        }
+      }
+    ],
+    "messageId": "11111111-1111-4111-8111-111111111111",
+    "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+    "kind": "message"
+  }
+}

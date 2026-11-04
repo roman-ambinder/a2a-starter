@@ -1,0 +1,139 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "Edge Case Agent",
+  "description": "Hand-written card with additionalInterfaces and security.",
+  "url": "https://edge.example.com/a2a/jsonrpc",
+  "preferredTransport": "JSONRPC",
+  "additionalInterfaces": [
+    {
+      "url": "https://edge.example.com/a2a/jsonrpc",
+      "transport": "JSONRPC"
+    },
+    {
+      "url": "https://edge.example.com/a2a/grpc",
+      "transport": "GRPC"
+    },
+    {
+      "url": "https://edge.example.com/a2a/rest",
+      "transport": "HTTP+JSON"
+    }
+  ],
+  "provider": {
+    "organization": "Example Org",
+    "url": "https://example.com"
+  },
+  "iconUrl": "https://edge.example.com/icon.png",
+  "version": "2.1.0",
+  "documentationUrl": "https://docs.example.com/edge",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true,
+    "extensions": [
+      {
+        "uri": "https://example.com/ext/demo/v1",
+        "description": "Demo extension",
+        "required": false,
+        "params": {
+          "level": 2
+        }
+      }
+    ]
+  },
+  "securitySchemes": {
+    "apiKeyAuth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-Key",
+      "description": "API key"
+    },
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    },
+    "oauth": {
+      "type": "oauth2",
+      "flows": {
+        "authorizationCode": {
+          "authorizationUrl": "https://auth.example.com/authorize",
+          "tokenUrl": "https://auth.example.com/token",
+          "refreshUrl": "https://auth.example.com/refresh",
+          "scopes": {
+            "read": "Read access",
+            "write": "Write access"
+          }
+        },
+        "clientCredentials": {
+          "tokenUrl": "https://auth.example.com/token",
+          "scopes": {
+            "admin": "Admin"
+          }
+        }
+      },
+      "oauth2MetadataUrl": "https://auth.example.com/.well-known/oauth-authorization-server"
+    },
+    "oidc": {
+      "type": "openIdConnect",
+      "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+    },
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "Client certificate"
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "oauth": [
+        "read",
+        "write"
+      ],
+      "apiKeyAuth": []
+    }
+  ],
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "description": "Echoes input.",
+      "tags": [
+        "echo",
+        "demo"
+      ],
+      "examples": [
+        "say hi"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain"
+      ],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": true,
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "signature": "c2lnbmF0dXJl",
+      "header": {
+        "kid": "key-1"
+      }
+    }
+  ]
+}

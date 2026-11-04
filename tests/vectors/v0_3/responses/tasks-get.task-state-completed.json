@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-state",
+  "result": {
+    "id": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+    "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+    "status": {
+      "state": "completed",
+      "timestamp": "2025-01-15T10:00:00Z"
+    },
+    "kind": "task"
+  }
+}

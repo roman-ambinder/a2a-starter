@@ -1,0 +1,54 @@
+{
+  "id": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+  "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+  "status": {
+    "state": "completed",
+    "timestamp": "2025-01-15T10:05:00Z",
+    "message": {
+      "role": "agent",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Done."
+        }
+      ],
+      "messageId": "11111111-1111-4111-8111-111111111111",
+      "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+      "taskId": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+      "kind": "message"
+    }
+  },
+  "artifacts": [
+    {
+      "artifactId": "art-1",
+      "name": "result.json",
+      "parts": [
+        {
+          "kind": "data",
+          "data": {
+            "ok": true
+          }
+        }
+      ]
+    }
+  ],
+  "history": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "Run the job."
+        }
+      ],
+      "messageId": "33333333-3333-4333-8333-333333333333",
+      "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+      "taskId": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+      "kind": "message"
+    }
+  ],
+  "kind": "task",
+  "metadata": {
+    "source": "push"
+  }
+}

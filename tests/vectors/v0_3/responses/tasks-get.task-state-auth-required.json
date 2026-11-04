@@ -1,0 +1,26 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-state",
+  "result": {
+    "id": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+    "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+    "status": {
+      "state": "auth-required",
+      "timestamp": "2025-01-15T10:00:00Z",
+      "message": {
+        "role": "agent",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Status message for auth-required."
+          }
+        ],
+        "messageId": "22222222-2222-4222-8222-222222222222",
+        "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+        "taskId": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+        "kind": "message"
+      }
+    },
+    "kind": "task"
+  }
+}

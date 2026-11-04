@@ -1,0 +1,29 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "role": "agent",
+    "parts": [
+      {
+        "kind": "text",
+        "text": "Here is the report."
+      },
+      {
+        "kind": "file",
+        "file": {
+          "name": "report.pdf",
+          "mimeType": "application/pdf",
+          "bytes": "JVBERi0xLjQK"
+        },
+        "metadata": {
+          "source": "unit-test",
+          "pages": 1
+        }
+      }
+    ],
+    "messageId": "11111111-1111-4111-8111-111111111111",
+    "contextId": "a1b2c3d4-0000-4000-8000-00000000c0de",
+    "taskId": "5f3c8a52-0b8e-4c9d-9a1e-7d2b4c6e8f10",
+    "kind": "message"
+  }
+}

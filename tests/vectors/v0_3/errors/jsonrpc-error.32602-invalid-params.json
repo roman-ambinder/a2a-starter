@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "error": {
+    "code": -32602,
+    "message": "Invalid parameters",
+    "data": {
+      "field": "message.parts",
+      "reason": "must not be empty"
+    }
+  }
+}

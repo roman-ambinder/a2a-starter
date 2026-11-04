@@ -1,0 +1,8 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-err",
+  "error": {
+    "code": -32005,
+    "message": "Incompatible content types"
+  }
+}
