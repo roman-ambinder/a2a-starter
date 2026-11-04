@@ -107,7 +107,8 @@ Disposition of the current public types:
 | `SseReader` | internal. |
 | `RestA2AClient`, `GrpcA2AClient`, `JsonRpcA2AClient`, `TracingA2AClient` (and its `Inner`) | internal (R32). Created through DI or the factory; package 10 designs both. |
 | `ProtoMapper` (all partials) and generated `Lf.A2a.V1.*` | internal. The `<Protobuf>` item gets `Access="Internal"`. No Google.Protobuf type is visible in any public signature. |
-| `StrictEnumConverter<T>`, `UtcTimestampConverter`, `A2AJsonContext` | internal. |
+| `UtcTimestampConverter`, `A2AJsonContext` | internal. |
+| `ProtoEnumConverter<T>` (called `StrictEnumConverter<T>` here before) | public, `[EditorBrowsable(Never)]`, tracked in the API file. Not for direct use. Our public enums name it in `[JsonConverter]`; internal breaks a consumer's source-generated context (SYSLIB1220, SYSLIB1030). *(owner decision 2026-11-04)* |
 | `A2AJson` | public, reduced to what store and extension authors need: `Options` (read-only `JsonSerializerOptions`), `TypeInfoResolver` (an `IJsonTypeInfoResolver` for `JsonTypeInfoResolver.Combine`, so an app with its own source-generated context, or an AOT app, can add A2A types), and a public typed `JsonTypeInfo<T>` accessor for every protocol type (for example `A2AJson.AgentTask`, `A2AJson.Message`; exact names left to the builder). Our other packages use these accessors on hot paths, so they need no internals. *(writer's call; typed accessors are Claude's call, B12)* |
 | Protocol models (`AgentCard`, `AgentTask`, `Message`, `Part`, requests, responses, events, security types), `A2AException`, `A2AAuthException`, `A2AErrorCode`, `A2AError`, `A2AErrorInfo`, `A2AConstants` | public. Reviewed once in the freeze review. |
 | `A2ATelemetryNames` | public (telemetry names are API). |

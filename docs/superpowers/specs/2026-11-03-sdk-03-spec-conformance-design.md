@@ -136,7 +136,7 @@ Client:
 
 ### D3. Tolerant enums
 
-- Replace `StrictEnumConverter<T>` (`src/A2A.Protocol/Json/StrictEnumConverter.cs:6-8`) with an internal source-generator-friendly `ProtoEnumConverter<T>`. One hand-written converter per enum is fine; no reflection per call.
+- Replace `StrictEnumConverter<T>` (`src/A2A.Protocol/Json/StrictEnumConverter.cs:6-8`) with a source-generator-friendly `ProtoEnumConverter<T>`. It is public and hidden from IntelliSense (`[EditorBrowsable(Never)]`), because a consumer's own source-generated context fails to build when it is internal (SYSLIB1220, SYSLIB1030) *(owner decision 2026-11-04)*. One hand-written converter per enum is fine; no reflection per call.
 - Read: a known name maps to its value. A known integer maps to its value (ProtoJSON parsers accept integers) *(writer's call)*. An unknown name or integer maps to `Unspecified` (value 0).
 - Write: always the ProtoJSON name. Never an integer.
 - Server: a required enum that reads as `Unspecified` is a validation error with a clear message, for example "message.role is missing or has an unknown value; use ROLE_USER" (`InvalidParams`). This is where 0.3 values like `"user"` end up when no compat package is installed.

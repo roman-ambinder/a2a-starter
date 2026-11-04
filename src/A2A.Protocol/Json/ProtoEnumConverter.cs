@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using System.Reflection;
@@ -11,7 +12,10 @@ namespace A2A.Protocol;
 /// integer (ProtoJSON parsers accept both). An unknown name or number reads as the zero value (<c>*_UNSPECIFIED</c>) instead of
 /// failing the whole payload, so a newer peer's enum values do not break older readers (spec 5: ignore what you do not know).
 /// Servers reject <c>Unspecified</c> where a value is required. The name tables are built once per enum type.
+/// This type is public only because a consumer's own source-generated JSON context needs it: our enums name it in
+/// <c>[JsonConverter]</c>. It is not for direct use.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     : JsonConverter<T> where T : struct, Enum
 {
