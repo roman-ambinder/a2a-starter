@@ -254,7 +254,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
   - `server.Time` is the DI `TimeProvider`; `server.Store`, `server.Handler`, `server.Services`, `server.Events` are the registered instances.
   - Push: the `"a2a-push"` named client's primary handler is `server.PushReceiver` (wired in Task 10; assert only the replacement here), and webhook URL checks allow the double's host.
   - `TransportMatrix` yields one row per binding (an `IEnumerable<object[]>`, usable from xunit `MemberData` and other frameworks).
-  - Start time: 20 starts, p50 under 1 s (the loose ceiling of spec principle 4; record the measured p50 in the test output for package 14).
+  - Start time: 20 starts, p50 under 1 s (the loose ceiling of spec principle 4). Also write `{ "p50Ms": ..., "p95Ms": ..., "runs": 20 }` to the file named by the environment variable `A2A_TEST_SERVER_START_OUT`, when it is set. Package 14's nightly job sets it and shows the numbers in its summary with a trend alert (14 plan Task 14 Step 7, owner decision 2026-11-03).
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement. Signature: `CreateClient(A2ABinding binding = A2ABinding.JsonRpc, TestIdentity? identity = null, string? agent = null, bool record = false)` (§0.3 item 9). `CreateClient` uses 10's `IA2AClientFactory` (or `A2AClient.Create` with an `HttpClient` from `TestServer.CreateHandler()`), so real client code runs.
 - [ ] **Step 4:** Run. Expected: PASS.
