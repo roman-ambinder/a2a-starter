@@ -61,6 +61,8 @@
     <!-- Banned APIs (spec 02 section 7). Build-only: PrivateAssets=all keeps it out of the nuspec. -->
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
     <AdditionalFiles Include="$(A2ARepoRoot)eng/BannedSymbols.txt" Link="BannedSymbols.txt" />
+    <!-- Public API files (spec 02 section 2). Build-only: PrivateAssets=all keeps it out of the nuspec. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Label="Package contents">

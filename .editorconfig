@@ -29,6 +29,15 @@ dotnet_diagnostic.CA2007.severity = error    # ConfigureAwait(false) on every aw
 dotnet_diagnostic.CA1848.severity = error    # use [LoggerMessage]
 dotnet_diagnostic.CA2254.severity = error    # constant log templates
 
+# Spec 02 section 2: the public API files are checked in the build.
+dotnet_diagnostic.RS0016.severity = error   # public API not declared
+dotnet_diagnostic.RS0017.severity = error   # declared API not found
+dotnet_diagnostic.RS0022.severity = error
+dotnet_diagnostic.RS0025.severity = error
+dotnet_diagnostic.RS0026.severity = error   # no multiple public overloads with optional parameters
+dotnet_diagnostic.RS0036.severity = error   # nullability annotations in the API files
+dotnet_diagnostic.RS0037.severity = error
+
 # Exceptions. Each line says why.
 # CA1716: IA2ARequestHandler methods name a parameter "call" (a Visual Basic keyword). Public name, decided in the API review.
 dotnet_diagnostic.CA1716.severity = none

@@ -1,0 +1,5 @@
+#nullable enable
+Microsoft.AspNetCore.Builder.A2AGrpcEndpointRouteBuilderExtensions
+Microsoft.Extensions.DependencyInjection.A2AGrpcServerBuilderExtensions
+static Microsoft.AspNetCore.Builder.A2AGrpcEndpointRouteBuilderExtensions.MapA2AGrpc(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.GrpcServiceEndpointConventionBuilder!
+static Microsoft.Extensions.DependencyInjection.A2AGrpcServerBuilderExtensions.AddA2AGrpc(this Ambinder.A2A.Server.Hosting.A2AServerBuilder! builder) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
