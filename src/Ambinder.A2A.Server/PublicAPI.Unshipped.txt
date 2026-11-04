@@ -136,6 +136,117 @@ Ambinder.A2A.Server.Push.PushOptions.MaxRetries.set -> void
 Ambinder.A2A.Server.Push.PushOptions.PushOptions() -> void
 Ambinder.A2A.Server.Push.PushOptions.Timeout.get -> System.TimeSpan
 Ambinder.A2A.Server.Push.PushOptions.Timeout.set -> void
+Ambinder.A2A.Server.Security.OwnerKey
+Ambinder.A2A.Server.Security.OwnerKey.Equals(Ambinder.A2A.Server.Security.OwnerKey other) -> bool
+Ambinder.A2A.Server.Security.OwnerKey.OwnerKey() -> void
+Ambinder.A2A.Server.Security.OwnerKey.Value.get -> string!
+Ambinder.A2A.Server.Security.TaskContinuationGrant
+Ambinder.A2A.Server.Security.TaskContinuationGrant.<Clone>$() -> Ambinder.A2A.Server.Security.TaskContinuationGrant!
+Ambinder.A2A.Server.Security.TaskContinuationGrant.AllowedOwners.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Security.OwnerKey>!
+Ambinder.A2A.Server.Security.TaskContinuationGrant.AllowedOwners.init -> void
+Ambinder.A2A.Server.Security.TaskContinuationGrant.Equals(Ambinder.A2A.Server.Security.TaskContinuationGrant? other) -> bool
+Ambinder.A2A.Server.Security.TaskContinuationGrant.ExpiresAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Security.TaskContinuationGrant.ExpiresAt.init -> void
+Ambinder.A2A.Server.Security.TaskContinuationGrant.TaskContinuationGrant() -> void
+Ambinder.A2A.Server.Stores.A2AStoreException
+Ambinder.A2A.Server.Stores.A2AStoreException.A2AStoreException(Ambinder.A2A.Server.Stores.StoreErrorKind kind, string! message, System.Exception? inner = null, bool? isTransient = null) -> void
+Ambinder.A2A.Server.Stores.A2AStoreException.IsTransient.get -> bool
+Ambinder.A2A.Server.Stores.A2AStoreException.Kind.get -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.OwnerScope
+Ambinder.A2A.Server.Stores.OwnerScope.Agent.get -> string!
+Ambinder.A2A.Server.Stores.OwnerScope.Agent.init -> void
+Ambinder.A2A.Server.Stores.OwnerScope.Deconstruct(out string! Tenant, out string! Agent, out string! Owner) -> void
+Ambinder.A2A.Server.Stores.OwnerScope.Equals(Ambinder.A2A.Server.Stores.OwnerScope other) -> bool
+Ambinder.A2A.Server.Stores.OwnerScope.Owner.get -> string!
+Ambinder.A2A.Server.Stores.OwnerScope.Owner.init -> void
+Ambinder.A2A.Server.Stores.OwnerScope.OwnerScope() -> void
+Ambinder.A2A.Server.Stores.OwnerScope.OwnerScope(string! Tenant, string! Agent, string! Owner) -> void
+Ambinder.A2A.Server.Stores.OwnerScope.Tenant.get -> string!
+Ambinder.A2A.Server.Stores.OwnerScope.Tenant.init -> void
+Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreErrorKind.AlreadyExists = 1 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreErrorKind.Capacity = 3 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreErrorKind.Conflict = 0 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreErrorKind.NotFound = 2 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreErrorKind.Unavailable = 4 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoredCaller
+Ambinder.A2A.Server.Stores.StoredCaller.<Clone>$() -> Ambinder.A2A.Server.Stores.StoredCaller!
+Ambinder.A2A.Server.Stores.StoredCaller.AppId.get -> string?
+Ambinder.A2A.Server.Stores.StoredCaller.AppId.init -> void
+Ambinder.A2A.Server.Stores.StoredCaller.EntraTenantId.get -> string?
+Ambinder.A2A.Server.Stores.StoredCaller.EntraTenantId.init -> void
+Ambinder.A2A.Server.Stores.StoredCaller.Equals(Ambinder.A2A.Server.Stores.StoredCaller? other) -> bool
+Ambinder.A2A.Server.Stores.StoredCaller.Owner.get -> string!
+Ambinder.A2A.Server.Stores.StoredCaller.Owner.init -> void
+Ambinder.A2A.Server.Stores.StoredCaller.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Server.Stores.StoredCaller.Roles.init -> void
+Ambinder.A2A.Server.Stores.StoredCaller.Scopes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Server.Stores.StoredCaller.Scopes.init -> void
+Ambinder.A2A.Server.Stores.StoredCaller.StoredCaller() -> void
+Ambinder.A2A.Server.Stores.StoredCaller.UserObjectId.get -> string?
+Ambinder.A2A.Server.Stores.StoredCaller.UserObjectId.init -> void
+Ambinder.A2A.Server.Stores.StoredTask
+Ambinder.A2A.Server.Stores.StoredTask.<Clone>$() -> Ambinder.A2A.Server.Stores.StoredTask!
+Ambinder.A2A.Server.Stores.StoredTask.Caller.get -> Ambinder.A2A.Server.Stores.StoredCaller?
+Ambinder.A2A.Server.Stores.StoredTask.Caller.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.CancelRequestedAt.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.StoredTask.CancelRequestedAt.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.ContinuationGrant.get -> Ambinder.A2A.Server.Security.TaskContinuationGrant?
+Ambinder.A2A.Server.Stores.StoredTask.ContinuationGrant.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.CreatedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.StoredTask.CreatedAt.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Equals(Ambinder.A2A.Server.Stores.StoredTask? other) -> bool
+Ambinder.A2A.Server.Stores.StoredTask.ExpiresAt.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.StoredTask.ExpiresAt.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Key.get -> Ambinder.A2A.Server.Stores.TaskKey
+Ambinder.A2A.Server.Stores.StoredTask.Key.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.LastRunnerInstanceId.get -> string?
+Ambinder.A2A.Server.Stores.StoredTask.LastRunnerInstanceId.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.OriginMessageId.get -> string?
+Ambinder.A2A.Server.Stores.StoredTask.OriginMessageId.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Owner.get -> string!
+Ambinder.A2A.Server.Stores.StoredTask.Owner.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.RunAttempt.get -> int
+Ambinder.A2A.Server.Stores.StoredTask.RunAttempt.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Runner.get -> Ambinder.A2A.Server.Stores.TaskRunner?
+Ambinder.A2A.Server.Stores.StoredTask.Runner.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Sequence.get -> long
+Ambinder.A2A.Server.Stores.StoredTask.Sequence.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.StoredTask() -> void
+Ambinder.A2A.Server.Stores.StoredTask.Task.get -> Ambinder.A2A.Protocol.AgentTask!
+Ambinder.A2A.Server.Stores.StoredTask.Task.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.UpdatedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.StoredTask.UpdatedAt.init -> void
+Ambinder.A2A.Server.Stores.StoredTask.Version.get -> string?
+Ambinder.A2A.Server.Stores.StoredTask.Version.init -> void
+Ambinder.A2A.Server.Stores.TaskKey
+Ambinder.A2A.Server.Stores.TaskKey.Agent.get -> string!
+Ambinder.A2A.Server.Stores.TaskKey.Agent.init -> void
+Ambinder.A2A.Server.Stores.TaskKey.Deconstruct(out string! Tenant, out string! Agent, out string! TaskId) -> void
+Ambinder.A2A.Server.Stores.TaskKey.Equals(Ambinder.A2A.Server.Stores.TaskKey other) -> bool
+Ambinder.A2A.Server.Stores.TaskKey.TaskId.get -> string!
+Ambinder.A2A.Server.Stores.TaskKey.TaskId.init -> void
+Ambinder.A2A.Server.Stores.TaskKey.TaskKey() -> void
+Ambinder.A2A.Server.Stores.TaskKey.TaskKey(string! Tenant, string! Agent, string! TaskId) -> void
+Ambinder.A2A.Server.Stores.TaskKey.Tenant.get -> string!
+Ambinder.A2A.Server.Stores.TaskKey.Tenant.init -> void
+Ambinder.A2A.Server.Stores.TaskRef
+Ambinder.A2A.Server.Stores.TaskRef.Deconstruct(out Ambinder.A2A.Server.Stores.TaskKey Key, out string! Owner) -> void
+Ambinder.A2A.Server.Stores.TaskRef.Equals(Ambinder.A2A.Server.Stores.TaskRef other) -> bool
+Ambinder.A2A.Server.Stores.TaskRef.Key.get -> Ambinder.A2A.Server.Stores.TaskKey
+Ambinder.A2A.Server.Stores.TaskRef.Key.init -> void
+Ambinder.A2A.Server.Stores.TaskRef.Owner.get -> string!
+Ambinder.A2A.Server.Stores.TaskRef.Owner.init -> void
+Ambinder.A2A.Server.Stores.TaskRef.TaskRef() -> void
+Ambinder.A2A.Server.Stores.TaskRef.TaskRef(Ambinder.A2A.Server.Stores.TaskKey Key, string! Owner) -> void
+Ambinder.A2A.Server.Stores.TaskRunner
+Ambinder.A2A.Server.Stores.TaskRunner.<Clone>$() -> Ambinder.A2A.Server.Stores.TaskRunner!
+Ambinder.A2A.Server.Stores.TaskRunner.ClaimedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.TaskRunner.ClaimedAt.init -> void
+Ambinder.A2A.Server.Stores.TaskRunner.Equals(Ambinder.A2A.Server.Stores.TaskRunner? other) -> bool
+Ambinder.A2A.Server.Stores.TaskRunner.InstanceId.get -> string!
+Ambinder.A2A.Server.Stores.TaskRunner.InstanceId.init -> void
+Ambinder.A2A.Server.Stores.TaskRunner.TaskRunner() -> void
 Ambinder.A2A.Server.Tasks.ITaskEventObserver
 Ambinder.A2A.Server.Tasks.ITaskEventObserver.OnTaskEventAsync(Ambinder.A2A.Server.Tasks.StoredTask! task, Ambinder.A2A.Protocol.StreamResponse! evt, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
 Ambinder.A2A.Server.Tasks.ITaskStore
@@ -155,12 +266,12 @@ Ambinder.A2A.Server.Tasks.StoredTask.Task.get -> Ambinder.A2A.Protocol.AgentTask
 Ambinder.A2A.Server.Tasks.StoredTask.Task.init -> void
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.get -> string?
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.init -> void
+Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
 const Ambinder.A2A.Server.Auth.CallerIdentity.Anonymous = "anonymous" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.ApiKeyClaim = "a2a:apikey" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.MappedTenantIdClaim = "http://schemas.microsoft.com/identity/claims/tenantid" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.TenantIdClaim = "tid" -> string!
 const Ambinder.A2A.Server.Auth.DefaultOwnerResolver.DefaultApiKeyAuthenticationType = "ApiKey" -> string!
-Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
 override Ambinder.A2A.Server.A2ACallContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.A2ACallContext.GetHashCode() -> int
 override Ambinder.A2A.Server.A2ACallContext.ToString() -> string!
@@ -173,6 +284,23 @@ override Ambinder.A2A.Server.Agents.AgentRegistration.ToString() -> string!
 override Ambinder.A2A.Server.Hosting.AgentCardContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Hosting.AgentCardContext.GetHashCode() -> int
 override Ambinder.A2A.Server.Hosting.AgentCardContext.ToString() -> string!
+override Ambinder.A2A.Server.Security.OwnerKey.GetHashCode() -> int
+override Ambinder.A2A.Server.Security.OwnerKey.ToString() -> string!
+override Ambinder.A2A.Server.Security.TaskContinuationGrant.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Security.TaskContinuationGrant.GetHashCode() -> int
+override Ambinder.A2A.Server.Security.TaskContinuationGrant.ToString() -> string!
+override Ambinder.A2A.Server.Stores.OwnerScope.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.StoredCaller.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.StoredCaller.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.StoredCaller.ToString() -> string!
+override Ambinder.A2A.Server.Stores.StoredTask.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.StoredTask.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.StoredTask.ToString() -> string!
+override Ambinder.A2A.Server.Stores.TaskKey.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskRef.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskRunner.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.TaskRunner.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskRunner.ToString() -> string!
 override Ambinder.A2A.Server.Tasks.StoredTask.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Tasks.StoredTask.GetHashCode() -> int
 override Ambinder.A2A.Server.Tasks.StoredTask.ToString() -> string!
@@ -186,6 +314,32 @@ static Ambinder.A2A.Server.Auth.CallerIdentity.GetOwner(System.Security.Claims.C
 static Ambinder.A2A.Server.Auth.DefaultOwnerResolver.Instance.get -> Ambinder.A2A.Server.Auth.DefaultOwnerResolver!
 static Ambinder.A2A.Server.Hosting.AgentCardContext.operator !=(Ambinder.A2A.Server.Hosting.AgentCardContext? left, Ambinder.A2A.Server.Hosting.AgentCardContext? right) -> bool
 static Ambinder.A2A.Server.Hosting.AgentCardContext.operator ==(Ambinder.A2A.Server.Hosting.AgentCardContext? left, Ambinder.A2A.Server.Hosting.AgentCardContext? right) -> bool
+static Ambinder.A2A.Server.Security.OwnerKey.ForApp(string! tenantId, string! appId) -> Ambinder.A2A.Server.Security.OwnerKey
+static Ambinder.A2A.Server.Security.OwnerKey.ForUser(string! tenantId, string! userObjectId) -> Ambinder.A2A.Server.Security.OwnerKey
+static Ambinder.A2A.Server.Security.OwnerKey.Parse(string! value) -> Ambinder.A2A.Server.Security.OwnerKey
+static Ambinder.A2A.Server.Security.OwnerKey.operator !=(Ambinder.A2A.Server.Security.OwnerKey left, Ambinder.A2A.Server.Security.OwnerKey right) -> bool
+static Ambinder.A2A.Server.Security.OwnerKey.operator ==(Ambinder.A2A.Server.Security.OwnerKey left, Ambinder.A2A.Server.Security.OwnerKey right) -> bool
+static Ambinder.A2A.Server.Security.TaskContinuationGrant.operator !=(Ambinder.A2A.Server.Security.TaskContinuationGrant? left, Ambinder.A2A.Server.Security.TaskContinuationGrant? right) -> bool
+static Ambinder.A2A.Server.Security.TaskContinuationGrant.operator ==(Ambinder.A2A.Server.Security.TaskContinuationGrant? left, Ambinder.A2A.Server.Security.TaskContinuationGrant? right) -> bool
+static Ambinder.A2A.Server.Stores.OwnerScope.operator !=(Ambinder.A2A.Server.Stores.OwnerScope left, Ambinder.A2A.Server.Stores.OwnerScope right) -> bool
+static Ambinder.A2A.Server.Stores.OwnerScope.operator ==(Ambinder.A2A.Server.Stores.OwnerScope left, Ambinder.A2A.Server.Stores.OwnerScope right) -> bool
+static Ambinder.A2A.Server.Stores.StoredCaller.operator !=(Ambinder.A2A.Server.Stores.StoredCaller? left, Ambinder.A2A.Server.Stores.StoredCaller? right) -> bool
+static Ambinder.A2A.Server.Stores.StoredCaller.operator ==(Ambinder.A2A.Server.Stores.StoredCaller? left, Ambinder.A2A.Server.Stores.StoredCaller? right) -> bool
+static Ambinder.A2A.Server.Stores.StoredTask.operator !=(Ambinder.A2A.Server.Stores.StoredTask? left, Ambinder.A2A.Server.Stores.StoredTask? right) -> bool
+static Ambinder.A2A.Server.Stores.StoredTask.operator ==(Ambinder.A2A.Server.Stores.StoredTask? left, Ambinder.A2A.Server.Stores.StoredTask? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskKey.operator !=(Ambinder.A2A.Server.Stores.TaskKey left, Ambinder.A2A.Server.Stores.TaskKey right) -> bool
+static Ambinder.A2A.Server.Stores.TaskKey.operator ==(Ambinder.A2A.Server.Stores.TaskKey left, Ambinder.A2A.Server.Stores.TaskKey right) -> bool
+static Ambinder.A2A.Server.Stores.TaskRef.operator !=(Ambinder.A2A.Server.Stores.TaskRef left, Ambinder.A2A.Server.Stores.TaskRef right) -> bool
+static Ambinder.A2A.Server.Stores.TaskRef.operator ==(Ambinder.A2A.Server.Stores.TaskRef left, Ambinder.A2A.Server.Stores.TaskRef right) -> bool
+static Ambinder.A2A.Server.Stores.TaskRunner.operator !=(Ambinder.A2A.Server.Stores.TaskRunner? left, Ambinder.A2A.Server.Stores.TaskRunner? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskRunner.operator ==(Ambinder.A2A.Server.Stores.TaskRunner? left, Ambinder.A2A.Server.Stores.TaskRunner? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+~override Ambinder.A2A.Server.Security.OwnerKey.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.OwnerScope.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.OwnerScope.ToString() -> string
+~override Ambinder.A2A.Server.Stores.TaskKey.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.TaskKey.ToString() -> string
+~override Ambinder.A2A.Server.Stores.TaskRef.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.TaskRef.ToString() -> string
