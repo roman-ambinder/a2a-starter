@@ -69,6 +69,8 @@ Package 11 is M2, so most M1 packages should be merged when this runs. Task 0 re
 
 ### 0.3 Decisions this plan makes (plan-writer's calls)
 
+**Owner review, 2026-11-03:** all ten decisions below are accepted. Item 10 gets one ordering rule (see item 10). The minor review note on samples is now Task 20 Steps 4–6.
+
 1. **Where the hooks run.** The request hook (`OnRequestAsync`) runs in 09's extension-negotiation middleware through its internal `IExtensionHook` list, after activation and the required check (spec §7 behaviors 2, 3, 5). The outgoing hook (`OnOutgoingAsync`) runs in `AgentEventSink`, under the task lock, just before each event is stored (spec §7 behavior 6: "before it is stored … under the task lock"). There is no second negotiation path.
 2. **Plain text part** (for the stored-artifact coalescing, spec §4): a `Part` with `Text` set and no `Metadata`, `Filename` or `MediaType` other than null or `text/plain`. Only adjacent parts of that kind are merged in storage. Wire events keep the chunk as sent.
 3. **JSON merge patch** (RFC 7386, spec §4 `TaskMetadata`): an internal `JsonMergePatch.Apply(JsonElement? target, JsonElement patch) → JsonElement?` on `System.Text.Json.Nodes` (AOT-safe, no reflection), with the RFC 7386 appendix test vectors.
@@ -82,7 +84,7 @@ Package 11 is M2, so most M1 packages should be merged when this runs. Task 0 re
 7. **`ScriptedChatClient` test double** (see §0.2): test code only, never shipped.
 8. **Docs pages** use package 13's tree (see Task 25 for the mapping from the spec's section names to files).
 9. **Provisional task record (05).** 05's plan (Task 12 step 8) creates the `SUBMITTED` record *before* the handler runs, for the dedupe check, and deletes it when the agent's first event is a direct reply. This plan keeps that and adds two more deletions: an `A2AException` or `A2AAuthException` thrown before the first event also deletes the record, so "stores no task" holds (Task 5). `returnImmediately` returns that record after the grace window instead of creating one (Task 7).
-10. **Extension card entries on the extended card.** 03's `IAgentCardContributor` runs on the public card endpoints only (03 plan Task 13: `IsExtended` is always `false`). So the registry adds the same `capabilities.extensions` entries to the extended card model too, on the `GetExtendedAgentCard` path (Task 11).
+10. **Extension card entries on the extended card.** 03's `IAgentCardContributor` runs on the public card endpoints only (03 plan Task 13: `IsExtended` is always `false`). So the registry adds the same `capabilities.extensions` entries to the extended card model too, on the `GetExtendedAgentCard` path (Task 11). **Order (owner review 2026-11-03):** the entries are added before package 04's signer runs on the extended card, so its signature covers them; adding them after signing would make the signature fail for anyone who verifies it.
 
 ### 0.4 Changes after the cross-plan review (2026-11-03)
 
@@ -408,7 +410,8 @@ git grep -nE 'class ScriptedChatClient' -- src tests; ls tests benchmarks 2>/dev
   - `AddAgent(…, o => o.UseExtension<T>())` → only that agent's card has it.
   - A hand-written card entry with the same URI is kept and not duplicated.
   - The extension is a singleton (same instance across calls).
-  - The extended card (`GetExtendedAgentCard`, all three transports) has the same entries. 03's contributor does not run there, so `ExtensionRegistry` adds them to the extended card model before it is returned (§0.3 item 10). Same no-duplicate rule.
+  - The extended card (`GetExtendedAgentCard`, all three transports) has the same entries. 03's contributor does not run there, so `ExtensionRegistry` adds them to the extended card model before it is signed and returned (§0.3 item 10). Same no-duplicate rule.
+  - With card signing on (04), the extended card that carries an extension entry verifies against the signing key (`CardJws.Verify` over the signing payload of the returned card). Skip with a visible reason if package 04 has not landed.
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement `A2AExtension` exactly as spec §7 (abstract `Uri`; virtual `Required`, `Description`, `CardParams`, `OnRequestAsync`, `OnOutgoingAsync`).
 - [ ] **Step 4:** Run. Expected: PASS.
@@ -566,7 +569,10 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 - [ ] **Step 2:** Rewrite with `TaskUpdater` (spec §10 table): `BookingAgent` uses `GetConversationAsync`/task metadata instead of regex over history; `ReportAgent` keeps `IChatClient` and streams through `ArtifactWriter`; `SecureAgent` uses `RequireAuthAsync` (with a grant where the flow needs one).
 - [ ] **Step 3:** Run the flow tests. Expected: PASS with unchanged wire behavior. Package 16's interop agent lives in `tests/Ambinder.A2A.Interop.Tests`, not in the sample (review item 9). Still, run 16's `self` peer interop tests if present; they exercise the same `TaskManager` and sink paths.
   - Each rewritten agent returns from `ExecuteAsync` right after `RequireInputAsync`/`RequireAuthAsync` (03 D13, review item 3). Today's `BookingAgent` already returns after every `INPUT_REQUIRED`; keep that in the rewrite.
-- [ ] **Step 4:** Commit `refactor(samples): sample agents on TaskUpdater`.
+- [ ] **Step 4: `samples/GettingStarted.Agent` on the authoring API** (spec 13 §3, owner review 2026-11-03). Rewrite it with `AddAgent` and `TaskUpdater`, keeping it within the line budget the getting-started guide states (spec §9: about 20 lines). Package 01's release smoke test and package 13's getting-started guide use this file; run both if they exist.
+- [ ] **Step 5: Supervisor-agent sample** (spec 13 §6, owner review 2026-11-03): `samples/Authoring/Supervisor`, a chat agent with `RemoteAgents` that calls the echo agent through `A2AAgentTool`. It runs against `ScriptedChatClient` in its test, so no LLM key is needed.
+- [ ] **Step 6: Sample READMEs** (spec 13, owner review 2026-11-03): every new or changed sample README under `samples/` has the front matter 13's sample-index test reads (`title`, `shows`, `packages`, `run`, `needs`, `lines`). Run 13's sample-index test if it exists.
+- [ ] **Step 7:** Commit `refactor(samples): sample agents on TaskUpdater; getting-started and supervisor samples`.
 
 ### Task 21: Remaining API and docs-comment pass
 
@@ -678,4 +684,4 @@ Package 12 moves this file into `src/Ambinder.A2A.Testing.AI/` with `git mv` and
 
 Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
 
-- Spec 13 gives 11 the code of `samples/GettingStarted.Agent` (§3) and a supervisor-agent sample (§6); the plan touches neither, and new `samples/Authoring/*` READMEs lack the front matter 13's sample-index test needs. Plan: docs/superpowers/plans/2026-11-03-sdk-11-authoring-ai.md:143. Spec: 13 spec §3, §6. Fix: move `GettingStarted.Agent` to the authoring API, add the supervisor sample (chat agent with `RemoteAgents`), add front matter (`title`, `shows`, `packages`, `run`, `needs`, `lines`).
+- **Fixed in this plan's text (owner review 2026-11-03: Task 20 Steps 4–6).** Spec 13 gives 11 the code of `samples/GettingStarted.Agent` (§3) and a supervisor-agent sample (§6); the plan touches neither, and new `samples/Authoring/*` READMEs lack the front matter 13's sample-index test needs. Plan: docs/superpowers/plans/2026-11-03-sdk-11-authoring-ai.md:143. Spec: 13 spec §3, §6. Fix: move `GettingStarted.Agent` to the authoring API, add the supervisor sample (chat agent with `RemoteAgents`), add front matter (`title`, `shows`, `packages`, `run`, `needs`, `lines`).
