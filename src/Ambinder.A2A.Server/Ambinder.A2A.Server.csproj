@@ -24,5 +24,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Server.Tests" />
     <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+    <InternalsVisibleTo Include="Ambinder.A2A.Benchmarks" />
   </ItemGroup>
 </Project>
