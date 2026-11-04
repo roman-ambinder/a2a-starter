@@ -29,10 +29,16 @@ public sealed class CorePurityTests
     ];
 
     /// <summary>
-    /// Allow-list for assembly hits: (assembly file, forbidden name) to reason. Empty on purpose. A hit that comes from the
+    /// Allow-list for assembly hits: (assembly file, forbidden name) to reason. A hit that comes from the
     /// embedded 1.0 proto descriptor is added here only with the proto/a2a.proto line that proves it is a genuine 1.0 field.
     /// </summary>
-    private static readonly Dictionary<(string Assembly, string Name), string> AssemblyAllowList = [];
+    private static readonly Dictionary<(string Assembly, string Name), string> AssemblyAllowList = new()
+    {
+        // Owner decision 2026-11-04: these are the a2a.task.state telemetry attribute values (A2ATelemetryNames.StateValue),
+        // not wire values. docs/superpowers/specs/2026-11-03-observability-design.md lines 77 and 101 name them as span-event states.
+        [("Ambinder.A2A.Protocol", "input-required")] = "Telemetry attribute value, observability design lines 77 and 101; owner-approved 2026-11-04.",
+        [("Ambinder.A2A.Protocol", "auth-required")] = "Telemetry attribute value, observability design lines 77 and 101; owner-approved 2026-11-04.",
+    };
 
     /// <summary>
     /// Allow-list for the version-branch grep: a source file name and the trimmed text of the allowed line, with the reason.
@@ -43,6 +49,9 @@ public sealed class CorePurityTests
         ("A2AClientFactory.cs",
          "if (interfaces.Any(i => IsMinor(i.ProtocolVersion, \"0.3\")))",
          "Selects the documented missing-package hint (\"add the Ambinder.A2A.Compat.V0_3 package\") appended to the NotSupportedException message on the next line; it changes message text only, never behavior."),
+        ("ServiceParameters.cs",
+         "if (string.IsNullOrWhiteSpace(raw)) return \"0.3\";",
+         "Owner-approved 2026-11-04. Spec 3.6.2: a request without the version header is treated as 0.3. NormalizeVersion only names the version handed to IA2AVersionDispatcher, which compat implements; the core serves no 0.3 behavior here."),
     ];
 
     [Fact]
