@@ -28,6 +28,9 @@
     <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Ambinder.A2A.Benchmarks" />
+  </ItemGroup>
+  <ItemGroup>
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 </Project>
