@@ -30,6 +30,7 @@
     <Project Path="tests/Ambinder.A2A.AspNetCore.Tests/Ambinder.A2A.AspNetCore.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.TestHarness/Ambinder.A2A.TestHarness.csproj" />
     <Project Path="tests/Ambinder.A2A.TestHarness.Tests/Ambinder.A2A.TestHarness.Tests.csproj" />
+    <Project Path="tests/Ambinder.A2A.Stores.Conformance/Ambinder.A2A.Stores.Conformance.csproj" />
     <Project Path="tests/Ambinder.A2A.Tck.Sut/Ambinder.A2A.Tck.Sut.csproj" />
   </Folder>
 </Solution>

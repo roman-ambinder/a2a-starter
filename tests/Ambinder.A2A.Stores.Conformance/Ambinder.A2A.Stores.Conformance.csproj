@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A library of conformance cases, not a test project: stores' test projects derive the abstract classes. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <RootNamespace>Ambinder.A2A.Testing.Conformance</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- No xunit.v3.assert: package 12 publishes this project and allows only Testing + xunit.v3.extensibility.core. -->
+    <PackageReference Include="xunit.v3.extensibility.core" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../Ambinder.A2A.TestHarness/Ambinder.A2A.TestHarness.csproj" />
+  </ItemGroup>
+</Project>
