@@ -73,6 +73,8 @@ The spec needs seams from other packages (spec "Dependencies"). They are all M1 
 
 The spec leaves these open or splits them across sections. They are recorded here so the reviewer sees them:
 
+**Owner review, 2026-11-03:** all nine decisions below are accepted as written. Item 7 is out of date in one detail: package 13's plan now lists `docs/security/other-auth-schemes.md` in `docs/security/toc.yml`, with 07 as owner.
+
 1. **Continuation policy runs twice.** The middleware (Task 11) loads the task and runs `ITaskContinuationPolicy` before the handler, as specs 09 §7.11 step 3 and 11 §5 rule 3 require. `TaskManager.LoadForContinuationAsync` runs the same policy again under the task lock (spec "Ownership checks stay where they are today"). The second check closes the race where the grant is cleared (task left `AUTH_REQUIRED`) between the middleware check and the start of the run.
 2. **Claim rules are shared source, not new public API.** The claim reading behind `OwnerKey` (tenant + app id, or tenant + user object id, short and mapped claim names) lives in `src/Shared/Security/OwnerClaims.cs`, linked as `internal` into `Ambinder.A2A.Server` (owner resolver) and available for 09's rate limiter in `Ambinder.A2A.AspNetCore` (B12 pattern). The spec's `OwnerKey` API is not extended.
 3. **Reduced-caller mapping is internal.** `ReducedCaller.From(A2ACaller) → StoredCaller` and `ReducedCaller.ToCaller(StoredCaller) → A2ACaller` are internal to `Ambinder.A2A.Server`. Package 06 (M2) makes them public if it needs to.
