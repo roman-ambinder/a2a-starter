@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Stores;
 using Ambinder.A2A.Server.Telemetry;
 using Microsoft.Extensions.Logging;
 
@@ -17,19 +17,15 @@ internal sealed class TaskWriter(
     TimeProvider time,
     ILogger logger)
 {
-    // One semaphore per task, kept for the process lifetime (Phase 1 is in-memory only).
-    private readonly ConcurrentDictionary<(string Agent, string TaskId), SemaphoreSlim> _locks = new();
+    private readonly TaskLockTable _locks = new();
 
     public ITaskStore Store => store;
     public TaskEventBroker Broker => broker;
     public DateTimeOffset Now => time.GetUtcNow();
 
-    public async ValueTask<Releaser> LockAsync(string agent, string taskId, CancellationToken ct)
-    {
-        var semaphore = _locks.GetOrAdd((agent, taskId), static _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync(ct).ConfigureAwait(false);
-        return new Releaser(semaphore);
-    }
+    // The old contract has no tenant yet: the key carries the agent and task id only.
+    public ValueTask<TaskLockTable.Releaser> LockAsync(string agent, string taskId, CancellationToken ct) =>
+        _locks.LockAsync(new TaskKey("", agent, taskId), ct);
 
     /// <summary>Saves the task, then publishes the event and notifies observers. Not cancellable: a change is never half-applied.</summary>
     public async ValueTask CommitAsync(StoredTask task, StreamResponse evt)
@@ -104,9 +100,4 @@ internal sealed class TaskWriter(
         ContextId = contextId,
         Parts = [Part.FromText(text)],
     };
-
-    internal readonly struct Releaser(SemaphoreSlim semaphore) : IDisposable
-    {
-        public void Dispose() => semaphore.Release();
-    }
 }
