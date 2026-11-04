@@ -52,6 +52,23 @@ public sealed class ClientSelectionTests
         Assert.Contains("1.0", ex.Message);
     }
 
+    [Fact]
+    public void Card_with_only_0_3_interfaces_suggests_compat()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            A2AClientFactory.Create(Card(Interface("JSONRPC", "0.3"), Interface("HTTP+JSON", "0.3.0")), new A2AClientOptions()));
+        Assert.Contains("JSONRPC/0.3", ex.Message);
+        Assert.EndsWith(" This card offers A2A 0.3 only for some interfaces; add the Ambinder.A2A.Compat.V0_3 package to call them.", ex.Message);
+    }
+
+    [Fact]
+    public void Card_without_0_3_interfaces_does_not_suggest_compat()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            A2AClientFactory.Create(Card(Interface("JSONRPC", "2.0")), new A2AClientOptions()));
+        Assert.DoesNotContain("Compat", ex.Message);
+    }
+
     [Theory]
     [InlineData("grpc.example.com:8443", null, "https://grpc.example.com:8443/")]
     [InlineData("127.0.0.1:5201", null, "http://127.0.0.1:5201/")]

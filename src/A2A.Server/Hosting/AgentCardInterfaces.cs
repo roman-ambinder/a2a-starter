@@ -12,21 +12,23 @@ public static class AgentCardInterfaces
     /// <summary>
     /// JSON-RPC <c>{base}/agents/{name}/jsonrpc</c>, REST <c>{base}/agents/{name}/rest</c>, and, when a port is configured, gRPC
     /// <c>{host}:{port}</c> (the gRPC address form the spec gives for <c>AgentInterface.url</c>; gRPC clients use it as the channel
-    /// target). Whether the gRPC listener uses TLS follows the scheme of PublicBaseUrl.
+    /// target). Whether the gRPC listener uses TLS follows the scheme of PublicBaseUrl. Each interface carries the agent's
+    /// <see cref="A2AServerOptions.InterfaceTenants"/> entry, when there is one.
     /// </summary>
     public static IReadOnlyList<AgentInterface> For(string agentName, A2AServerOptions options)
     {
         var baseUrl = options.BaseUrl;
+        options.InterfaceTenants.TryGetValue(agentName, out var tenant);
         var list = new List<AgentInterface>
         {
-            new() { Url = $"{baseUrl}/agents/{agentName}/jsonrpc", ProtocolBinding = A2AConstants.BindingJsonRpc, ProtocolVersion = A2AConstants.ProtocolVersion },
-            new() { Url = $"{baseUrl}/agents/{agentName}/rest", ProtocolBinding = A2AConstants.BindingRest, ProtocolVersion = A2AConstants.ProtocolVersion },
+            new() { Url = $"{baseUrl}/agents/{agentName}/jsonrpc", ProtocolBinding = A2AConstants.BindingJsonRpc, ProtocolVersion = A2AConstants.ProtocolVersion, Tenant = tenant },
+            new() { Url = $"{baseUrl}/agents/{agentName}/rest", ProtocolBinding = A2AConstants.BindingRest, ProtocolVersion = A2AConstants.ProtocolVersion, Tenant = tenant },
         };
         if (options.GrpcPorts.TryGetValue(agentName, out var port))
         {
             var uri = new Uri(baseUrl);
             var host = uri.Host; // IPv6 literals keep their brackets
-            list.Add(new() { Url = $"{host}:{port}", ProtocolBinding = A2AConstants.BindingGrpc, ProtocolVersion = A2AConstants.ProtocolVersion });
+            list.Add(new() { Url = $"{host}:{port}", ProtocolBinding = A2AConstants.BindingGrpc, ProtocolVersion = A2AConstants.ProtocolVersion, Tenant = tenant });
         }
         return list;
     }

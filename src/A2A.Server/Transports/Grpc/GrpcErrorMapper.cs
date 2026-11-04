@@ -20,9 +20,9 @@ public static class GrpcErrorMapper
         ArgumentNullException.ThrowIfNull(error);
         var info = A2AError.Get(error.Code);
         var status = new Google.Rpc.Status { Code = (int)System.Enum.Parse<StatusCode>(info.GrpcStatus), Message = error.Message };
-        if (info.Reason is not null)
+        if (TransportErrors.ReasonFor(error) is { } reason)
         {
-            var errorInfo = new ErrorInfo { Reason = info.Reason, Domain = A2AError.Domain };
+            var errorInfo = new ErrorInfo { Reason = reason, Domain = A2AError.Domain };
             foreach (var (name, value) in TransportErrors.ErrorMetadata(error.Data)) errorInfo.Metadata[name] = value;
             status.Details.Add(Any.Pack(errorInfo));
         }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using A2A.Protocol;
 using Google.Rpc;
 using Grpc.Core;
@@ -24,6 +25,7 @@ internal static class GrpcErrorTranslator
         }
 
         var status = ex.GetRpcStatus();
+        JsonElement? otherMetadata = null;
         if (status is not null)
         {
             foreach (var detail in status.Details)
@@ -32,6 +34,7 @@ internal static class GrpcErrorTranslator
                 var info = detail.Unpack<ErrorInfo>();
                 if (A2AError.FromReason(info.Reason) is { } code)
                     return new A2AException(code, Message(ex), ClientSupport.MetadataToData(info.Metadata));
+                otherMetadata ??= ClientSupport.MetadataToData(info.Metadata);
             }
         }
 
@@ -41,7 +44,7 @@ internal static class GrpcErrorTranslator
             StatusCode.Unimplemented => A2AErrorCode.MethodNotFound,
             _ => A2AErrorCode.InternalError,
         };
-        return new A2AException(fallback, $"{Message(ex)} (gRPC {ex.StatusCode})");
+        return new A2AException(fallback, $"{Message(ex)} (gRPC {ex.StatusCode})", otherMetadata);
     }
 
     private static string Message(RpcException ex)

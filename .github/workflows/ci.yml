@@ -32,6 +32,9 @@ jobs:
       - name: Test
         run: dotnet test A2A.Reference.slnx --no-build --configuration Release
 
+      - name: Report checker tests
+        run: python3 -I tck/test_check_report.py -v
+
   proto-drift:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -47,3 +50,6 @@ jobs:
           expected=$(sed -n 's/^- SHA-256 of `a2a.proto`: //p' proto/README.md)
           actual=$(sha256sum proto/a2a.proto | cut -d' ' -f1)
           test "$expected" = "$actual" || { echo "proto/README.md hash $expected does not match $actual"; exit 1; }
+
+  tck:
+    uses: ./.github/workflows/tck.yml

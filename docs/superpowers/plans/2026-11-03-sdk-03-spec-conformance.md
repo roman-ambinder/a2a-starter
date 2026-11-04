@@ -18,6 +18,8 @@
 
 ### 0.1 Package 01 (rename) has landed
 
+*(Owner decision 2026-11-03.)* This package is done before package 01, on today's names (`A2A.Protocol`, `A2A.Server` with Hosting and Transports, `A2A.Client`, `A2A.Reference.slnx`). The "stop" rule below does not apply. Read `Ambinder.A2A.AspNetCore` as `src/A2A.Server/Hosting` or `src/A2A.Server/Transports`. Package 01 renames later.
+
 This plan assumes package 01's rename is merged: project folders, assemblies and namespaces are `Ambinder.A2A.*`, the solution is `Ambinder.A2A.slnx`, and the old `A2A.Server` is split into `Ambinder.A2A.Server` (core), `Ambinder.A2A.AspNetCore` (JSON-RPC, REST, card endpoints) and `Ambinder.A2A.AspNetCore.Grpc` (package 01 spec, "Design §1", rule 3).
 
 **Check before Task 1:**
@@ -166,8 +168,8 @@ Read `README.md`, `run_tck.py`, `scenarios/*.feature`, `tests/compatibility/conf
   - `run_tck.py --level should` passes `-m should` to pytest, so it runs **only** SHOULD tests (see the differences list, item 1). CI therefore runs **without** `--level`.
   - Reports go to `reports/compatibility.json`, `reports/junitreport.xml`, `reports/compatibility.html` and `reports/tck_report.html`.
   - `compatibility.json` has `per_requirement.<id>.{level, status, transports, errors, test_ids}`. `status` is one of `PASS`, `FAIL`, `SKIPPED`, `NOT TESTED`. `transports` maps a transport to `PASS`, `FAIL` or `SKIPPED`.
-  - The TCK has no option to send credentials (only `--sut-host`, `--transport`, `--compatibility-report`, `--webhook-host`).
-  - Push tests skip when the card does not declare `pushNotifications`. The webhook receiver listens on `--webhook-host` (default `localhost`).
+  - The TCK has no option to send credentials (only `--sut-host`, `--transport`, `--level`, `-v`, `--verbose-log`, and extra pytest args after `--`). *(Checked at the pin d4d6fae, 2026-11-03: `--webhook-host` and `--compatibility-report` do not exist there; do not stop for that. Reports are overwritten each run, so copy them per transport.)*
+  - Push tests skip when the card does not declare `pushNotifications`.
 
 - [ ] **Step 3: Write `tck/known-issues.json`:**
 
@@ -177,11 +179,13 @@ Read `README.md`, `run_tck.py`, `scenarios/*.feature`, `tests/compatibility/conf
 }
 ```
 
-Entry shape (document it in `tck/README.md`; do not add an entry now). `suite` is required: `"tck"` for this package's TCK run, `"acts"` for the ACTS run in package 16. Package 16 plan Task 24 copies any ACTS exclusions from the kit into this file with `"suite": "acts"`. The `tck` checker below reads only `"tck"` entries; package 16's `itk/check-acts.py` reads only `"acts"` entries. Both apply the same rules (no MUST entry, expiry, "still fails"):
+Entry shape (document it in `tck/README.md`; do not add an entry now). `suite` is required: `"tck"` for this package's TCK run, `"acts"` for the ACTS run in package 16. Package 16 plan Task 24 copies any ACTS exclusions from the kit into this file with `"suite": "acts"`. The `tck` checker below reads only `"tck"` entries; package 16's `itk/check-acts.py` reads only `"acts"` entries. Both apply the same rules (MUST only as a proven `tck-bug`, expiry, "still fails"):
 
 ```json
 { "suite": "tck", "requirement": "CORE-XXX-001", "transport": "grpc", "issue": "https://github.com/a2aproject/a2a-tck/issues/NNN", "reason": "One line: why this is a TCK bug.", "expires": "2027-01-31" }
 ```
+
+*(Owner decision 2026-11-03, amends C3.)* A MUST entry is allowed only for a proven TCK bug. It also has `"level": "MUST"`, `"kind": "tck-bug"` and `"spec"` (the spec text the TCK contradicts), plus an upstream issue link and an expiry date. Until the upstream issue is posted, `issue` holds a draft reference (`draft:tck-error-table`, `draft:tck-send-003`, `draft:tck-jsonrpc-snake-case`, `draft:tck-rest-media-type`) and `expires` is `2026-11-17`. The checker accepts `https://` or `draft:` in `issue`. Our own MUST failures may never go on the list.
 
 - [ ] **Step 4: Write `tck/sut-behaviors.yaml`.** It is YAML in JSON syntax (YAML 1.2 is a superset of JSON), so the checker reads it with `json` and needs no extra package. List one entry per scenario in the TCK's `scenarios/*.feature` that the SUT implements. For `requirements`, find the TCK requirement ids whose tests send that prefix (`grep -rn "<prefix>" tests/compatibility tck` in the TCK checkout). Example shape:
 
@@ -196,7 +200,7 @@ Entry shape (document it in `tck/README.md`; do not add an entry now). `suite` i
 
 Cover every prefix the SUT's `switch` handles today (`tck-complete-task`, `tck-artifact-text`, `tck-artifact-file`, `tck-artifact-file-url`, `tck-artifact-data`, `tck-message-response`, `tck-input-required`, `tck-reject-task`, `tck-stream-001`, `tck-stream-002`, `tck-stream-003`, `tck-stream-ordering-001`, `tck-stream-artifact-text`, `tck-stream-artifact-file`, `tck-stream-artifact-chunked`, `test-resubscribe-message-id`), and any scenario at the pinned commit that the SUT does not handle yet (Task 3 adds them).
 
-- [ ] **Step 5: Write `tck/README.md`.** Keep it short. Cover: what the job does; how to bump `TCK_VERSION`; the known-issues rule (only SHOULD failures caused by a TCK bug, with an upstream issue link and an expiry date; never a MUST, C3); how to add a behaviour (one branch in the SUT dispatcher plus one entry in `sut-behaviors.yaml`); how to run it locally (the commands from Task 4).
+- [ ] **Step 5: Write `tck/README.md`.** Keep it short. Cover: what the job does; how to bump `TCK_VERSION`; the known-issues rule (failures caused by a TCK bug, with an upstream issue link and an expiry date; a MUST only as a proven `tck-bug` with a `spec` citation, owner decision 2026-11-03); how to add a behaviour (one branch in the SUT dispatcher plus one entry in `sut-behaviors.yaml`); how to run it locally (the commands from Task 4).
 
 - [ ] **Step 6: Commit.**
 
@@ -214,7 +218,7 @@ The checker gets one `compatibility.json` per transport. It fails (exit 1) and p
 
 1. any requirement with level `MUST` has status `FAIL` on that transport;
 2. any `SHOULD` requirement has `FAIL` and is not in `known-issues.json` (with `"suite": "tck"`) for that transport;
-3. a known-issues entry is for a `MUST` requirement;
+3. a known-issues entry is for a `MUST` requirement and is not a proven TCK bug (needs `level: "MUST"`, `kind: "tck-bug"`, `spec`, and `issue` starting `https://` or `draft:`) *(owner decision 2026-11-03)*;
 4. a known-issues entry has expired (`expires` is before today, UTC);
 5. a known-issues entry no longer fails (status `PASS`): "remove it";
 6. a requirement listed under a claimed behaviour is `SKIPPED`, `NOT TESTED`, or missing from the report on that transport ("listed but not implemented fails, never skips", spec D1);
@@ -536,7 +540,9 @@ The owner approved decisions D1 and D2 of the package 15 plan (`docs/superpowers
 - **D1:** the dispatcher gets one context object with the resolved caller, tenant and binding, not just the agent. A public `IA2ACallerResolver` gives the gRPC 0.3 service, and the core transports, one way to resolve the caller and tenant.
 - **D2:** the endpoints call the dispatcher right after they resolve the agent and the caller, before the JSON-RPC body is read and before the REST operation is resolved.
 
-**Gate: package 07 Phase A.** The context carries 07's `A2ACaller`. Check: `git grep -nE "class A2ACaller\b|record A2ACaller\b" -- src`. If it is missing, do the rest of this plan first and come back to this task after 07's Tasks 1–6 land (they need only package 01). Do not add a stand-in caller type: a later change to it would break the public API.
+*(Owner decision 2026-11-03.)* `A2ACaller` does not exist yet. Build the whole seam now with today's data and wire all transports through it. Keep `IA2AVersionDispatcher`, `A2AVersionDispatchContext` and `IA2ACallerResolver` **internal**, and use an internal record `DispatchCaller(ClaimsPrincipal User, string Owner)` in place of `A2ACaller`. Remove `A2AAgentRoute`. `src/A2A.Server` gets `InternalsVisibleTo A2A.Integration.Tests`. Package 07 Phase A swaps the record for `A2ACaller` and makes the three types public.
+
+**Gate: package 07 Phase A (replaced by the note above for now).** The context carries 07's `A2ACaller`. Check: `git grep -nE "class A2ACaller\b|record A2ACaller\b" -- src`. If it is missing, do the rest of this plan first and come back to this task after 07's Tasks 1–6 land (they need only package 01). Do not add a stand-in caller type: a later change to it would break the public API.
 
 **Files:**
 - Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `.../Hosting/A2AVersionDispatchContext.cs`, `.../Hosting/IA2ACallerResolver.cs`
@@ -933,7 +939,7 @@ Remove `CanAgentTransition` and replace its callers with `CanTransition(from, to
 
 - [ ] **Step 5: Use the right source at each call site.**
   - `AgentEventSink.UpdateStatusAsync`: the sink knows its source. Add a `TransitionSource` field: `Agent` for sinks created for a run, `CancelRequest` for the sink `TaskManager.CancelTaskAsync` creates for `IAgentHandler.CancelAsync`. **This matters**: the default `CancelAsync` calls `sink.UpdateStatusAsync(Canceled)`. With source `Agent`, a cancel of an `INPUT_REQUIRED` task would become an illegal transition and end `FAILED`.
-  - On an illegal transition: keep PR #6's behaviour (the task ends `FAILED`, `InvalidAgentResponse` is thrown). Make the message actionable: `Illegal task state transition {from} -> {to}. From {from} the agent may move to: {list}. See docs/spec-decisions.md.`
+  - On an illegal transition: keep PR #6's behaviour (the task ends `FAILED`, `InvalidAgentResponse` is thrown). *(Owner decision 2026-11-03.)* One edge differs: a cancel handler that makes an illegal move on a paused (`INPUT_REQUIRED`, `AUTH_REQUIRED`) task does not end it `FAILED`. The event is rejected and the cancel request ends the task `CANCELED`. Make the message actionable: `Illegal task state transition {from} -> {to}. From {from} the agent may move to: {list}. See docs/spec-decisions.md.`
   - `TaskManager` continuation (sets `SUBMITTED`): check `CanTransition(state, Submitted, Server)` and throw `InvalidOperationException` if false (that would be a server bug).
   - `TaskManager.CancelTaskAsync` final commit: check `CanTransition(state, Canceled, CancelRequest)`.
 
@@ -942,6 +948,7 @@ Remove `CanAgentTransition` and replace its callers with `CanTransition(from, to
 - [ ] **Step 7: End-to-end tests** in `TaskStateTransitionTests` over `TransportMatrix.Bindings`, with a test agent driven by `messageId` prefix:
   - The agent moves `INPUT_REQUIRED → COMPLETED` in the same run: the task ends `FAILED`.
   - A cancel of an `INPUT_REQUIRED` task ends `CANCELED` (not `FAILED`).
+  - A cancel handler that makes an illegal move on an `INPUT_REQUIRED` or `AUTH_REQUIRED` task: the event is rejected and the task ends `CANCELED` (owner decision 2026-11-03).
   - A continuation of an `INPUT_REQUIRED` task goes `SUBMITTED`, then `WORKING`, in the stream.
   - Cancel twice: the second cancel returns the `CANCELED` task.
   - Cancel a `COMPLETED` task: `TaskNotCancelable`.

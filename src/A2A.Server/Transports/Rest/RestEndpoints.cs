@@ -15,7 +15,8 @@ namespace A2A.Server.Transports.Rest;
 /// <summary>
 /// HTTP+JSON binding under <c>/agents/{agent}/rest</c>: a thin adapter over <see cref="IA2ARequestHandler"/>.
 /// One catch-all route per verb parses the path itself, because the public paths contain <c>:</c> (<c>message:send</c>,
-/// <c>{id}:cancel</c>) next to plain <c>{id}</c> routes. Order of checks: unknown agent (404) → agent policy (401/403) →
+/// <c>{id}:cancel</c>) next to plain <c>{id}</c> routes. Order of checks: unknown agent (404) → agent policy and caller (401/403) →
+/// an <see cref="IA2AVersionDispatcher"/> that claims an unsupported version takes the whole request →
 /// path and verb (404/405) → version (400) → extended card needs an authenticated caller (401) → body size (413) →
 /// body and query (400) → required fields (400) → handler. Errors are google.rpc.Status bodies.
 /// A streaming error before the first event is a plain error response; after it, one final <c>data: {"error":..}</c> frame.
@@ -65,8 +66,18 @@ internal static class RestEndpoints
 
         try
         {
-            var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
-            await DispatchAsync(http, agent, owner, options, logger, ct).ConfigureAwait(false);
+            var path = http.Request.RouteValues["path"] as string ?? "";
+            // For a version the core does not serve, the paths are the dispatcher's to read. A tenant prefix is taken only in the
+            // form {tenant}/v1/..., so that /v1/tasks/t1 is not read as tenant "v1"; RestPath then excludes the prefix.
+            var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var hasPrefix = segments.Length >= 2 && segments[0] != "v1" && segments[1] == "v1";
+            var prefixTenant = hasPrefix ? segments[0] : null;
+            var dispatchPath = hasPrefix ? string.Join('/', segments[1..]) : path;
+            var restPath = dispatchPath.Length == 0 ? default : new PathString("/" + dispatchPath);
+            var (handled, caller) = await TransportRequest.TryDispatchVersionAsync(http, agent, A2AConstants.BindingRest, restPath,
+                supported => supported ? Resolve(http.Request.Method, path, out _)?.Tenant : prefixTenant).ConfigureAwait(false);
+            if (handled) return;
+            await DispatchAsync(http, agent, caller, options, logger, ct).ConfigureAwait(false);
         }
         catch (A2AAuthException ex)
         {
@@ -82,7 +93,7 @@ internal static class RestEndpoints
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, string owner, A2AServerOptions options,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, A2AServerOptions options,
         ILogger logger, CancellationToken ct)
     {
         var path = http.Request.RouteValues["path"] as string ?? "";
@@ -93,17 +104,17 @@ internal static class RestEndpoints
             {
                 http.Response.Headers.Allow = string.Join(", ", allowed);
                 await TransportErrors.WriteStatusAsync(http, StatusCodes.Status405MethodNotAllowed, "UNIMPLEMENTED",
-                    $"Method {http.Request.Method} is not allowed here.").ConfigureAwait(false);
+                    $"Method {http.Request.Method} is not allowed here. Use one of: {string.Join(", ", allowed)}.").ConfigureAwait(false);
                 return;
             }
-            throw new A2AException(A2AErrorCode.MethodNotFound, $"No operation at '/{path}'.");
+            throw new A2AException(A2AErrorCode.MethodNotFound, $"No operation at '/{path}'. Use a path from the A2A HTTP+JSON binding.");
         }
 
         var (version, extensions) = ServiceParameters.Read(http);
-        ServiceParameters.EnsureSupportedVersion(version);
+        TransportRequest.EnsureVersion(version);
         if (route.Op == Op.ExtendedCard)
         {
-            await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+            TransportRequest.AuthorizeExtendedCard(agent, caller);
             http.Response.Headers.CacheControl = "private, no-store";
         }
         ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
@@ -122,7 +133,7 @@ internal static class RestEndpoints
 
         var request = BuildRequest(route, body, http.Request.Query);
         RequestValidation.Validate(request);
-        var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, request, A2ATelemetryNames.TransportRest);
+        var call = TransportRequest.CreateCallContext(http, agent, caller, version, extensions, request, A2ATelemetryNames.TransportRest);
         var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
         switch (route.Op)
@@ -223,7 +234,7 @@ internal static class RestEndpoints
     {
         if (bytes.Length == 0 || bytes.All(b => b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n'))
         {
-            if (required) throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: a JSON body is required.");
+            if (required) throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: a JSON body is required. Send a JSON object.");
             return null;
         }
         JsonNode? node;
@@ -233,9 +244,9 @@ internal static class RestEndpoints
         }
         catch (JsonException)
         {
-            throw new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON.");
+            throw new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON. Send a JSON object.");
         }
-        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body must be a JSON object.");
+        return node as JsonObject ?? throw new A2AException(A2AErrorCode.InvalidParams, "Invalid params: the body is not a JSON object. Send the request as one JSON object, not an array or a value.");
     }
 
     private static object BuildRequest(Route route, JsonObject? body, IQueryCollection query)

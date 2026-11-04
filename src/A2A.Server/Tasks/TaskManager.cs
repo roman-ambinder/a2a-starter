@@ -69,7 +69,7 @@ public sealed class TaskManager : IA2ARequestHandler
         if (execution.Reply is { } reply) return new SendMessageResponse { Message = reply };
         if (execution.FinalTask is { } final) return new SendMessageResponse { Task = RequestValidator.ShapeHistory(final, historyLength) };
         var stored = await _writer.Store.GetAsync(call.AgentName, execution.TaskId, ct).ConfigureAwait(false)
-                     ?? throw new A2AException(A2AErrorCode.InternalError, "The agent produced no result.");
+                     ?? throw new A2AException(A2AErrorCode.InternalError, "The agent produced no result. Retry the request; if it repeats, tell the agent's operator.");
         return new SendMessageResponse { Task = RequestValidator.ShapeHistory(stored.Task, historyLength) };
     }
 
@@ -109,10 +109,12 @@ public sealed class TaskManager : IA2ARequestHandler
         using (await _writer.LockAsync(call.AgentName, request.Id, ct).ConfigureAwait(false))
         {
             stored = await LoadOwnedAsync(call, request.Id, ct).ConfigureAwait(false);
+            if (stored.Task.Status.State == TaskState.Canceled)
+                return stored.Task; // D13: canceling a canceled task returns it
             if (TaskStateRules.IsTerminal(stored.Task.Status.State))
-                throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is {stored.Task.Status.State} and cannot be canceled.");
+                throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is {stored.Task.Status.State} and cannot be canceled. Only a working or paused task can be canceled.");
             if (!_cancelling.TryAdd(key, 0))
-                throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is already being canceled.");
+                throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' is already being canceled. Call GetTask to see when it ends.");
             if (_running.TryGetValue(key, out running)) running.CancelRequested = true;
         }
 
@@ -143,7 +145,11 @@ public sealed class TaskManager : IA2ARequestHandler
             {
                 stored = await _writer.Store.GetAsync(call.AgentName, request.Id, CancellationToken.None).ConfigureAwait(false) ?? stored;
                 if (!TaskStateRules.IsTerminal(stored.Task.Status.State))
+                {
+                    if (!TaskStateRules.CanTransition(stored.Task.Status.State, TaskState.Canceled, TransitionSource.CancelRequest))
+                        throw new InvalidOperationException($"Server bug: a cancel request cannot move task '{request.Id}' from {stored.Task.Status.State} to Canceled.");
                     stored = await _writer.CommitStatusAsync(stored, TaskState.Canceled, null).ConfigureAwait(false);
+                }
                 if (running is not null) running.FinalTask ??= stored.Task;
                 _cancelling.TryRemove(key, out _);
             }
@@ -155,7 +161,7 @@ public sealed class TaskManager : IA2ARequestHandler
         }
 
         if (stored.Task.Status.State != TaskState.Canceled)
-            throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' ended as {stored.Task.Status.State} before it could be canceled.");
+            throw new A2AException(A2AErrorCode.TaskNotCancelable, $"Task '{request.Id}' ended as {stored.Task.Status.State} before it could be canceled. Call GetTask to read its final state.");
         return stored.Task;
     }
 
@@ -164,11 +170,6 @@ public sealed class TaskManager : IA2ARequestHandler
     {
         RequireStreaming(GetAgent(call));
         var (snapshot, subscription) = await OpenSubscriptionAsync(call, request.Id, ct).ConfigureAwait(false);
-        if (subscription is null)
-        {
-            yield return new StreamResponse { Task = snapshot }; // interrupted: the stream closes after the snapshot
-            yield break;
-        }
         using (subscription)
         {
             yield return new StreamResponse { Task = snapshot };
@@ -189,7 +190,7 @@ public sealed class TaskManager : IA2ARequestHandler
         RequirePush(GetAgent(call));
         await LoadOwnedAsync(call, request.TaskId, ct).ConfigureAwait(false);
         return await _push.GetAsync(call.AgentName, request.TaskId, request.Id, ct).ConfigureAwait(false)
-               ?? throw new A2AException(A2AErrorCode.TaskNotFound, $"Push notification config '{request.Id}' was not found for task '{request.TaskId}'.");
+               ?? throw new A2AException(A2AErrorCode.TaskNotFound, $"Push notification config '{request.Id}' was not found for task '{request.TaskId}'. List the configs with ListTaskPushNotificationConfigs.");
     }
 
     public async Task<ListTaskPushNotificationConfigsResponse> ListTaskPushNotificationConfigsAsync(A2ACallContext call, ListTaskPushNotificationConfigsRequest request, CancellationToken ct)
@@ -261,13 +262,16 @@ public sealed class TaskManager : IA2ARequestHandler
                 var stored = await LoadForContinuationAsync(call, taskId, ct).ConfigureAwait(false);
                 var state = stored.Task.Status.State;
                 if (TaskStateRules.IsTerminal(state))
-                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be continued.");
+                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be continued. Send a new message without taskId to start a new task.");
                 if (!TaskStateRules.IsInterrupted(state))
-                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; only a task waiting for input can be continued.");
+                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; only a task waiting for input can be continued. Wait until it asks for input.");
                 if (_cancelling.ContainsKey((agent, taskId)))
-                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is being canceled.");
+                    throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is being canceled. Call GetTask to see when it ends.");
                 if (!string.IsNullOrEmpty(message.ContextId) && message.ContextId != stored.Task.ContextId)
-                    throw new A2AException(A2AErrorCode.InvalidParams, "message.contextId does not match the task's contextId.");
+                    throw new A2AException(A2AErrorCode.InvalidParams, "message.contextId does not match the task's contextId. Send the task's contextId, or omit it.");
+
+                if (!TaskStateRules.CanTransition(state, TaskState.Submitted, TransitionSource.Server))
+                    throw new InvalidOperationException($"Server bug: a continuation cannot move task '{taskId}' from {state} to Submitted.");
 
                 var userMessage = message with { TaskId = taskId, ContextId = stored.Task.ContextId };
                 stored = stored with
@@ -358,7 +362,7 @@ public sealed class TaskManager : IA2ARequestHandler
         {
             var stored = await _writer.Store.GetAsync(execution.AgentName, execution.TaskId, CancellationToken.None).ConfigureAwait(false);
             if (stored is not null) execution.FirstResult.TrySetResult(new SendMessageResponse { Task = stored.Task });
-            else execution.FirstResult.TrySetException(new A2AException(A2AErrorCode.InternalError, "The agent produced no result."));
+            else execution.FirstResult.TrySetException(new A2AException(A2AErrorCode.InternalError, "The agent produced no result. Retry the request; if it repeats, tell the agent's operator."));
         }
         catch (Exception ex)
         {
@@ -394,7 +398,7 @@ public sealed class TaskManager : IA2ARequestHandler
         }
     }
 
-    private async Task<(AgentTask Snapshot, TaskEventBroker.Subscription? Subscription)> OpenSubscriptionAsync(
+    private async Task<(AgentTask Snapshot, TaskEventBroker.Subscription Subscription)> OpenSubscriptionAsync(
         A2ACallContext call, string taskId, CancellationToken ct)
     {
         using (await _writer.LockAsync(call.AgentName, taskId, ct).ConfigureAwait(false))
@@ -402,9 +406,10 @@ public sealed class TaskManager : IA2ARequestHandler
             var stored = await LoadOwnedAsync(call, taskId, ct).ConfigureAwait(false);
             var state = stored.Task.Status.State;
             if (TaskStateRules.IsTerminal(state))
-                throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be subscribed to.");
+                throw new A2AException(A2AErrorCode.UnsupportedOperation, $"Task '{taskId}' is {state}; a terminal task cannot be subscribed to. Call GetTask to read the result.");
             // Registered under the lock, so no event between the snapshot and the first live event is lost or repeated.
-            var subscription = TaskStateRules.IsInterrupted(state) ? null : _writer.Broker.Open(call.AgentName, taskId, ct);
+            // Spec 3.1.6: an interrupted task can be subscribed to; the stream ends only at a terminal state.
+            var subscription = _writer.Broker.Open(call.AgentName, taskId, ct, untilTerminal: true);
             return (stored.Task, subscription);
         }
     }
@@ -414,7 +419,7 @@ public sealed class TaskManager : IA2ARequestHandler
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         // Another owner's task is reported as not found, so task ids do not leak.
         if (stored is null || stored.Owner != call.Owner)
-            throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found.");
+            throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found. Check the task id.");
         return stored;
     }
 
@@ -427,7 +432,7 @@ public sealed class TaskManager : IA2ARequestHandler
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         if (stored is null
             || (stored.Owner != call.Owner && !_owners.CanContinueInterrupted(stored.Owner, call.Owner, stored.Task.Status.State)))
-            throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found.");
+            throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found. Check the task id.");
         return stored;
     }
 
@@ -439,12 +444,12 @@ public sealed class TaskManager : IA2ARequestHandler
     private static void RequireStreaming(AgentRegistration registration)
     {
         if (registration.PublicCard.Capabilities.Streaming != true)
-            throw new A2AException(A2AErrorCode.UnsupportedOperation, "This agent does not support streaming.");
+            throw new A2AException(A2AErrorCode.UnsupportedOperation, "This agent does not support streaming. Use SendMessage, or check capabilities.streaming on the card.");
     }
 
     private static void RequirePush(AgentRegistration registration)
     {
         if (registration.PublicCard.Capabilities.PushNotifications != true)
-            throw new A2AException(A2AErrorCode.PushNotificationNotSupported, "This agent does not support push notifications.");
+            throw new A2AException(A2AErrorCode.PushNotificationNotSupported, "This agent does not support push notifications. Check capabilities.pushNotifications on the card.");
     }
 }

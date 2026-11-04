@@ -119,7 +119,7 @@ Each line says where the decision now lives.
 
 - C1: High/Critical NuGet advisories fail a PR; Low/Moderate warn; Windows unit tests run nightly and on release, Linux on every PR. [01](2026-11-03-sdk-01-packaging-release-design.md), [12](2026-11-03-sdk-12-testing-quality-design.md)
 - C2: Support window: latest minor, plus security fixes for the previous minor for 3 months. [02](2026-11-03-sdk-02-public-api-design.md)
-- C3: SHOULD failures caused by TCK bugs may go on a reviewed known-issues list with an upstream link and expiry; MUST failures may not. [03](2026-11-03-sdk-03-spec-conformance-design.md)
+- C3: SHOULD failures caused by TCK bugs may go on a reviewed known-issues list with an upstream link and expiry; MUST failures may not. *(Amended by owner decision 2026-11-03: a MUST entry is allowed only for a proven TCK bug, with the spec text, an upstream issue link and an expiry date. Our own MUST failures may never be listed.)* [03](2026-11-03-sdk-03-spec-conformance-design.md)
 - C4: Client card verification defaults to `IfPresent` with `AcceptKnownCanonicalizationVariants = true` until A2A #2122 is settled; strict mode is opt-in. [04](2026-11-03-sdk-04-card-signing-design.md)
 - C5: 30-day retention for finished tasks on durable stores; Cosmos partition key (tenant, agent, owner) accepted; messageId create-dedupe on by default. [05](2026-11-03-sdk-05-stores-design.md)
 - C6: Cluster pod-to-pod auth ships Entra workload identity only, in `Ambinder.A2A.Cluster.Entra`; `SharedKey` is test code only. [06](2026-11-03-sdk-06-cluster-design.md), [01](2026-11-03-sdk-01-packaging-release-design.md)

@@ -78,6 +78,7 @@ public static partial class ProtoMapper
         _ => new(),
     };
 
+#pragma warning disable CS0618 // deprecated model flows: mapped so cards round-trip
     public static Proto.OAuthFlows ToProto(OAuthFlows x)
     {
         var f = new Proto.OAuthFlows();
@@ -123,9 +124,10 @@ public static partial class ProtoMapper
         }
         return f;
     }
+#pragma warning restore CS0618
 
     /// <summary>Maps every flow, including the deprecated implicit and password flows (kept so cards round-trip).</summary>
-#pragma warning disable CS0612 // deprecated proto members
+#pragma warning disable CS0612, CS0618 // deprecated proto members and model flows: mapped so cards round-trip
     public static OAuthFlows FromProto(Proto.OAuthFlows x) => x.FlowCase switch
     {
         Proto.OAuthFlows.FlowOneofCase.Implicit => new()
@@ -171,5 +173,5 @@ public static partial class ProtoMapper
         },
         _ => new(),
     };
-#pragma warning restore CS0612
+#pragma warning restore CS0612, CS0618
 }

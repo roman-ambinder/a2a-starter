@@ -33,7 +33,8 @@ public sealed class TransportParityTests(MinimalServer server)
         {
             PreferredBinding = binding,
             Credentials = credentials,
-            ProtocolVersion = version,
+            // The client sends the interface version; a test that needs another one rewrites the header.
+            HttpClient = version == "1.0" ? null : VersionRewriteHandler.CreateClient(version),
         });
         Type expected = binding switch
         {

@@ -16,13 +16,17 @@ public sealed class JsonRpcA2AClient : IA2AClient
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly string? _defaultTenant;
+    private readonly string _protocolVersion;
     private long _nextId;
 
     /// <param name="endpoint">The JSON-RPC URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
     /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
-    public JsonRpcA2AClient(Uri endpoint, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
+    /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>A2A-Version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
+    public JsonRpcA2AClient(Uri endpoint, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
+        string? protocolVersion = null)
     {
+        _protocolVersion = string.IsNullOrWhiteSpace(protocolVersion) ? A2AConstants.ProtocolVersion : protocolVersion;
         _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
         _card = card ?? throw new ArgumentNullException(nameof(card));
@@ -85,7 +89,7 @@ public sealed class JsonRpcA2AClient : IA2AClient
 
     private async Task<JsonElement> CallAsync<TRequest>(string method, TRequest request, CancellationToken ct)
     {
-        using var response = await SendAsync(method, request, A2AConstants.ContentType, ct).ConfigureAwait(false);
+        using var response = await SendAsync(method, request, A2AConstants.JsonRpcContentType, ct).ConfigureAwait(false);
         var body = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
         return ReadEnvelope(response, body);
     }
@@ -125,8 +129,8 @@ public sealed class JsonRpcA2AClient : IA2AClient
         {
             Content = new ByteArrayContent(BuildBody(method, request)),
         };
-        message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(A2AConstants.ContentType);
-        await ClientSupport.ApplyHeadersAsync(message, _options, _card, accept, ct).ConfigureAwait(false);
+        message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(A2AConstants.JsonRpcContentType);
+        await ClientSupport.ApplyHeadersAsync(message, _options, _card, _protocolVersion, accept, ct).ConfigureAwait(false);
 
         var response = await _http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         try

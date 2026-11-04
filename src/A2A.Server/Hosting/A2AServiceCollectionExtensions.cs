@@ -40,6 +40,7 @@ public static class A2AServiceCollectionExtensions
         services.TryAddSingleton<ITaskStore, InMemoryTaskStore>();
         services.TryAddSingleton<TaskEventBroker>(_ => new TaskEventBroker());
         services.TryAddSingleton<AgentCatalog>(builder.BuildCatalog);
+        services.TryAddSingleton<AgentCardRenderer>();
         services.TryAddSingleton<TaskManager>(sp => new TaskManager(
             sp.GetRequiredService<AgentCatalog>(),
             sp.GetRequiredService<ITaskStore>(),
@@ -57,6 +58,7 @@ public static class A2AServiceCollectionExtensions
         services.AddAuthorization();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
+        services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
         services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;
     }

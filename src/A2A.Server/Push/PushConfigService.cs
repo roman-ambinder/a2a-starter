@@ -14,7 +14,7 @@ internal sealed class PushConfigService(IPushConfigStore store, PushOptions opti
     public async ValueTask ValidateAsync(TaskPushNotificationConfig config, CancellationToken ct)
     {
         if (!Uri.TryCreate(config.Url, UriKind.Absolute, out var url))
-            throw new A2AException(A2AErrorCode.InvalidParams, "The push notification config needs an absolute webhook url.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "The push notification config needs an absolute webhook url. Send a full URL such as https://host/path.");
         await WebhookUrlValidator.ValidateAsync(url, options.AllowPrivateNetworks, ct).ConfigureAwait(false);
     }
 

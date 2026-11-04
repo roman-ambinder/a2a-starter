@@ -30,13 +30,13 @@ public static class ServiceParameters
 
     /// <summary>
     /// Throws <see cref="A2AErrorCode.VersionNotSupported"/> (data <c>{"supportedVersions":["1.0"]}</c>) unless the version's
-    /// <c>Major.Minor</c> is "1.0". A patch part (<c>1.0.1</c>) is ignored (spec 3.6). An empty value means A2A 0.3 (spec 3.6.2),
+    /// <c>Major.Minor</c> is "1.0". A patch part (<c>1.0.1</c>) is ignored (spec 3.6). An empty or whitespace value means A2A 0.3 (spec 3.6.2),
     /// which this server does not serve.
     /// </summary>
     public static void EnsureSupportedVersion(string? version)
     {
-        if (NormalizeVersion(version) == A2AConstants.ProtocolVersion) return;
-        var message = string.IsNullOrEmpty(version)
+        if (IsSupportedVersion(version)) return;
+        var message = string.IsNullOrWhiteSpace(version)
             ? $"No {A2AConstants.VersionHeader} header was sent, so the request is treated as A2A 0.3. This agent supports " +
               $"{A2AConstants.ProtocolVersion}. Send the header '{A2AConstants.VersionHeader}: {A2AConstants.ProtocolVersion}'."
             : $"A2A version '{version}' is not supported. Supported: {A2AConstants.ProtocolVersion}. " +
@@ -44,20 +44,28 @@ public static class ServiceParameters
         throw new A2AException(A2AErrorCode.VersionNotSupported, message, SupportedVersionsData);
     }
 
-    /// <summary><c>Major.Minor</c> of a version string (<c>1.0.1</c> → <c>1.0</c>), or null when it does not parse. Empty → <c>0.3</c>.</summary>
-    public static string? NormalizeVersion(string? version)
+    /// <summary>
+    /// The requested version as compared against the supported set and passed to <see cref="Hosting.IA2AVersionDispatcher"/>:
+    /// empty or whitespace → <c>0.3</c> (spec 3.6.2); <c>Major.Minor</c> or <c>Major.Minor.Patch</c> → <c>Major.Minor</c>
+    /// (spaces trimmed, patch ignored); anything else is returned trimmed and unchanged, so it fails the supported check.
+    /// </summary>
+    public static string NormalizeVersion(string? raw)
     {
-        if (string.IsNullOrWhiteSpace(version)) return "0.3";
-        var parts = version.Trim().Split('.');
-        if (parts.Length is < 2 or > 3) return null;
+        if (string.IsNullOrWhiteSpace(raw)) return "0.3";
+        var trimmed = raw.Trim();
+        var parts = trimmed.Split('.');
+        if (parts.Length is < 2 or > 3) return trimmed;
         var numbers = new int[parts.Length];
         for (var i = 0; i < parts.Length; i++)
         {
             if (!int.TryParse(parts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out numbers[i]))
-                return null;
+                return trimmed;
         }
         return $"{numbers[0]}.{numbers[1]}";
     }
+
+    /// <summary>True when <paramref name="raw"/> normalizes (see <see cref="NormalizeVersion"/>) to a version the core serves.</summary>
+    internal static bool IsSupportedVersion(string? raw) => NormalizeVersion(raw) == A2AConstants.ProtocolVersion;
 
     /// <summary>
     /// Applies the extension rules of spec 3.3.4 / 4.6 for one operation on <paramref name="card"/>: throws
