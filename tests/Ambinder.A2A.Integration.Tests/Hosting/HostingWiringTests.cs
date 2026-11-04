@@ -27,17 +27,17 @@ public sealed class HostingWiringTests(MinimalServer server)
     }
 
     [Fact]
-    public void Push_sender_is_observer_and_hosted_service_and_handler_is_tracing_request_handler()
+    public void Push_sender_is_observer_and_hosted_service_and_handler_is_the_pipeline_handler()
     {
         var sender = Services.GetRequiredService<PushNotificationSender>();
         Assert.Contains(sender, Services.GetServices<ITaskEventObserver>());
         Assert.Contains(sender, Services.GetServices<IHostedService>().OfType<PushNotificationSender>());
-        // The fixture wraps the handler in a recorder; the AddA2AServer default is the tracing wrapper.
+        // The fixture wraps the handler in a recorder; the AddA2AServer default is the pipeline handler, with tracing as built-in middleware.
         Assert.IsType<RecordingHandler>(Services.GetRequiredService<IA2ARequestHandler>());
         var plain = new ServiceCollection().AddLogging();
         plain.AddA2AServer(o => o.PublicBaseUrl = "http://localhost:1");
         using var provider = plain.BuildServiceProvider();
-        Assert.IsType<TracingRequestHandler>(provider.GetRequiredService<IA2ARequestHandler>());
+        Assert.IsType<A2APipelineRequestHandler>(provider.GetRequiredService<IA2ARequestHandler>());
     }
 
     [Fact]

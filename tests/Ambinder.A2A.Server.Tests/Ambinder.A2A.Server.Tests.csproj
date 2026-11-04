@@ -17,5 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <ProjectReference Include="../Ambinder.A2A.TestHarness/Ambinder.A2A.TestHarness.csproj" />
   </ItemGroup>
 </Project>

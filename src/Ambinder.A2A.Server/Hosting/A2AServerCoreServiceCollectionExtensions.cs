@@ -16,7 +16,8 @@ public static class A2AServerCoreServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the host-neutral A2A server core: options, agent catalog, in-memory task store, event broker,
-    /// the traced <see cref="IA2ARequestHandler"/> (one span per call),
+    /// the traced <see cref="IA2ARequestHandler"/> (one span per call) that runs the middleware pipeline,
+    /// the <see cref="TimeProvider"/> (default <see cref="TimeProvider.System"/>; register your own first to replace it),
     /// push delivery (config store, signing key, sender) and <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>).
     /// Use this in a host without ASP.NET Core; web apps call <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c>, which calls this
     /// method.
@@ -60,6 +61,7 @@ public static class A2AServerCoreServiceCollectionExtensions
         services.AddSingleton<IOptions<PushOptions>>(sp => Microsoft.Extensions.Options.Options.Create(sp.GetRequiredService<IOptions<A2AServerOptions>>().Value.Push));
         services.AddA2APush();
 
+        services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ITaskStore, InMemoryTaskStore>();
         services.TryAddSingleton<TaskEventBroker>(_ => new TaskEventBroker());
         services.TryAddSingleton<AgentCatalog>(builder.BuildCatalog);
@@ -70,11 +72,14 @@ public static class A2AServerCoreServiceCollectionExtensions
             sp,
             sp.GetServices<ITaskEventObserver>(),
             sp.GetService<ILogger<TaskManager>>(),
-            sp.GetService<TimeProvider>(),
+            sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<IPushConfigStore>(),
             sp.GetRequiredService<IOptions<PushOptions>>().Value,
             sp.GetRequiredService<IOwnerResolver>()));
-        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
+        services.TryAddSingleton(builder.Middleware);
+        services.TryAddSingleton<A2APipelineRequestHandler>();
+        services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<A2APipelineRequestHandler>());
+        builder.AddBuiltInMiddleware(A2APipelineMiddleware.TracingSlot, typeof(TracingMiddleware));
 
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
         return builder;

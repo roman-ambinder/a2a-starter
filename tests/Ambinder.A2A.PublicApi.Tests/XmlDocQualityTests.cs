@@ -61,6 +61,8 @@ public partial class XmlDocQualityTests
             foreach (var member in type.GetMembers(Declared))
             {
                 if (member is Type || !IsVisibleMember(member) || IsCompilerGenerated(member) || IsAccessor(member)) continue;
+                // The compiler writes the constructor, Invoke, BeginInvoke and EndInvoke of a delegate; only the delegate type itself can carry docs.
+                if (typeof(Delegate).IsAssignableFrom(type)) continue;
                 if (isRecord && IsRecordSynthesized(member)) continue;
                 Check(member, docs, problems);
             }
