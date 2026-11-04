@@ -5,5 +5,30 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <!-- 'dotnet pack' on the solution visits samples and tests; they are not packages, so do not warn about them. -->
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <!-- Repository root with a trailing slash, for files that every Directory.Build.props below needs. -->
+    <A2ARepoRoot>$(MSBuildThisFileDirectory)</A2ARepoRoot>
+  </PropertyGroup>
+
+  <!-- Reproducible builds: same commit, same bytes. CI builds also normalize source paths. -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- NuGet vulnerability audit of direct and transitive dependencies (spec 01, goal 12).
+       High and Critical (NU1903, NU1904) always fail the build through TreatWarningsAsErrors.
+       Low and Moderate (NU1901, NU1902) stay warnings unless a nightly or release build passes -p:A2AStrictAudit=true. -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(A2AStrictAudit)' != 'true'">
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902</WarningsNotAsErrors>
   </PropertyGroup>
 </Project>

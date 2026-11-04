@@ -1,5 +1,7 @@
 # A2A .NET 10 Reference Implementation — Design
 
+> Written before the rename to Ambinder.A2A.*
+
 Date: 2026-11-02
 Status: Draft, awaiting approval
 

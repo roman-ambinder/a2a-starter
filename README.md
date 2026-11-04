@@ -5,6 +5,50 @@ This repo is a working reference of A2A v1.0: a server library, a client library
 
 Phase 1 (this repo) runs fully on your machine with mock services. Phase 2 (real Entra, real LLMs, durable storage) is not built; see [docs/production.md](docs/production.md).
 
+## Getting started
+
+Two samples show the smallest working setup: an agent in about 20 lines of `Program.cs` ([samples/GettingStarted.Agent](samples/GettingStarted.Agent/README.md), needs only `Ambinder.A2A.AspNetCore`) and the five-call client ([samples/GettingStarted.Client](samples/GettingStarted.Client/README.md), needs only `Ambinder.A2A.Client`).
+
+```bash
+dotnet run --project samples/GettingStarted.Agent                  # terminal 1: listens on http://localhost:5100
+dotnet run --project samples/GettingStarted.Client                 # terminal 2: prints "Hello, hello!"
+```
+
+## Packages
+
+Nothing is published to NuGet yet, and every version is a preview until 1.0.0 (any preview can contain breaking changes; see [CHANGELOG.md](CHANGELOG.md)). The `dotnet add package` lines below work once the first preview is released; until then, use the project references described in the [samples](samples/GettingStarted.Agent/README.md) or `eng/build-samples-on-packages.sh`.
+
+One package for a server (`Ambinder.A2A.AspNetCore`), one for a client (`Ambinder.A2A.Client`). gRPC and Entra are opt-in.
+
+| Package | What it is | When to add it |
+|---|---|---|
+| `Ambinder.A2A.Protocol` | Wire models, JSON rules, error codes, telemetry names. No dependencies. | Comes in through the server and client packages. Add it alone only to share models. |
+| `Ambinder.A2A.Server` | Host-neutral server core: agents, task manager, streaming, push. No ASP.NET Core. | Comes in through `AspNetCore`. Add it alone to host A2A in your own web stack. |
+| `Ambinder.A2A.AspNetCore` | JSON-RPC, REST and SSE endpoints: `AddA2AServer`, `MapA2A`. | Serving an agent. This is the one server package. |
+| `Ambinder.A2A.AspNetCore.Grpc` | gRPC server endpoint: `AddA2AGrpc`, `MapA2AGrpc`. | Only when you also serve gRPC. |
+| `Ambinder.A2A.Client` | `IA2AClient` over JSON-RPC and REST, card resolver, credential providers. | Calling an agent. This is the one client package. |
+| `Ambinder.A2A.Client.Grpc` | gRPC client transport: `GrpcClientTransport.Instance`. | Only when you call agents over gRPC. |
+| `Ambinder.A2A.Client.Entra` | `AzureIdentityCredentialProvider` (Azure.Identity). | Only when you authenticate with Microsoft Entra ID through Azure.Identity. |
+
+```bash
+dotnet add package Ambinder.A2A.AspNetCore --prerelease          # a server
+dotnet add package Ambinder.A2A.AspNetCore.Grpc --prerelease     # optional: also serve gRPC
+dotnet add package Ambinder.A2A.Client --prerelease              # a client
+dotnet add package Ambinder.A2A.Client.Grpc --prerelease         # optional: call over gRPC
+dotnet add package Ambinder.A2A.Client.Entra --prerelease        # optional: Azure.Identity credentials
+```
+
+gRPC is off until you ask for it. On a server, chain `.AddA2AGrpc()` onto `AddA2AServer(...)` and call `MapA2AGrpc()` next to `MapA2A()`. On a client, pass `Transports = [GrpcClientTransport.Instance]` in `A2AClientOptions`.
+
+**Coexistence with the official package.** All types live in `Ambinder.A2A.*` namespaces, so a project can reference the official `A2A` package too. Alias the official namespace when both define the same type name:
+
+```csharp
+using OfficialA2A = A2A;
+using OurCard = Ambinder.A2A.Protocol.AgentCard;
+```
+
+`tests/Ambinder.A2A.Coexistence` compiles exactly this.
+
 ## Quick start
 
 Prerequisites: .NET SDK 10.0.401 or newer. Docker is optional. Tests and the first run need no API keys and no network services beyond localhost.
@@ -12,7 +56,7 @@ Prerequisites: .NET SDK 10.0.401 or newer. Docker is optional. Tests and the fir
 ```bash
 ./run-all.sh                                        # or: pwsh ./run-all.ps1
 dotnet run --project samples/AgentClient -- all     # in a second terminal
-dotnet test --solution A2A.Reference.slnx           # unit and integration tests (Microsoft.Testing.Platform syntax)
+dotnet test --solution Ambinder.A2A.slnx           # unit and integration tests (Microsoft.Testing.Platform syntax)
 ```
 
 `run-all` builds once, then starts MockEntra (5100), WebhookReceiver (5300) and AgentServer (5200 to 5204). Press Ctrl+C to stop all three.
@@ -52,28 +96,37 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 
 | Path | What it is |
 |---|---|
-| [src/A2A.Protocol](src/A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
-| [src/A2A.Protocol.Grpc](src/A2A.Protocol.Grpc/README.md) | Generated gRPC code and the model-to-proto mapper. |
-| [src/A2A.Server](src/A2A.Server/README.md) | Hosting library: JSON-RPC, REST and gRPC endpoints, task manager, push delivery. |
-| [src/A2A.Client](src/A2A.Client/README.md) | Client library: one `IA2AClient` over all three transports. |
+| [src/Ambinder.A2A.Protocol](src/Ambinder.A2A.Protocol/README.md) | Wire models, JSON rules and error codes. No ASP.NET Core. |
+| [src/Ambinder.A2A.Server](src/Ambinder.A2A.Server/README.md) | Server core without a web host: agents, task manager, push delivery, `AddA2AServerCore`. |
+| [src/Ambinder.A2A.AspNetCore](src/Ambinder.A2A.AspNetCore/README.md) | ASP.NET Core hosting: JSON-RPC, REST and SSE endpoints, `AddA2AServer`, `MapA2A`. |
+| [src/Ambinder.A2A.AspNetCore.Grpc](src/Ambinder.A2A.AspNetCore.Grpc/README.md) | gRPC server endpoint (opt-in): `AddA2AGrpc`, `MapA2AGrpc`. |
+| [src/Ambinder.A2A.Client](src/Ambinder.A2A.Client/README.md) | Client library: one `IA2AClient` over JSON-RPC and REST, plus the `IA2AClientTransport` seam. |
+| [src/Ambinder.A2A.Client.Grpc](src/Ambinder.A2A.Client.Grpc/README.md) | gRPC client transport (opt-in): `GrpcClientTransport.Instance`. |
+| [src/Ambinder.A2A.Client.Entra](src/Ambinder.A2A.Client.Entra/README.md) | `AzureIdentityCredentialProvider` (Azure.Identity). |
+| [samples/GettingStarted.Agent](samples/GettingStarted.Agent/README.md) | A hello agent in about 20 lines. |
+| [samples/GettingStarted.Client](samples/GettingStarted.Client/README.md) | The five-call client for it. |
 | [samples/AgentServer](samples/AgentServer/README.md) | Four demo agents. |
 | [samples/MockEntra](samples/MockEntra/README.md) | Fake Microsoft Entra ID token service (Development only). |
 | [samples/WebhookReceiver](samples/WebhookReceiver/README.md) | Verifies and stores push notifications. |
 | [samples/AgentClient](samples/AgentClient/README.md) | Console client that runs every flow. |
 | [samples/AppHost](samples/AppHost/README.md) | Local-only launcher with a trace, metrics and logs dashboard. |
+| `src/Shared`, `src/Grpc.Shared` | Source files compiled into several packages (transport helpers, `ProtoMapper`). Not packages. |
 | `samples/SampleTelemetry` | OpenTelemetry setup shared by the three server hosts. Off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set. |
-| `tests/` | Four test projects: `A2A.Protocol.Tests`, `A2A.Server.Tests`, `A2A.MockEntra.Tests`, `A2A.Integration.Tests`. |
+| `tests/` | Test projects: `Ambinder.A2A.Protocol.Tests`, `Ambinder.A2A.Server.Tests`, `Ambinder.A2A.Client.Grpc.Tests`, `Ambinder.A2A.MockEntra.Tests`, `Ambinder.A2A.Integration.Tests`; `Ambinder.A2A.Coexistence` (compile-only) and `Ambinder.A2A.CoreOnly.Smoke` (checked by `eng/check-core-only.sh`); and `Ambinder.A2A.Tck.Sut` (see [Conformance](#conformance)). |
+| `eng/` | Packaging and release checks: `check-packages.cs`, `package-dependencies.json`, `check-core-only.sh`, `build-samples-on-packages.sh`, `smoke-test.sh`. |
+| `benchmarks/` | Reserved for BenchmarkDotNet projects; none ship ([README](benchmarks/README.md)). |
 | `docker/`, `docker-compose.yml` | Images and the compose stack. |
 | `.github/` | GitHub Actions CI and Dependabot (see [Continuous integration](#continuous-integration)). |
 | [docs/flows.md](docs/flows.md) | One sequence diagram per flow. |
 | [docs/production.md](docs/production.md) | What to change for Phase 2. |
+| [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) | Release notes, how to contribute, how to report a vulnerability. |
 | [docs/architecture.html](docs/architecture.html) | Architecture overview (open in a browser). |
 
 `src/` never references `samples/`.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `A2A.Reference.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
+`.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `Ambinder.A2A.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
 It does not run the TCK or start Docker or the AppHost.
 
 `.github/dependabot.yml` opens weekly update pull requests for NuGet packages, GitHub Actions and the Docker base images in `docker/`.
@@ -154,13 +207,13 @@ Run one flow with `dotnet run --project samples/AgentClient -- <command>`. Optio
 | Errors | report, secure, echo | `errors` | `ReportFlowTests`, `SecureFlowTests`, `EchoFlowTests` |
 | Everything, through the console runner | all | `all` | `ConsoleFlowRunnerTests` |
 
-Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in this table. `DocsTests` fails if a console command or a flow test class is missing from this table.
+Every public test class under `tests/Ambinder.A2A.Integration.Tests/Flows/` is named in this table. `DocsTests` fails if a console command or a flow test class is missing from this table.
 
 ## Copy the server side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Server` ([details](src/A2A.Server/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Server`, `src/Ambinder.A2A.AspNetCore` and, to serve gRPC, `src/Ambinder.A2A.AspNetCore.Grpc` with `src/Grpc.Shared` ([details](src/Ambinder.A2A.Server/README.md)), plus `proto/` (`Ambinder.A2A.AspNetCore.Grpc` compiles `proto/a2a.proto`).
 2. Write an `IAgentHandler` (see `samples/AgentServer/Agents/EchoAgent.cs` for the smallest one).
-3. Register it with `AddA2AServer(...).AddAgent<THandler>(name, publicCard, extendedCard, policy)`, then call `MapA2A()` and `MapA2AGrpc()`.
+3. Register it with `AddA2AServer(...).AddA2AGrpc().AddAgent<THandler>(name, publicCard, extendedCard, policy)` (`AddA2AGrpc()` only when serving gRPC), then call `MapA2A()` and `MapA2AGrpc()`.
 4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
 5. Swap `ITaskStore` and `IPushConfigStore` for durable ones before production.
 
@@ -168,9 +221,9 @@ Every public test class under `tests/A2A.Integration.Tests/Flows/` is named in t
 
 ## Copy the client side
 
-1. Copy or reference `src/A2A.Protocol`, `src/A2A.Protocol.Grpc` and `src/A2A.Client` ([details](src/A2A.Client/README.md)), plus `proto/` (`A2A.Protocol.Grpc` compiles `proto/a2a.proto`).
+1. Copy or reference `src/Ambinder.A2A.Protocol` and `src/Ambinder.A2A.Client` ([details](src/Ambinder.A2A.Client/README.md)). For gRPC add `src/Ambinder.A2A.Client.Grpc` with `src/Grpc.Shared` and `proto/` (`Ambinder.A2A.Client.Grpc` compiles `proto/a2a.proto`); for Azure.Identity credentials add `src/Ambinder.A2A.Client.Entra`.
 2. Fetch the card with `A2ACardResolver`.
-3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC, REST or gRPC from the card. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
+3. Create a client with `A2AClientFactory.Create(card, new A2AClientOptions { ... })`. It picks JSON-RPC or REST from the card, or gRPC when you pass `Transports = [GrpcClientTransport.Instance]`. The result is a `TracingA2AClient` that records one span per call; its `Inner` property is the transport client.
 4. Pick credentials: `ClientCredentialsProvider` (any OAuth2 token URL, including Entra), `AzureIdentityCredentialProvider`, `ApiKeyCredentialProvider`, `BearerTokenCredentialProvider`, or your own `IA2ACredentialProvider`.
    `ClientCredentialsProvider` sends your client secret to the token URL, so it does not trust the card blindly. Either pass the token URL yourself (`tokenUrlOverride`), or list the hosts you trust in `allowedTokenHosts` (for example `login.microsoftonline.com`). A card token URL is used only when its host is in that list and it is `https` (`http` only for localhost, 127.0.0.1 or ::1). Anything else throws `A2AAuthException` (401) and no request is sent.
 
@@ -191,4 +244,4 @@ Everything to change for Phase 2 is in [docs/production.md](docs/production.md).
 
 The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). CI checks that `proto/a2a.proto` equals the `v1.0.1` release file.
 
-CI runs the official A2A TCK on every PR, over JSON-RPC, HTTP+JSON and gRPC (job `tck`, in [.github/workflows/tck.yml](.github/workflows/tck.yml)). It runs against `tests/A2A.Tck.Sut`, and the TCK version is pinned in `tck/TCK_VERSION`. See [tck/README.md](tck/README.md) for the files, the checker rules and how to run it locally, and [docs/spec-decisions.md](docs/spec-decisions.md) for the choices. Known TCK bugs are listed in [tck/known-issues.json](tck/known-issues.json) with links to their upstream issues. A weekly run against TCK `main` and a check for new A2A releases are in `.github/workflows/tck-weekly.yml`.
+CI runs the official A2A TCK on every PR, over JSON-RPC, HTTP+JSON and gRPC (job `tck`, in [.github/workflows/tck.yml](.github/workflows/tck.yml)). It runs against `tests/Ambinder.A2A.Tck.Sut`, and the TCK version is pinned in `tck/TCK_VERSION`. See [tck/README.md](tck/README.md) for the files, the checker rules and how to run it locally, and [docs/spec-decisions.md](docs/spec-decisions.md) for the choices. Known TCK bugs are listed in [tck/known-issues.json](tck/known-issues.json) with links to their upstream issues. A weekly run against TCK `main` and a check for new A2A releases are in `.github/workflows/tck-weekly.yml`.

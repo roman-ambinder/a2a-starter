@@ -1,12 +1,12 @@
 using System.Text.Json;
 
-namespace A2A.Shared;
+namespace Ambinder.A2A.Shared;
 
 /// <summary>
 /// Flattens <c>A2AException.Data</c> into the string map that ErrorInfo <c>metadata</c> and <c>A2AException.Details</c> use.
 /// Linked as one source file into the projects that need it, compiled <c>internal</c> in each.
 /// </summary>
-// Warning: never add InternalsVisibleTo from A2A.Protocol to a project that also sees A2A.Server's copy of this type (CS0433).
+// Warning: never add InternalsVisibleTo from Ambinder.A2A.Protocol to a project that also sees Ambinder.A2A.Server's copy of this type (CS0433).
 internal static class ErrorDetailsFlattener
 {
     /// <summary>

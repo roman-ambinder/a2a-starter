@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/*.cs" />
+    <Compile Include="../Ambinder.A2A.Tck.Sut/TckAgent.cs" Link="TckSut/TckAgent.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The tests use the generated types (raw gRPC client, fake gRPC server) from their own internal copy of the proto, so no
+         src assembly shares its internal Lf.A2a.V1 types with them. -->
+    <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" Access="Internal" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
+    <ProjectReference Include="../../samples/AgentServer/AgentServer.csproj" />
+    <!-- Aliased: AgentServer also has a Program. -->
+    <ProjectReference Include="../../samples/GettingStarted.Agent/GettingStarted.Agent.csproj" Aliases="GettingStartedAgent" />
+    <ProjectReference Include="../../samples/MockEntra/MockEntra.csproj" />
+    <ProjectReference Include="../../samples/WebhookReceiver/WebhookReceiver.csproj" />
+    <ProjectReference Include="../../samples/AgentClient/AgentClient.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,6 @@
-name: tck
+name: TCK
+
+# The A2A TCK against tests/Ambinder.A2A.Tck.Sut on all three transports (package 03). ci.yml and tck-weekly.yml call it.
 on:
   workflow_call:
     inputs:
@@ -20,7 +22,7 @@ jobs:
         with:
           global-json-file: global.json
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
 
       - uses: actions/setup-python@v6
         with:
@@ -46,7 +48,7 @@ jobs:
       # One root (tck-reports/), so checker-output.txt sits at the top of the artifact.
       - name: Upload reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: tck-reports
           path: tck-reports/

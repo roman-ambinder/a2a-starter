@@ -1,0 +1,15 @@
+name: Question
+description: Ask how to use the SDK.
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What you have tried
+      description: Code, configuration, and the package versions and .NET SDK version you use.

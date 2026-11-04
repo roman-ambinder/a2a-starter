@@ -10,7 +10,7 @@ $procs = @()
 # Runs the built DLL directly, so the process we track is the app itself (no `dotnet run` host that could be killed alone).
 function Start-App($name) {
     Write-Host "Starting $name..."
-    $dll = Join-Path $PSScriptRoot "samples/$name/bin/Debug/net10.0/$name.dll"
+    $dll = Join-Path $PSScriptRoot "samples/$name/bin/Debug/net10.0/Ambinder.A2A.Samples.$name.dll"
     Start-Process -FilePath dotnet -NoNewWindow -PassThru -ArgumentList @($dll)
 }
 
@@ -34,7 +34,7 @@ foreach ($port in 5100, 5200, 5201, 5202, 5203, 5204, 5300) {
 }
 
 try {
-    dotnet build A2A.Reference.slnx --nologo -v q
+    dotnet build Ambinder.A2A.slnx --nologo -v q
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
     $entra = Start-App 'MockEntra'; $procs += $entra

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>gRPC transport for the Ambinder.A2A client. Opt-in: pass GrpcClientTransport.Instance in A2AClientOptions.Transports.</Description>
+    <PackageTags>$(PackageTags);client;grpc;protobuf</PackageTags>
+    <!-- Adds google/api/*.proto from Google.Api.CommonProtos to the protoc import path. -->
+    <IncludeGoogleApiCommonProtos>true</IncludeGoogleApiCommonProtos>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Grpc.StatusProto" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Google.Api.CommonProtos" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- ProtoMapper, compiled internal here and in Ambinder.A2A.AspNetCore.Grpc. -->
+    <Compile Include="../Grpc.Shared/*.cs" />
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/ClientSupport.cs" Link="Shared/ClientSupport.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Client" Access="Internal" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ambinder.A2A.Client.Grpc.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A2A v1.0 client for .NET: one IA2AClient over JSON-RPC and REST, agent card resolver, credential providers and a transport seam for other bindings.</Description>
+    <PackageTags>$(PackageTags);client;rest;sse;oauth2</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/ClientSupport.cs" Link="Shared/ClientSupport.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+  </ItemGroup>
+</Project>

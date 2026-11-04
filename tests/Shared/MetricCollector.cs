@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 
-namespace A2A.Tests.Shared;
+namespace Ambinder.A2A.Tests.Shared;
 
 /// <summary>
 /// Records the long measurements of one meter. Metric tags carry no trace ID, so every test that uses this goes in the

@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   tck:
@@ -17,11 +16,14 @@ jobs:
 
   report:
     needs: tck
+    permissions:
+      contents: read
+      issues: write
     if: always() && needs.tck.result == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: tck-reports
@@ -52,6 +54,9 @@ jobs:
           fi
 
   spec-release:
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

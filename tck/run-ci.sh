@@ -28,8 +28,8 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$repo"
-dotnet build tests/A2A.Tck.Sut -c Release
-dotnet run --no-build --project tests/A2A.Tck.Sut -c Release -- --port "$sut_port" --grpc-port "$grpc_port" >"$sut_log" 2>&1 &
+dotnet build tests/Ambinder.A2A.Tck.Sut -c Release
+dotnet run --no-build --project tests/Ambinder.A2A.Tck.Sut -c Release -- --port "$sut_port" --grpc-port "$grpc_port" >"$sut_log" 2>&1 &
 sut_pid=$!
 
 ready=0

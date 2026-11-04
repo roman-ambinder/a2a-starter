@@ -1,0 +1,15 @@
+name: BENCHMARKS
+
+# Hook for package 14 (benchmarks). Today this only reports that nothing is implemented yet; package 14 replaces the job
+# (keep `on: workflow_call`, so ci.yml and release.yml can require it).
+on: workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: 'echo "Not implemented yet: package 14 (benchmarks)"'

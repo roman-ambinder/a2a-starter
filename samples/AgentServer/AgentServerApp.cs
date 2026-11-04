@@ -1,5 +1,7 @@
-using A2A.Protocol;
-using A2A.Server.Hosting;
+using Ambinder.A2A.Protocol;
+using Ambinder.A2A.AspNetCore.Grpc;
+using Ambinder.A2A.AspNetCore.Hosting;
+using Ambinder.A2A.Server.Hosting;
 using AgentServer.Agents;
 using AgentServer.Auth;
 using AgentServer.Cards;
@@ -39,7 +41,7 @@ public static class AgentServerApp
         var auth = builder.Services.AddA2AAuth(config);
 
         builder.ConfigureA2AKestrel();
-        var a2a = builder.Services.AddA2AServer(o => config.GetSection(A2ASectionName).Bind(o));
+        var a2a = builder.Services.AddA2AServer(o => config.GetSection(A2ASectionName).Bind(o)).AddA2AGrpc();
         foreach (var name in AgentCards.Names)
         {
             Func<IServiceProvider, AgentCard> publicCard = sp => AgentCards.Build(name, Server(sp), auth, extended: false);

@@ -1,0 +1,465 @@
+name: Release
+
+# Tag-driven release (spec 01, section 7). Push a tag vX.Y.Z[-pre] to release. To rehearse, run this workflow by hand with
+# "Use workflow from" set to the tag and dry_run left on: every job runs except publish, github-release and the smoke test against
+# nuget.org (a smoke test against the local packages runs instead). The runbook is in CONTRIBUTING.md.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release, for example v1.0.0-preview.1 (run the workflow from this tag)
+        type: string
+        required: true
+      dry_run:
+        description: Rehearse the release without publishing to nuget.org or creating a GitHub Release
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One release per tag at a time; a second run waits instead of cancelling a release that may be half published.
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+      dry_run: ${{ steps.tag.outputs.dry_run }}
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Resolve and check the tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            tag="$INPUT_TAG"
+            dry_run="$INPUT_DRY_RUN"
+          else
+            tag="$REF_NAME"
+            dry_run="false"
+          fi
+          semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
+          if ! [[ "$tag" =~ $semver ]]; then
+            echo "::error::Tag '$tag' is not valid SemVer (expected vMAJOR.MINOR.PATCH[-prerelease])."
+            exit 1
+          fi
+          version="${tag#v}"
+          prerelease="false"
+          if [[ "$version" == *-* ]]; then prerelease="true"; fi
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release $tag (version $version, prerelease=$prerelease, dry_run=$dry_run)"
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          fetch-depth: 0 # all branches and tags: the master check and MinVer need them
+
+      - name: Check the tagged commit
+        id: commit
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse "refs/tags/$TAG^{commit}")"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+          # The verify job runs the CI workflow on the commit this run was started from, so it must be the tagged commit.
+          if [ "$sha" != "$GITHUB_SHA" ]; then
+            echo "::error::This run was started from $GITHUB_SHA but $TAG points to $sha. Run the workflow from the tag ('Use workflow from' = $TAG)."
+            exit 1
+          fi
+
+          git fetch origin master
+          if ! git merge-base --is-ancestor "$sha" origin/master; then
+            echo "::error::$TAG ($sha) is not on master. Merge the change to master and tag the merge commit."
+            exit 1
+          fi
+
+          # A literal prefix match: the heading may carry a date, for example "## [1.0.0] - 2026-12-01".
+          if ! awk -v h="## [$VERSION]" 'index($0, h) == 1 { found = 1 } END { exit !found }' CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section."
+            exit 1
+          fi
+          echo "OK: $TAG is on master and CHANGELOG.md has a section for $VERSION."
+
+  # Full CI on the tagged commit with strict NuGet audit; the TCK, interop and benchmark hooks run inside it.
+  # The called workflow checks out the commit of this run, which validate proved is the tagged one.
+  verify:
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      strict-audit: true
+
+  pack:
+    needs: [validate, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Pack
+        run: dotnet pack Ambinder.A2A.slnx --configuration Release -p:ContinuousIntegrationBuild=true -p:A2AStrictAudit=true --output artifacts/packages
+
+      - name: MinVer version equals the tag version
+        run: |
+          set -euo pipefail
+          count=0
+          for file in artifacts/packages/*.nupkg artifacts/packages/*.snupkg; do
+            name="$(basename "$file")"
+            case "$name" in
+              *".$VERSION.nupkg" | *".$VERSION.snupkg") count=$((count + 1)) ;;
+              *) echo "::error::$name does not carry version $VERSION (MinVer disagrees with the tag)."; exit 1 ;;
+            esac
+          done
+          test "$count" -gt 0 || { echo "::error::No packages were produced."; exit 1; }
+          echo "All $count package files carry version $VERSION."
+
+      - name: Check packages (allow-list, contents)
+        run: dotnet run eng/check-packages.cs -- --packages artifacts/packages --map eng/package-dependencies.json
+
+      # The tagged commit is public by now, so the source URLs in the symbols can be fetched.
+      - name: sourcelink test on every symbol file
+        run: |
+          set -euo pipefail
+          dotnet tool install --global sourcelink --version 3.1.1
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          symbols="$RUNNER_TEMP/symbols"
+          mkdir -p "$symbols"
+          for snupkg in artifacts/packages/*.snupkg; do
+            unzip -q -o "$snupkg" '*.pdb' -d "$symbols/$(basename "$snupkg" .snupkg)"
+          done
+          count=0
+          while IFS= read -r pdb; do
+            sourcelink test "$pdb"
+            count=$((count + 1))
+          done < <(find "$symbols" -name '*.pdb' | sort)
+          test "$count" -gt 0 || { echo "::error::No .pdb files found in the .snupkg files."; exit 1; }
+          echo "sourcelink test passed for $count symbol files."
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pack-output # not "packages": the called ci.yml uploads that name in this run
+          path: artifacts/packages/
+          if-no-files-found: error
+
+  # The sign CLI is Windows-only (it uses kernel32), so this job runs on Windows.
+  sign:
+    needs: [validate, pack]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # Azure login by GitHub OIDC; no stored key
+    steps:
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: pack-output
+          path: release-packages
+
+      - name: Azure login (OIDC)
+        if: vars.SIGN_PACKAGES == 'true'
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Microsoft's dotnet/sign tool is a prerelease; the exact version is pinned. In this version the Azure Trusted Signing command is
+      # named artifact-signing (trusted-signing is kept as an obsolete alias). The repository variables keep the TRUSTED_SIGNING_ names.
+      - name: Sign the .nupkg files (Azure Trusted Signing)
+        if: vars.SIGN_PACKAGES == 'true'
+        shell: bash
+        env:
+          SIGNING_ENDPOINT: ${{ vars.TRUSTED_SIGNING_ENDPOINT }}
+          SIGNING_ACCOUNT: ${{ vars.TRUSTED_SIGNING_ACCOUNT }}
+          SIGNING_PROFILE: ${{ vars.TRUSTED_SIGNING_PROFILE }}
+        run: |
+          set -euo pipefail
+          dotnet tool install --global sign --version 0.9.1-beta.26552.4
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          sign code artifact-signing "*.nupkg" \
+            --base-directory release-packages \
+            --artifact-signing-endpoint "$SIGNING_ENDPOINT" \
+            --artifact-signing-account "$SIGNING_ACCOUNT" \
+            --artifact-signing-certificate-profile "$SIGNING_PROFILE" \
+            --azure-credential-type azure-cli \
+            --timestamp-url http://timestamp.acs.microsoft.com
+
+      - name: Verify the signatures
+        if: vars.SIGN_PACKAGES == 'true'
+        shell: bash
+        run: dotnet nuget verify --all release-packages/*.nupkg
+
+      - name: Stable releases must be signed
+        if: vars.SIGN_PACKAGES != 'true' && needs.validate.outputs.prerelease == 'false'
+        shell: bash
+        run: |
+          echo "::error::Stable releases must be signed: set the SIGN_PACKAGES repository variable after setting up Azure Trusted Signing (owner action 6)"
+          exit 1
+
+      - name: Unsigned preview
+        if: vars.SIGN_PACKAGES != 'true' && needs.validate.outputs.prerelease == 'true'
+        shell: bash
+        run: echo "::notice::unsigned preview"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-packages
+          path: release-packages/
+          if-no-files-found: error
+
+  attest:
+    needs: [validate, sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+
+      # One CycloneDX SBOM for the solution without the test projects.
+      - name: Generate the SBOM
+        run: |
+          set -euo pipefail
+          dotnet tool install --global CycloneDX --version 6.3.1
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet-CycloneDX Ambinder.A2A.slnx -t -F Json -o sbom -fn "Ambinder.A2A-$VERSION.sbom.cdx.json" -sn Ambinder.A2A -sv "$VERSION"
+          ls -l sbom
+
+      - name: Attest build provenance of the packages
+        id: attest
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: 'release-packages/*.nupkg'
+
+      - name: Keep the attestation bundle next to the SBOM
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: cp "$BUNDLE_PATH" "sbom/Ambinder.A2A-$VERSION.provenance.intoto.jsonl"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: sbom/
+          if-no-files-found: error
+
+  publish:
+    if: needs.validate.outputs.dry_run != 'true'
+    needs: [validate, attest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: nuget-release # required reviewer: the owner approves here
+    permissions:
+      contents: read
+      id-token: write # NuGet trusted publishing (GitHub OIDC)
+    steps:
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+
+      # Default: trusted publishing. Fallback when the owner could not set up a policy: vars.NUGET_USE_API_KEY = 'true' and the
+      # environment secret NUGET_API_KEY (scoped to Ambinder.*, push only, expiring).
+      - name: NuGet login (trusted publishing)
+        id: login
+        if: vars.NUGET_USE_API_KEY != 'true'
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to nuget.org
+        env:
+          NUGET_API_KEY: ${{ vars.NUGET_USE_API_KEY == 'true' && secrets.NUGET_API_KEY || steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$NUGET_API_KEY" || { echo "::error::No NuGet API key: check NUGET_USER (trusted publishing) or the NUGET_API_KEY secret."; exit 1; }
+          source=https://api.nuget.org/v3/index.json
+          # Packages first, symbols explicitly afterwards (with a retry: nuget.org accepts a symbol package once its package is known).
+          dotnet nuget push "release-packages/*.nupkg" --api-key "$NUGET_API_KEY" --source "$source" --skip-duplicate --no-symbols
+          for attempt in 1 2 3 4; do
+            if dotnet nuget push "release-packages/*.snupkg" --api-key "$NUGET_API_KEY" --source "$source" --skip-duplicate; then exit 0; fi
+            echo "Symbol push failed (attempt $attempt of 4); retrying in 60 seconds"
+            sleep 60
+          done
+          echo "::error::Symbol packages could not be pushed."
+          exit 1
+
+  github-release:
+    if: needs.validate.outputs.dry_run != 'true'
+    needs: [validate, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.validate.outputs.tag }}
+      VERSION: ${{ needs.validate.outputs.version }}
+      PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: release-packages
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: sbom
+          path: sbom
+
+      - name: Cut the release notes from CHANGELOG.md
+        run: |
+          set -euo pipefail
+          awk -v h="## [$VERSION]" 'index($0, h) == 1 { found = 1; next } found && /^## \[/ { exit } found { print }' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "::error::The CHANGELOG.md section for $VERSION is empty."; exit 1; }
+          cat notes.md
+
+      - name: Create the GitHub Release
+        run: |
+          set -euo pipefail
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${flags[@]}" release-packages/* sbom/*
+
+  # Real release: the packages from nuget.org, once they are indexed.
+  smoke:
+    if: needs.validate.outputs.dry_run != 'true'
+    needs: [validate, github-release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write # to report a failure
+    env:
+      TAG: ${{ needs.validate.outputs.tag }}
+      VERSION: ${{ needs.validate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Smoke test against nuget.org
+        run: |
+          set -euo pipefail
+          bash eng/smoke-test.sh "$VERSION" 2>&1 | tee "$RUNNER_TEMP/smoke.log"
+
+      - name: Open an issue
+        if: failure()
+        run: |
+          {
+            echo "The post-release smoke test failed for $TAG (run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+            echo
+            echo "Follow the release runbook in CONTRIBUTING.md: unlist the bad version, fix, and tag the next patch or preview number. Never re-tag."
+            echo
+            echo 'Last lines of the log:'
+            echo '```'
+            tail -n 150 "$RUNNER_TEMP/smoke.log" 2>/dev/null || echo '(no log)'
+            echo '```'
+          } > "$RUNNER_TEMP/issue.md"
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "Release smoke failed for $TAG" --body-file "$RUNNER_TEMP/issue.md"
+
+  # Dry run: the same smoke test against the signed or unsigned packages of this run (local feed plus nuget.org for the dependencies).
+  smoke-local:
+    if: needs.validate.outputs.dry_run == 'true'
+    needs: [validate, sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-packages
+          path: ${{ runner.temp }}/release-packages
+
+      - name: Smoke test against the local packages
+        run: bash eng/smoke-test.sh "$VERSION" "$RUNNER_TEMP/release-packages"
+
+  # Hook for package 13: the versioned docs site for this tag (a real release only).
+  docs:
+    needs: [validate, smoke]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docs.yml

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The integration tests start this Program in memory. -->
+    <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+  </ItemGroup>
+</Project>

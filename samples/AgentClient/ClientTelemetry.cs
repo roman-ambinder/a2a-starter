@@ -1,4 +1,4 @@
-using A2A.Protocol;
+using Ambinder.A2A.Protocol;
 using Microsoft.Extensions.Configuration;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;

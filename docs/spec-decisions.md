@@ -35,7 +35,7 @@ This SDK follows A2A v1.0.1 (proto pinned to tag `v1.0.1`, see [proto/README.md]
 
 ## Checking conformance
 
-`tests/A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files. It keeps the extended card off, because the TCK cannot send credentials and the library requires authentication when the capability is on. With the capability off, the TCK skips those tests.
+`tests/Ambinder.A2A.Tck.Sut` is a small server for the official [A2A TCK](https://github.com/a2aproject/a2a-tck). It serves all three transports and the behaviors in the TCK's `scenarios/` files. It keeps the extended card off, because the TCK cannot send credentials and the library requires authentication when the capability is on. With the capability off, the TCK skips those tests.
 
 The TCK is pinned by commit in `tck/TCK_VERSION`. CI runs it on every PR (job `tck`, `.github/workflows/tck.yml`). To run the same steps locally (build and start the SUT, check out the TCK, run it once per transport, check the reports):
 

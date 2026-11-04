@@ -1,0 +1,5 @@
+# The owner is the only code owner. The public API diff check (not a second reviewer) is the gate (owner decision O2).
+**/PublicAPI.*.txt   @roman-ambinder
+/.github/workflows/  @roman-ambinder
+/eng/                @roman-ambinder
+/proto/              @roman-ambinder

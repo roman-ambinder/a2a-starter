@@ -8,5 +8,14 @@ obj/
 
 # graphify knowledge graph output
 graphify-out/
+
+# Build and package output
+TestResults/
+*.nupkg
+*.snupkg
+artifacts/
+BenchmarkDotNet.Artifacts/
+
+# TCK run output
 __pycache__/
 /tck-reports/

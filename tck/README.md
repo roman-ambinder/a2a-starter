@@ -1,6 +1,6 @@
 # A2A TCK in CI
 
-This folder runs the official [A2A TCK](https://github.com/a2aproject/a2a-tck) against `tests/A2A.Tck.Sut`.
+This folder runs the official [A2A TCK](https://github.com/a2aproject/a2a-tck) against `tests/Ambinder.A2A.Tck.Sut`.
 The SUT serves JSON-RPC, REST and gRPC. The job runs the TCK once per transport and grades each report.
 
 ## Files
@@ -52,7 +52,7 @@ Each scenario in the TCK's `scenarios/*.feature` that the SUT implements has one
 
 To add a behaviour:
 
-1. Add one branch (one row of the table) in `tests/A2A.Tck.Sut/TckAgent.cs`.
+1. Add one branch (one row of the table) in `tests/Ambinder.A2A.Tck.Sut/TckAgent.cs`.
 2. Add one entry to `sut-behaviors.yaml`.
 
 `TckSutBehaviorTests` checks that the two lists match. A message id that starts with `tck-` or `test-` and matches no

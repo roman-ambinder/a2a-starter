@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>A2A v1.0 protocol models, JSON rules, error codes and telemetry names for .NET. No package dependencies; shared by the Ambinder.A2A server and client packages.</Description>
+    <PackageTags>$(PackageTags);protocol;models;json;source-generator</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System.Text.Json" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
+    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
+  </ItemGroup>
+</Project>

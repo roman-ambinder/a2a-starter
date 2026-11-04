@@ -2,8 +2,8 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using A2A.Protocol;
-using A2A.Server.Agents;
+using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Agents;
 
 namespace AgentServer.Agents;
 

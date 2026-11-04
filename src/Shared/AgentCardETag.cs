@@ -2,7 +2,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace A2A.Shared;
+namespace Ambinder.A2A.Shared;
 
 /// <summary>
 /// B13: the strong ETag of an agent card. Linked as one source file into the projects that need it, compiled <c>internal</c> in each.

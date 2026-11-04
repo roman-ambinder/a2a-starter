@@ -1,0 +1,15 @@
+name: INTEROP
+
+# Hook for package 16 (interop). Today this only reports that nothing is implemented yet; package 16 replaces the job
+# (keep `on: workflow_call`, so ci.yml and release.yml can require it).
+on: workflow_call
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: 'echo "Not implemented yet: package 16 (interop)"'

@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <Using Include="System.Text.Json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
-  </ItemGroup>
-</Project>
