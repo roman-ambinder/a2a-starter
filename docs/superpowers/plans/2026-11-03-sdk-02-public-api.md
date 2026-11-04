@@ -6,6 +6,16 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-03-sdk-02-public-api-design.md` (binding), under the work plan `docs/superpowers/specs/2026-11-03-sdk-00-work-plan.md`. Package map: `docs/superpowers/specs/2026-11-03-sdk-01-packaging-release-design.md`, Design section 1. Overview: `docs/architecture/sdk-architecture.md`, sections 2 and 3.
 
+**Status:** Tasks 0–15 executed and merged by PR #91 (`d799431`, 2026-11-04). D1–D5 stay deferred. *(Plan review, 2026-11-04.)* Where the shipped work differs from the text below, or handed work on:
+- **A5:** `PageToken`, `TaskStateRules` and `RequestValidation` were public in place, not in `src/Shared`. They are now internal, and `RequestValidation` and `ServiceParameters` moved to `src/Shared`.
+- **Task 2.3:** `ProtoEnumConverter<T>` stays public (owner decision 2026-11-04).
+- **Task 7:** CA1716 is turned down. The public `call` parameter on `IA2ARequestHandler` is on the API review checklist.
+- **Task 7, EventIds:** `Ambinder.A2A.Server` first shipped two `[LoggerMessage]` classes. That made builds non-reproducible, and #93 merged them into one file (see Task 7.3). `docs/policies/versioning.md` §8 and `LogEventIdTests` now list every block of Task 7.3.
+- **Client seam:** the interim seam stays public until package 10 replaces it: `IA2AClientTransport`, `A2AClientOptions.Transports`, `GrpcClientTransport` and `A2AClientFactory`.
+- **Push JWKS:** `InternalServiceKeys.PushJwks` (`src/Shared`) is an interim seam. The package 08 plan, Task 8, removes it.
+- **Store packages:** the member-level check for database SDK types (known review note 1) is not applied, because no store package exists yet. The package 05 plan, Task 16 Step 0, adds it.
+- **Deprecations:** the OAuth `[Obsolete]` attributes have no `DiagnosticId` (03 plan, Task 16), and `docs/policies/versioning.md` records the exception.
+
 **Milestone scope:** M1 only (internals hidden, API tracking on). The freeze steps for `1.0.0-rc.1` and `1.0.0` are written down at the end under [Deferred tasks](#deferred-tasks-not-executed-in-m1). They are **not** executed with this plan.
 
 **Architecture:**
@@ -1015,4 +1025,4 @@ These are spec 02 steps for later milestones. They are listed so the plan covers
 
 Minor findings from the plan review of 2026-11-03 (reviewed commit `a079936`). They are not blockers. Apply each one when you touch that code. Line numbers are from that commit, so find the text by symbol.
 
-- Spec 02 lets store packages expose database SDK types "only on their own registration and model methods"; plan 02 adds a member-level check for gRPC only, so EF/Cosmos types are allowed anywhere. Plan: docs/superpowers/plans/2026-11-03-sdk-02-public-api.md:231-235, :332. Spec: 02 spec §3 (Guard test, store packages). Fix: extend the member-level assertion to store rows.
+- *(Handed to the package 05 plan, Task 16 Step 0, plan review 2026-11-04.)* Spec 02 lets store packages expose database SDK types "only on their own registration and model methods"; plan 02 adds a member-level check for gRPC only, so EF/Cosmos types are allowed anywhere. Plan: docs/superpowers/plans/2026-11-03-sdk-02-public-api.md:231-235, :332. Spec: 02 spec §3 (Guard test, store packages). Fix: extend the member-level assertion to store rows.

@@ -15,6 +15,24 @@ public sealed class LogEventIdTests
         ["Ambinder.A2A.Client"] = 4000,
         ["Ambinder.A2A.Client.Grpc"] = 5000,
         ["Ambinder.A2A.Client.Entra"] = 6000,
+        // Reserved for packages that do not exist yet (02 plan, Task 7.3), so they need no edit here when they land.
+        ["Ambinder.A2A.AspNetCore.Entra"] = 7000,
+        ["Ambinder.A2A.Azure.KeyVault"] = 8000,
+        ["Ambinder.A2A.Stores.EntityFrameworkCore"] = 9000,
+        ["Ambinder.A2A.Stores.EntityFrameworkCore.PostgreSql"] = 10000,
+        ["Ambinder.A2A.Stores.EntityFrameworkCore.Sqlite"] = 11000,
+        ["Ambinder.A2A.Stores.EntityFrameworkCore.SqlServer"] = 12000,
+        ["Ambinder.A2A.Stores.Cosmos"] = 13000,
+        ["Ambinder.A2A.Push.Receiver"] = 14000,
+        ["Ambinder.A2A.Cluster"] = 15000,
+        ["Ambinder.A2A.Cluster.Entra"] = 16000,
+        ["Ambinder.A2A.Extensions.AI"] = 17000,
+        ["Ambinder.A2A.Extensions.AI.AgentFramework"] = 18000,
+        ["Ambinder.A2A.Compat.V0_3"] = 19000,
+        ["Ambinder.A2A.Compat.V0_3.AspNetCore"] = 20000,
+        ["Ambinder.A2A.Testing"] = 21000,
+        ["Ambinder.A2A.Testing.AI"] = 22000,
+        ["Ambinder.A2A.Testing.Conformance"] = 23000,
     };
 
     public static TheoryData<string> AssemblyNames()
