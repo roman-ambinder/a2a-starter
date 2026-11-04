@@ -18,7 +18,7 @@ public class CoverageTests
     public void Every_mapped_proto_message_has_a_roundtrip_fixture()
     {
         var covered = Fixtures.Where(f => f.Meta.Expect == FixtureExpect.Roundtrip).Select(f => f.ProtoType).ToHashSet();
-        var missing = WireTypes.ByProtoName.Keys.Where(m => !covered.Contains(m) && !PendingCoverage.Contains(m)).ToList();
+        var missing = WireTypes.ByProtoName.Keys.Where(m => !covered.Contains(m)).ToList();
         Assert.True(missing.Count == 0, "No fixture for: " + string.Join(", ", missing));
     }
 
@@ -27,33 +27,10 @@ public class CoverageTests
     {
         foreach (var (name, values) in Proto.Enums)
         {
-            if (PendingCoverage.Contains(name)) continue;
             var fixture = Fixtures.SingleOrDefault(f => f.Id == $"enums/{name}");
             Assert.True(fixture is not null, $"missing enums/{name}.json");
             var json = fixture!.ReadJson();
             foreach (var v in values) Assert.Contains($"\"{v}\"", json);
         }
     }
-
-    /// <summary>
-    /// Shrinks to empty during Tasks 4-6; Task 6 deletes it. Visible on purpose: not a skip list.
-    /// </summary>
-    static readonly HashSet<string> PendingCoverage =
-    [
-        "AuthenticationInfo",
-        "TaskPushNotificationConfig",
-        "SendMessageRequest",
-        "GetTaskRequest",
-        "ListTasksRequest",
-        "ListTasksResponse",
-        "CancelTaskRequest",
-        "GetTaskPushNotificationConfigRequest",
-        "DeleteTaskPushNotificationConfigRequest",
-        "SubscribeToTaskRequest",
-        "ListTaskPushNotificationConfigsRequest",
-        "GetExtendedAgentCardRequest",
-        "ListTaskPushNotificationConfigsResponse",
-        "TaskState",
-        "Role"
-    ];
 }

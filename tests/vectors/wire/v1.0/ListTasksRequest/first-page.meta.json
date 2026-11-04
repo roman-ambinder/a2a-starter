@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "3.1.4", "expect": "roundtrip", "note": "pageSize is proto3 optional; no pageToken on the first page."}
