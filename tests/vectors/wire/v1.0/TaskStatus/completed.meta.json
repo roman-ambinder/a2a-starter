@@ -1,0 +1,1 @@
+{"source":"spec-example","specSection":"6.6","expect":"roundtrip","note":"The status object inside the statusUpdate push-notification example in section 6.6; TaskStatus itself is defined in 4.1.2."}
