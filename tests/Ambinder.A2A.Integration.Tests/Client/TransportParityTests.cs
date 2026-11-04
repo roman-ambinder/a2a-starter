@@ -103,11 +103,11 @@ public sealed class TransportParityTests(MinimalServer server)
 
         // 7-10 push config CRUD
         var created = await client.CreateTaskPushNotificationConfigAsync(
-            new TaskPushNotificationConfig { TaskId = task.Id, Url = "http://127.0.0.1:1/hook" }, Ct);
+            new TaskPushNotificationConfig { TaskId = task.Id, Url = "http://127.0.0.1:5300/hook" }, Ct);
         Assert.False(string.IsNullOrEmpty(created.Id));
         var fetched = await client.GetTaskPushNotificationConfigAsync(
             new GetTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id! }, Ct);
-        Assert.Equal("http://127.0.0.1:1/hook", fetched.Url);
+        Assert.Equal("http://127.0.0.1:5300/hook", fetched.Url);
         var configs = await client.ListTaskPushNotificationConfigsAsync(new ListTaskPushNotificationConfigsRequest { TaskId = task.Id }, Ct);
         Assert.Single(configs.Configs);
         await client.DeleteTaskPushNotificationConfigAsync(new DeleteTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id! }, Ct);
@@ -139,7 +139,7 @@ public sealed class TransportParityTests(MinimalServer server)
         var slow2 = (await client.SendMessageAsync(Msg("slow:300", immediate: true), Ct)).Task!;
         await foreach (var _ in client.SubscribeToTaskAsync(new SubscribeToTaskRequest { Id = slow2.Id, Tenant = tenant }, Ct)) { }
         var created = await client.CreateTaskPushNotificationConfigAsync(
-            new TaskPushNotificationConfig { TaskId = task.Id, Url = "http://127.0.0.1:1/hook", Tenant = tenant }, Ct);
+            new TaskPushNotificationConfig { TaskId = task.Id, Url = "http://127.0.0.1:5300/hook", Tenant = tenant }, Ct);
         await client.GetTaskPushNotificationConfigAsync(new GetTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id!, Tenant = tenant }, Ct);
         await client.ListTaskPushNotificationConfigsAsync(new ListTaskPushNotificationConfigsRequest { TaskId = task.Id, Tenant = tenant }, Ct);
         await client.DeleteTaskPushNotificationConfigAsync(new DeleteTaskPushNotificationConfigRequest { TaskId = task.Id, Id = created.Id!, Tenant = tenant }, Ct);

@@ -321,15 +321,16 @@ public class PushTests
 
         await ThrowsA2A(A2AErrorCode.InvalidParams, () => h.Host.Manager.CreateTaskPushNotificationConfigAsync(TestHost.Call(), Config(url) with { TaskId = taskId }, CancellationToken.None));
         await ThrowsA2A(A2AErrorCode.InvalidParams, () => h.SendWithPushAsync(Config(url)));
-        Assert.Throws<A2AException>(() => WebhookUrlValidator.Validate(new Uri(url), allowPrivateNetworks: false));
+        await Assert.ThrowsAsync<A2AException>(async () => await WebhookUrlValidator.ValidateAsync(new Uri(url), new PushAddressPolicy(new PushOptions()), CancellationToken.None));
     }
 
     [Fact]
     public async Task Public_https_url_is_accepted_and_non_http_scheme_is_always_rejected()
     {
-        WebhookUrlValidator.Validate(new Uri("https://93.184.216.34/hook"), allowPrivateNetworks: false);
-        WebhookUrlValidator.Validate(new Uri("http://127.0.0.1:5300/hook"), allowPrivateNetworks: true);
-        var ex = Assert.Throws<A2AException>(() => WebhookUrlValidator.Validate(new Uri("ftp://example.com/x"), allowPrivateNetworks: true));
+        var open = new PushAddressPolicy(new PushOptions { AllowPrivateNetworks = true });
+        await WebhookUrlValidator.ValidateAsync(new Uri("https://93.184.216.34/hook"), new PushAddressPolicy(new PushOptions()), CancellationToken.None);
+        await WebhookUrlValidator.ValidateAsync(new Uri("http://127.0.0.1:5300/hook"), open, CancellationToken.None);
+        var ex = await Assert.ThrowsAsync<A2AException>(async () => await WebhookUrlValidator.ValidateAsync(new Uri("ftp://example.com/x"), open, CancellationToken.None));
         Assert.Equal(A2AErrorCode.InvalidParams, ex.Code);
 
         await using var h = new Harness();
@@ -367,13 +368,13 @@ public class PushTests
     {
         // Stands in for DNS rebinding: whatever the name resolved to at creation, the connect-time check refuses private results.
         await Assert.ThrowsAsync<HttpRequestException>(async () =>
-            await WebhookUrlValidator.ResolveCheckedAsync(host, allowPrivateNetworks: false, TestContext.Current.CancellationToken));
-        var allowed = await WebhookUrlValidator.ResolveCheckedAsync(host, allowPrivateNetworks: true, TestContext.Current.CancellationToken);
+            await WebhookUrlValidator.ResolveCheckedAsync(host, new PushAddressPolicy(new PushOptions()), TestContext.Current.CancellationToken));
+        var allowed = await WebhookUrlValidator.ResolveCheckedAsync(host, new PushAddressPolicy(new PushOptions { AllowPrivateNetworks = true }), TestContext.Current.CancellationToken);
         Assert.NotEmpty(allowed);
 
         var endpoint = new DnsEndPoint(host, 9);
         await Assert.ThrowsAsync<HttpRequestException>(async () =>
-            await WebhookUrlValidator.ConnectCheckedAsync(false, endpoint, TestContext.Current.CancellationToken));
+            await WebhookUrlValidator.ConnectCheckedAsync(new PushAddressPolicy(new PushOptions()), endpoint, TestContext.Current.CancellationToken));
     }
 
     private static async Task Eventually(Func<Task<bool>> condition)

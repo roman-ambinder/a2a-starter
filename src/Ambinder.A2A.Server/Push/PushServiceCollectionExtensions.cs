@@ -23,12 +23,13 @@ internal static class PushServiceCollectionExtensions
             {
                 // Checked again at connect time, so DNS rebinding after config creation cannot reach private addresses.
                 var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PushOptions>>().Value;
+                var policy = new PushAddressPolicy(options);
                 return new SocketsHttpHandler
                 {
                     AllowAutoRedirect = false,
                     // A proxy would make the connect-time address check see the proxy, not the webhook host.
                     UseProxy = false,
-                    ConnectCallback = (context, ct) => WebhookUrlValidator.ConnectCheckedAsync(options.AllowPrivateNetworks, context.DnsEndPoint, ct),
+                    ConnectCallback = (context, ct) => WebhookUrlValidator.ConnectCheckedAsync(policy, context.DnsEndPoint, ct),
                 };
             })
             .ConfigureHttpClient(c => c.Timeout = System.Threading.Timeout.InfiniteTimeSpan); // the sender applies PushOptions.Timeout per attempt

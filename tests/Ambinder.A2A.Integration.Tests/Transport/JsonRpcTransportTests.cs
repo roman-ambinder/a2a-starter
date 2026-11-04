@@ -187,7 +187,7 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         var taskId = sent["result"]!["task"]!["id"]!.GetValue<string>();
 
         var created = await RpcAsync(client, Echo, Request(2, "CreateTaskPushNotificationConfig",
-            new JsonObject { ["taskId"] = taskId, ["url"] = "http://127.0.0.1:9/hook" }));
+            new JsonObject { ["taskId"] = taskId, ["url"] = "http://127.0.0.1:5300/hook" }));
         var configId = created["result"]!["id"]!.GetValue<string>();
 
         var list = await RpcAsync(client, Echo, Request(3, "ListTaskPushNotificationConfigs", new JsonObject { ["taskId"] = taskId }));

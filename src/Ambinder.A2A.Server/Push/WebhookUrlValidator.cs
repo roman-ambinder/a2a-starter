@@ -5,23 +5,21 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Push;
 
 /// <summary>
-/// Checks webhook URLs (SSRF guard). Always requires http or https. Unless private networks are allowed it also requires
-/// HTTPS and rejects hosts that resolve to loopback, link-local, private (RFC 1918), unique-local IPv6 and similar addresses.
+/// Checks webhook URLs (SSRF guard). Always requires http or https, no credentials, no fragment, a limited length and a
+/// port of 1024 or higher (or 80 or 443). Unless private networks are allowed it also requires HTTPS and rejects hosts
+/// that resolve to loopback, link-local, private (RFC 1918), unique-local IPv6 and similar addresses, except inside
+/// <see cref="PushOptions.AllowedNetworks"/>. <see cref="PushOptions.AllowedHosts"/> limits the host names.
 /// Throws <see cref="A2AException"/> with <see cref="A2AErrorCode.InvalidParams"/>.
 /// </summary>
 internal static class WebhookUrlValidator
 {
-    public static void Validate(Uri url, bool allowPrivateNetworks)
+    public static async ValueTask ValidateAsync(Uri url, PushAddressPolicy policy, CancellationToken ct)
     {
-        CheckScheme(url, allowPrivateNetworks);
-        if (allowPrivateNetworks) return;
-        Check(url, Resolve(url));
-    }
-
-    public static async ValueTask ValidateAsync(Uri url, bool allowPrivateNetworks, CancellationToken ct)
-    {
-        CheckScheme(url, allowPrivateNetworks);
-        if (allowPrivateNetworks) return;
+        ArgumentNullException.ThrowIfNull(url);
+        ArgumentNullException.ThrowIfNull(policy);
+        CheckShape(url, policy);
+        policy.CheckHost(url);
+        if (policy.AllowPrivateNetworks) return;
         IPAddress[] addresses;
         try
         {
@@ -31,31 +29,30 @@ internal static class WebhookUrlValidator
         {
             throw Invalid($"The webhook host '{url.Host}' could not be resolved.");
         }
-        Check(url, addresses);
+        Check(url, addresses, policy);
     }
 
-    private static void CheckScheme(Uri url, bool allowPrivateNetworks)
+    private static void CheckShape(Uri url, PushAddressPolicy policy)
     {
         if (!url.IsAbsoluteUri || url.Scheme is not ("http" or "https"))
             throw Invalid("The webhook URL must be an absolute http or https URL.");
-        if (!allowPrivateNetworks && url.Scheme != "https")
+        if (url.OriginalString.Length > policy.MaxUrlLength)
+            throw Invalid("The webhook URL is longer than A2A:Push:MaxUrlLength. Use a shorter URL.");
+        if (!policy.AllowPrivateNetworks && url.Scheme != "https")
             throw Invalid("The webhook URL must use HTTPS.");
         if (!string.IsNullOrEmpty(url.UserInfo))
             throw Invalid("The webhook URL must not contain credentials.");
+        if (url.OriginalString.Contains('#', StringComparison.Ordinal))
+            throw Invalid("The webhook URL must not contain a fragment.");
+        if (url.Port < 1024 && url.Port is not (80 or 443))
+            throw Invalid("The webhook URL uses a port below 1024 other than 80 or 443. Use port 443, or a port of 1024 or higher.");
     }
 
-    private static IPAddress[] Resolve(Uri url)
-    {
-        if (IPAddress.TryParse(url.DnsSafeHost, out var literal)) return [literal];
-        try { return Dns.GetHostAddresses(url.DnsSafeHost); }
-        catch (SocketException) { throw Invalid($"The webhook host '{url.Host}' could not be resolved."); }
-    }
-
-    private static void Check(Uri url, IPAddress[] addresses)
+    private static void Check(Uri url, IPAddress[] addresses, PushAddressPolicy policy)
     {
         if (addresses.Length == 0)
             throw Invalid($"The webhook host '{url.Host}' could not be resolved.");
-        if (addresses.Any(IsPrivate))
+        if (!addresses.All(policy.IsAllowed))
             throw Invalid("The webhook URL points to a private, loopback or link-local address.");
     }
 
@@ -98,11 +95,11 @@ internal static class WebhookUrlValidator
     }
 
     /// <summary>Resolves the host and rejects private addresses (unless allowed). Returns the checked addresses to connect to.</summary>
-    internal static async ValueTask<IPAddress[]> ResolveCheckedAsync(string host, bool allowPrivateNetworks, CancellationToken ct)
+    internal static async ValueTask<IPAddress[]> ResolveCheckedAsync(string host, PushAddressPolicy policy, CancellationToken ct)
     {
         var addresses = IPAddress.TryParse(host, out var literal) ? [literal] : await Dns.GetHostAddressesAsync(host, ct).ConfigureAwait(false);
         if (addresses.Length == 0) throw new HttpRequestException($"The webhook host '{host}' could not be resolved.");
-        if (!allowPrivateNetworks && addresses.Any(IsPrivate))
+        if (!addresses.All(policy.IsAllowed))
             throw new HttpRequestException($"The webhook host '{host}' resolves to a private, loopback or link-local address; connection refused.");
         return addresses;
     }
@@ -111,9 +108,9 @@ internal static class WebhookUrlValidator
     /// SocketsHttpHandler.ConnectCallback body: resolves again at connect time (DNS may have changed since the
     /// config was created), checks every address and connects to a checked IP.
     /// </summary>
-    internal static async ValueTask<Stream> ConnectCheckedAsync(bool allowPrivateNetworks, DnsEndPoint endpoint, CancellationToken ct)
+    internal static async ValueTask<Stream> ConnectCheckedAsync(PushAddressPolicy policy, DnsEndPoint endpoint, CancellationToken ct)
     {
-        var addresses = await ResolveCheckedAsync(endpoint.Host, allowPrivateNetworks, ct).ConfigureAwait(false);
+        var addresses = await ResolveCheckedAsync(endpoint.Host, policy, ct).ConfigureAwait(false);
         Exception? last = null;
         foreach (var address in addresses)
         {

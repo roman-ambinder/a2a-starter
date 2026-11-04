@@ -122,7 +122,7 @@ public sealed class GrpcTransportTests : IDisposable
         var sent = await client.SendMessageAsync(Send("push"), Headers("pat"), cancellationToken: Ct);
 
         var created = await client.CreateTaskPushNotificationConfigAsync(
-            new Proto.TaskPushNotificationConfig { TaskId = sent.Task.Id, Url = "http://127.0.0.1:9/hook", Token = "t" }, Headers("pat"), cancellationToken: Ct);
+            new Proto.TaskPushNotificationConfig { TaskId = sent.Task.Id, Url = "http://127.0.0.1:5300/hook", Token = "t" }, Headers("pat"), cancellationToken: Ct);
         Assert.NotEmpty(created.Id);
         var got = await client.GetTaskPushNotificationConfigAsync(
             new Proto.GetTaskPushNotificationConfigRequest { TaskId = sent.Task.Id, Id = created.Id }, Headers("pat"), cancellationToken: Ct);
@@ -131,7 +131,7 @@ public sealed class GrpcTransportTests : IDisposable
         var deleted = await client.DeleteTaskPushNotificationConfigAsync(
             new Proto.DeleteTaskPushNotificationConfigRequest { TaskId = sent.Task.Id, Id = created.Id }, Headers("pat"), cancellationToken: Ct);
 
-        Assert.Equal("http://127.0.0.1:9/hook", got.Url);
+        Assert.Equal("http://127.0.0.1:5300/hook", got.Url);
         Assert.Single(list.Configs);
         Assert.IsType<Empty>(deleted);
     }

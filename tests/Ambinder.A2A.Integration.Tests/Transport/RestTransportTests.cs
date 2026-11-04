@@ -39,7 +39,7 @@ public sealed class RestTransportTests(MinimalServer server)
         var body = bodyKind switch
         {
             "send" => SendBody("reach").ToJsonString(),
-            "push" => new JsonObject { ["url"] = "http://127.0.0.1:9/other" }.ToJsonString(),
+            "push" => new JsonObject { ["url"] = "http://127.0.0.1:5300/other" }.ToJsonString(),
             _ => null,
         };
 
@@ -78,7 +78,7 @@ public sealed class RestTransportTests(MinimalServer server)
         var body = bodyKind switch
         {
             "send" => SendBody("reach").ToJsonString(),
-            "push" => new JsonObject { ["url"] = "http://127.0.0.1:9/other" }.ToJsonString(),
+            "push" => new JsonObject { ["url"] = "http://127.0.0.1:5300/other" }.ToJsonString(),
             _ => null,
         };
 
@@ -244,7 +244,7 @@ public sealed class RestTransportTests(MinimalServer server)
         var task = await SendAsync(client, "push");
 
         using var created = await client.SendAsync(Req(HttpMethod.Post, Echo, $"tasks/{task}/pushNotificationConfigs",
-            new JsonObject { ["url"] = "http://127.0.0.1:9/hook" }.ToJsonString()), Ct);
+            new JsonObject { ["url"] = "http://127.0.0.1:5300/hook" }.ToJsonString()), Ct);
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         var cfg = JsonNode.Parse(await created.Content.ReadAsStringAsync(Ct))!;
         Assert.Equal(task, cfg["taskId"]!.GetValue<string>());
@@ -256,7 +256,7 @@ public sealed class RestTransportTests(MinimalServer server)
         Assert.Equal(id, one["id"]!.GetValue<string>());
 
         using var mismatch = await client.SendAsync(Req(HttpMethod.Post, Echo, $"tasks/{task}/pushNotificationConfigs",
-            new JsonObject { ["taskId"] = "other", ["url"] = "http://127.0.0.1:9/hook" }.ToJsonString()), Ct);
+            new JsonObject { ["taskId"] = "other", ["url"] = "http://127.0.0.1:5300/hook" }.ToJsonString()), Ct);
         Assert.Equal(HttpStatusCode.BadRequest, mismatch.StatusCode);
 
         using var deleted = await client.SendAsync(Req(HttpMethod.Delete, Echo, $"tasks/{task}/pushNotificationConfigs/{id}", null), Ct);
@@ -462,7 +462,7 @@ public sealed class RestTransportTests(MinimalServer server)
     {
         var task = await SendAsync(client, "setup");
         using var created = await client.SendAsync(Req(HttpMethod.Post, Echo, $"tasks/{task}/pushNotificationConfigs",
-            new JsonObject { ["url"] = "http://127.0.0.1:9/hook" }.ToJsonString()), Ct);
+            new JsonObject { ["url"] = "http://127.0.0.1:5300/hook" }.ToJsonString()), Ct);
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         return (task, JsonNode.Parse(await created.Content.ReadAsStringAsync(Ct))!["id"]!.GetValue<string>());
     }
