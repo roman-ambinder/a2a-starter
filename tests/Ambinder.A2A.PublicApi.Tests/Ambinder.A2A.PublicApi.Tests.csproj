@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One line per shipped project. ShippedAssembliesTests.All_shipped_projects_are_referenced fails when one is missing.
+         No InternalsVisibleTo points at this assembly, so it sees exactly what a consumer sees. -->
+    <ProjectReference Include="../../src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore.Grpc/Ambinder.A2A.AspNetCore.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
+  </ItemGroup>
+</Project>
