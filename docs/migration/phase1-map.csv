@@ -6,7 +6,7 @@ A2A.Server.Tasks.TaskEventBroker,,Ambinder.A2A.Server,internal; replaced by ITas
 A2A.Server.Tasks.TaskWriter.Releaser,,Ambinder.A2A.Server,internal
 A2A.Server.Push.PushNotificationSender,,Ambinder.A2A.Server,internal; public seam designed in package 08
 A2A.Server.Push.PushSigningKey,,Ambinder.A2A.Server,internal; replaced by IPushSigningKeySource (package 08)
-A2A.Server.Telemetry.TracingRequestHandler,,Ambinder.A2A.Server,internal; tracing is on with AddA2AServer
+A2A.Server.Telemetry.TracingRequestHandler,,Ambinder.A2A.Server,internal; replaced by built-in tracing middleware (slot 100); tracing is on with AddA2AServer
 A2A.Server.Tasks.PageToken,,Ambinder.A2A.Server,internal
 A2A.Server.Tasks.TaskStateRules,,Ambinder.A2A.Server,internal
 A2A.Server.Push.WebhookUrlValidator,,Ambinder.A2A.Server,internal
@@ -33,3 +33,4 @@ Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.MapA2AGrpc,Microsoft.AspNetCore.B
 Ambinder.A2A.Server.Agents.IAgentHandler,Ambinder.A2A.Server.IAgentHandler,Ambinder.A2A.Server,moved
 Ambinder.A2A.Server.Agents.IAgentEventSink,Ambinder.A2A.Server.IAgentEventSink,Ambinder.A2A.Server,moved
 Ambinder.A2A.Server.Agents.AgentRequestContext,Ambinder.A2A.Server.AgentRequestContext,Ambinder.A2A.Server,moved
+A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string; Func; Func; string),Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(... ; Action<AgentOptions>? configure = null),Ambinder.A2A.Server,binary break; new optional last parameter (package 09 pipeline); recompile

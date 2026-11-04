@@ -1,7 +1,10 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Security.Claims;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Telemetry;
 using Ambinder.A2A.Server.Tasks;
 using Ambinder.A2A.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,6 +132,45 @@ public sealed class PipelineTests
             => throw new A2AException(A2AErrorCode.InvalidParams, "too early");
     }
 
+    // A scoped service that records its disposal: shows that the request scope ends when a stream fails.
+    private sealed class ScopeProbe(Recorder recorder) : IDisposable
+    {
+        public void Dispose() => recorder.Add("scope-disposed");
+    }
+
+    private sealed class ThrowAfterFirstEvent(ScopeProbe probe) : IA2AMiddleware
+    {
+        public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
+        {
+            _ = probe; // resolved from the request scope
+            return new(A2AOperationResult.FromEvents(Throwing(next(context))));
+        }
+
+        private static async IAsyncEnumerable<StreamResponse> Throwing(ValueTask<A2AOperationResult> result)
+        {
+            var events = (await result).Events!;
+            var first = true;
+            await foreach (var e in events)
+            {
+                yield return e;
+                if (first)
+                {
+                    first = false;
+                    throw new A2AException(A2AErrorCode.InvalidParams, "late failure");
+                }
+            }
+        }
+    }
+
+    private sealed class RecordAuthorization(Recorder recorder) : IA2AMiddleware
+    {
+        public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
+        {
+            recorder.Add("auth");
+            return next(context);
+        }
+    }
+
     private sealed class ReplaceRequest : IA2AMiddleware
     {
         public ValueTask<A2AOperationResult> InvokeAsync(A2AOperationContext context, A2AOperationDelegate next)
@@ -153,6 +195,7 @@ public sealed class PipelineTests
         => A2ATestServer.StartAsync(agents, services =>
         {
             services.AddSingleton<Recorder>();
+            services.AddScoped<ScopeProbe>();
             services.Configure<A2AServerOptions>(o => o.Push.AllowPrivateNetworks = true);
             if (store is not null) services.AddSingleton<ITaskStore>(store);
         });
@@ -264,6 +307,57 @@ public sealed class PipelineTests
         var ex = await Assert.ThrowsAsync<A2AException>(async () => await enumerator.MoveNextAsync());
 
         Assert.Equal("too early", ex.Message);
+    }
+
+    [Fact]
+    public async Task ThrowAfterFirstEventSurfacesOnLaterMoveNextAndEndsTheScope()
+    {
+        await using var server = await StartAsync(a => a
+            .UseMiddleware<ThrowAfterFirstEvent>()
+            .AddAgent<WorkingThenCompletedAgent>("a", _ => Card("a")));
+        var recorder = server.Services.GetRequiredService<Recorder>();
+
+        var stream = server.Handler.SendStreamingMessageAsync(Call("a"), Send("hi"), Ct);
+        await using var enumerator = stream.GetAsyncEnumerator(Ct);
+        Assert.True(await enumerator.MoveNextAsync()); // the first event is delivered
+        Assert.NotNull(enumerator.Current);
+        Assert.DoesNotContain("scope-disposed", recorder.Names);
+
+        var ex = await Assert.ThrowsAsync<A2AException>(async () => await enumerator.MoveNextAsync());
+
+        Assert.Equal("late failure", ex.Message);
+        Assert.Contains("scope-disposed", recorder.Names);
+    }
+
+    [Fact]
+    public async Task ForwardedCallRunsOnlyTracingAndTheOperation()
+    {
+        await using var server = await StartAsync(a => a
+            .UseMiddleware<G1>()
+            .UseAuthorizationMiddleware<RecordAuthorization>()
+            .AddAgent<WorkingThenCompletedAgent>("fwd", _ => Card("fwd"), null, null, o => o.UseMiddleware<A1>()));
+        var recorder = server.Services.GetRequiredService<Recorder>();
+        var spans = new ConcurrentBag<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == A2ATelemetryNames.ServerSource,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity =>
+            {
+                if (Equals(activity.GetTagItem(A2ATelemetryNames.Agent), "fwd")) spans.Add(activity);
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var forwarded = Call("fwd") with { IsForwarded = true };
+        var response = await server.Handler.SendMessageAsync(forwarded, Send("hi"), Ct);
+
+        Assert.NotNull(response.Task); // the operation ran
+        Assert.Empty(recorder.Names); // no global, authorization or per-agent middleware
+        Assert.Contains(spans, s => s.OperationName == "a2a.server SendMessage"); // tracing (slot 100) ran
+
+        await server.Handler.SendMessageAsync(Call("fwd"), Send("again"), Ct);
+        Assert.Equal(["auth", "G1", "A1"], recorder.Names); // the same agent, not forwarded: the full chain
     }
 
     [Fact]
