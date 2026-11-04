@@ -1,0 +1,1 @@
+{"tasks":[{"id":"task-3","contextId":"c295ea44-7543-4f78-b524-7a38915ad6e4","status":{"state":"TASK_STATE_WORKING","timestamp":"2024-03-15T10:05:00Z"}},{"id":"task-4","contextId":"c295ea44-7543-4f78-b524-7a38915ad6e4","status":{"state":"TASK_STATE_FAILED","timestamp":"2024-03-15T10:00:00Z"}}],"totalSize":5,"pageSize":2,"nextPageToken":"base64-encoded-last-cursor-token"}

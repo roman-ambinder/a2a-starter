@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "3.2.1", "expect": "roundtrip", "note": "metadata is a google.protobuf.Struct (3.2.5)."}

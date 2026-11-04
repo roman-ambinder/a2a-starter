@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.5", "expect": "roundtrip", "note": "First response of section 6.5. Section 3.1.4: nextPageToken MUST always be present and be \"\" on the final page (ProtoJSON alone would omit it)."}

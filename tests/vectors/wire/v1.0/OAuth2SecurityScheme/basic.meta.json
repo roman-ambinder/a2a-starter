@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.5.4", "expect": "roundtrip", "note": "The task text lists this folder as 'OAuth/'; the proto message is OAuth2SecurityScheme."}

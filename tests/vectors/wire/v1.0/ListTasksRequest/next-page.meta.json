@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "3.1.4", "expect": "roundtrip", "note": "Query values of the section 6.5 pagination example, as a request object."}

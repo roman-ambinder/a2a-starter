@@ -1,15 +1,69 @@
 name: INTEROP
 
-# Hook for package 16 (interop). Today this only reports that nothing is implemented yet; package 16 replaces the job
-# (keep `on: workflow_call`, so ci.yml and release.yml can require it).
-on: workflow_call
+# Interoperability with other A2A SDKs (package 16). ci.yml calls this file from its `interop` job (keep that job id and this
+# file name); release.yml reaches it through ci.yml, so there is no second entry point. Triggers are workflow_call and
+# workflow_dispatch only: ci.yml already runs on pull requests, master, the nightly schedule and tags, and extra triggers here
+# would run every job twice. Inside a called workflow github.event_name and github.ref are the caller's.
+# No top-level concurrency: ci.yml's group covers the run it calls (same shape as tck.yml).
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: 'Release run (v* tag). Later tasks use it to force interop-full and make itk-pr and acts required'
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Release run, see workflow_call
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
 jobs:
-  interop:
+  # Runs on every pull request. A failure turns the job red (nothing is allowed to fail silently). Whether it blocks a merge is set in
+  # branch protection.
+  interop-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
-      - run: 'echo "Not implemented yet: package 16 (interop)"'
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # MinVer needs the tags
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # TODO(task 25 step 3, slice 2): the peer image cache step goes HERE, once interop/peers/* and interop/image-tag.sh exist
+      # (tasks 15-18). For each peer: tag=$(bash interop/image-tag.sh $peer); actions/cache (SHA-pinned) on
+      # ~/.cache/a2a-interop-images/$peer keyed by the tag; on a hit `docker load -i`; on a miss `docker build -t $tag
+      # interop/peers/$peer && docker save $tag -o ...`; export A2A_INTEROP_IMAGE_<PEER>=$tag to $GITHUB_ENV. No registry push.
+      # Not created yet on purpose: nothing to build or cache today.
+
+      # TODO(task 11/19): once tests carry [Trait("Tier", "Smoke")], replace the filter below with
+      #   --filter-trait "Tier=Smoke"
+      # Until then the run covers every test in the project that exists (self peer, agent, matrix; no Docker, no peers).
+      # Do not add an ignore-exit-code option: MTP exits non-zero when a filter matches zero tests, and that must stay visible.
+      - name: Interop smoke tests
+        run: |
+          set -euo pipefail
+          mkdir -p TestResults
+          dotnet test --project tests/Ambinder.A2A.Interop.Tests --configuration Release --filter-not-trait "Category=Interop" 2>&1 | tee TestResults/interop-smoke.log
+
+      - name: Upload interop results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: interop-smoke-results
+          path: |
+            TestResults/
+            **/TestResults/
+            artifacts/interop/
+          if-no-files-found: ignore

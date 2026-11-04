@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.1.6", "expect": "roundtrip", "note": "JCS writes 4326.0 as 4326 and 1e-6 as 0.000001, so input and output are JCS-equal when the numeric value is kept. 9007199254740991 is the largest integer a double holds exactly."}

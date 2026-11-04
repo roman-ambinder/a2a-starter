@@ -1,0 +1,1 @@
+{"tenant":"acme","message":{"messageId":"msg-uuid","role":"ROLE_USER","parts":[{"text":"What is the weather today?"}]}}

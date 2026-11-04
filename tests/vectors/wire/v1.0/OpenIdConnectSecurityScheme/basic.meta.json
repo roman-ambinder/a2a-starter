@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.9", "expect": "roundtrip", "note": "The inner object of the google scheme in the section 6.9 response; OpenIdConnectSecurityScheme is defined in 4.5.5."}

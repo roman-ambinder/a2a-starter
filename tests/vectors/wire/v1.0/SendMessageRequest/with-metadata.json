@@ -1,0 +1,1 @@
+{"message":{"messageId":"msg-uuid","role":"ROLE_USER","parts":[{"text":"What is the weather today?"}]},"metadata":{"traceId":"abc-123","attempt":2,"debug":true,"labels":["a","b"],"nested":{"k":"v"}}}

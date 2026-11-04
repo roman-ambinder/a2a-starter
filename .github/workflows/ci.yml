@@ -55,7 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p TestResults
-          dotnet test --solution Ambinder.A2A.slnx --no-build --configuration Release 2>&1 | tee TestResults/test-output.log
+          # Tests that need Docker (peer containers) carry [Trait("Category", "Interop")] and run in interop.yml, not here.
+          dotnet test --solution Ambinder.A2A.slnx --no-build --configuration Release --filter-not-trait "Category=Interop" 2>&1 | tee TestResults/test-output.log
 
       - name: Report checker tests
         run: python3 -I tck/test_check_report.py -v

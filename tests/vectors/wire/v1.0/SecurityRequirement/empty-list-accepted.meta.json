@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.4.1", "expect": "read-only", "note": "Parsers must accept an explicit empty list; the canonical ProtoJSON form omits it (see SecurityRequirement/basic)."}

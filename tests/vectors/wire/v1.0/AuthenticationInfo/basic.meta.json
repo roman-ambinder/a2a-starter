@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.6", "expect": "roundtrip", "note": "The authentication object of the section 6.6 request; AuthenticationInfo is defined in 4.3.2."}

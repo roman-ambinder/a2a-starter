@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.6.1", "expect": "roundtrip", "note": "Millisecond precision; the 5.6.1 example uses .000Z, which ProtoJSON writes without a fraction, so a non-zero fraction is used here."}

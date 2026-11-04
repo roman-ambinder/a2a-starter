@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.1.5", "expect": "roundtrip", "type": "Role", "note": "Every value name of the proto enum, UNSPECIFIED included."}

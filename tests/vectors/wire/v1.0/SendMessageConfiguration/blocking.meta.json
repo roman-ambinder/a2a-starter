@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "3.2.2", "expect": "roundtrip", "note": "Blocking is the default (returnImmediately false); ProtoJSON omits default values, so the field is absent."}

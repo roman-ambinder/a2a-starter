@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.1.6", "expect": "roundtrip", "note": "Non-ASCII, a surrogate pair, quotes, backslash, newline, tab and a control character; compared after JCS, so escape spelling does not matter."}

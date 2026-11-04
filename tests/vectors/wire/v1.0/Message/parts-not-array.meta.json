@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.7", "expect": "must-reject", "note": "parts is a repeated field marked REQUIRED in proto/a2a.proto, so ProtoJSON (5.5) carries it as a JSON array, not an object. Type error, independent of the non-empty rule in 5.7."}

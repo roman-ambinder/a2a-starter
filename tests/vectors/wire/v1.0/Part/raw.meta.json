@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.1.6", "expect": "roundtrip", "note": "raw is base64 (here the 8-byte PNG signature). The 6.7 request example is not valid JSON, so it is not used."}

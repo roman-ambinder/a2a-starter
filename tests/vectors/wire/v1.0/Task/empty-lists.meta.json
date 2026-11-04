@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.1.1", "expect": "read-only", "note": "Empty artifacts and history lists are accepted; our serializer omits them (ProtoJSON omits empty repeated fields), so output differs from the input."}

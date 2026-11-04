@@ -25,4 +25,11 @@
     <Compile Include="../../src/Grpc.Shared/*.cs" />
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Both" Access="Internal" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../../proto/a2a.proto" Link="a2a.proto" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/WireFixtures/*.cs" Link="Shared/WireFixtures/%(Filename)%(Extension)" />
+    <None Include="../vectors/wire/**/*.json" Link="vectors/wire/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

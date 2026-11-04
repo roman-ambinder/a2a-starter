@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "Primary support is the proto comment on Part.raw (bytes, encoded as a base64 string); 5.5 only says the wire format is ProtoJSON. The value has characters outside the base64 alphabet."}
