@@ -134,10 +134,6 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
         TransportRequest.EnsureVersion(string.IsNullOrEmpty(version) ? null : version);
         if (isExtendedCard)
             TransportRequest.AuthorizeExtendedCard(agent, caller);
-        var active = ServiceParameters.ActivateExtensions(agent.PublicCard, extensions);
-        // The echo goes through the response metadata, so it is sent with the other entries at the commit point.
-        if (active.Count > 0)
-            TransportRequest.GetResponseMetadata(http).Set(A2AConstants.GrpcExtensionsKey, string.Join(',', active));
 
         var model = (TModel)ProtoMapper.FromProtoObject(request);
         RequestValidation.Validate(model);

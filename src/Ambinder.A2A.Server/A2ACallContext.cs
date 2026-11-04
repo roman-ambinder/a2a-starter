@@ -29,6 +29,14 @@ public sealed record A2ACallContext(
     /// </summary>
     public bool IsForwarded { get; init; }
 
+    /// <summary>
+    /// The extensions that are active for the call (requested and declared by the agent card). The extension negotiation middleware computes them
+    /// and the pipeline's last step passes them on in a copy of this context (<c>with</c>), so the task manager reads the list from the call.
+    /// Leave it <see langword="null"/> when you create a context: the task manager then derives the list from <see cref="RequestedExtensions"/>
+    /// without the required-extension check, which is also what a forwarded call gets.
+    /// </summary>
+    public IReadOnlyList<string>? ActiveExtensions { get; init; }
+
     /// <summary>The request scope. Transports pass the scope of the HTTP request. When null (in-process calls) the pipeline creates a scope for the call.</summary>
     public IServiceProvider? Services { get; init; }
 

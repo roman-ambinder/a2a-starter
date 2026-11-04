@@ -119,7 +119,6 @@ internal static class RestEndpoints
             TransportRequest.AuthorizeExtendedCard(agent, caller);
             http.Response.Headers.CacheControl = "private, no-store";
         }
-        ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
         JsonObject? body = null;
         if (route.Op is Op.Send or Op.Stream or Op.Cancel or Op.CreatePush)

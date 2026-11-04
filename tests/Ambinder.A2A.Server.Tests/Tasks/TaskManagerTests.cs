@@ -844,7 +844,7 @@ public class TaskManagerTests
     }
 
     [Fact]
-    public async Task Missing_required_extension_throws_extension_support_required()
+    public async Task Active_extensions_are_the_requested_declared_ones()
     {
         var card = TestHost.DefaultCard with
         {
@@ -856,9 +856,7 @@ public class TaskManagerTests
         };
         var host = new TestHost(card);
 
-        await ThrowsA2A(A2AErrorCode.ExtensionSupportRequired,
-            () => host.Manager.SendMessageAsync(TestHost.Call("alice", "urn:ext:optional"), TestHost.Text("x"), CancellationToken.None));
-
+        // The required-extension check is the extension negotiation middleware's job (see Pipeline/ExtensionNegotiationTests).
         await host.Manager.SendMessageAsync(TestHost.Call("alice", "urn:ext:required", "urn:ext:unknown"), TestHost.Text("x"), CancellationToken.None);
         Assert.Equal(["urn:ext:required"], host.Scripts.Contexts.Single().ActiveExtensions);
     }

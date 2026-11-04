@@ -2,6 +2,8 @@
 Ambinder.A2A.Server.A2ACallContext
 Ambinder.A2A.Server.A2ACallContext.<Clone>$() -> Ambinder.A2A.Server.A2ACallContext!
 Ambinder.A2A.Server.A2ACallContext.A2ACallContext(string! AgentName, System.Security.Claims.ClaimsPrincipal! User, string! Owner, string? Tenant, string? ProtocolVersion, System.Collections.Generic.IReadOnlyList<string!>! RequestedExtensions) -> void
+Ambinder.A2A.Server.A2ACallContext.ActiveExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Ambinder.A2A.Server.A2ACallContext.ActiveExtensions.init -> void
 Ambinder.A2A.Server.A2ACallContext.AgentName.get -> string!
 Ambinder.A2A.Server.A2ACallContext.AgentName.init -> void
 Ambinder.A2A.Server.A2ACallContext.Deconstruct(out string! AgentName, out System.Security.Claims.ClaimsPrincipal! User, out string! Owner, out string? Tenant, out string? ProtocolVersion, out System.Collections.Generic.IReadOnlyList<string!>! RequestedExtensions) -> void
@@ -24,6 +26,7 @@ Ambinder.A2A.Server.A2ACallContext.Transport.get -> string?
 Ambinder.A2A.Server.A2ACallContext.Transport.init -> void
 Ambinder.A2A.Server.A2ACallContext.User.get -> System.Security.Claims.ClaimsPrincipal!
 Ambinder.A2A.Server.A2ACallContext.User.init -> void
+Ambinder.A2A.Server.A2AExtensionsKeys
 Ambinder.A2A.Server.A2AOperation
 Ambinder.A2A.Server.A2AOperation.CancelTask = 4 -> Ambinder.A2A.Server.A2AOperation
 Ambinder.A2A.Server.A2AOperation.CreateTaskPushNotificationConfig = 6 -> Ambinder.A2A.Server.A2AOperation
@@ -133,6 +136,7 @@ Ambinder.A2A.Server.Hosting.A2AServerOptions.MaxRequestBodyBytes.set -> void
 Ambinder.A2A.Server.Hosting.A2AServerOptions.PublicBaseUrl.get -> string!
 Ambinder.A2A.Server.Hosting.A2AServerOptions.PublicBaseUrl.set -> void
 Ambinder.A2A.Server.Hosting.A2AServerOptions.Push.get -> Ambinder.A2A.Server.Push.PushOptions!
+Ambinder.A2A.Server.Hosting.A2AServerOptions.ResponseHeaderAllowList.get -> System.Collections.Generic.ISet<string!>!
 Ambinder.A2A.Server.Hosting.AgentCardContext
 Ambinder.A2A.Server.Hosting.AgentCardContext.<Clone>$() -> Ambinder.A2A.Server.Hosting.AgentCardContext!
 Ambinder.A2A.Server.Hosting.AgentCardContext.AgentCardContext() -> void
@@ -205,6 +209,7 @@ Ambinder.A2A.Server.Tasks.StoredTask.Task.init -> void
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.get -> string?
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.init -> void
 Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
+const Ambinder.A2A.Server.A2AExtensionsKeys.Active = "Ambinder.A2A.Extensions.Active" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.Anonymous = "anonymous" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.ApiKeyClaim = "a2a:apikey" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.MappedTenantIdClaim = "http://schemas.microsoft.com/identity/claims/tenantid" -> string!
@@ -241,4 +246,3 @@ static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Task
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 virtual Ambinder.A2A.Server.A2AOperationDelegate.Invoke(Ambinder.A2A.Server.A2AOperationContext! context) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.A2AOperationResult>
-Ambinder.A2A.Server.Hosting.A2AServerOptions.ResponseHeaderAllowList.get -> System.Collections.Generic.ISet<string!>!

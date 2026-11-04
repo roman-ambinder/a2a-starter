@@ -126,7 +126,6 @@ internal static class JsonRpcEndpoint
                 TransportRequest.AuthorizeExtendedCard(agent, caller);
                 http.Response.Headers.CacheControl = "private, no-store";
             }
-            ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);

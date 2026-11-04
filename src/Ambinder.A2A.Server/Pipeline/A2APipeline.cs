@@ -71,6 +71,8 @@ internal sealed class A2APipeline
     private static A2AOperationDelegate Terminal(TaskManager t) => async context =>
     {
         var c = context.Call;
+        if (context.Items.TryGetValue(A2AExtensionsKeys.Active, out var active) && active is IReadOnlyList<string> list)
+            c = c with { ActiveExtensions = list };
         var ct = context.RequestAborted;
         switch (context.Operation)
         {

@@ -134,7 +134,7 @@ internal sealed class TaskManager : IA2ARequestHandler
             var task = stored.Task;
             var context = new AgentRequestContext(call.AgentName, task.Id, task.ContextId ?? "",
                 task.History.LastOrDefault(m => m.Role == Role.User) ?? new Message(), task, call.User,
-                RequestValidator.ActiveExtensions(registration.PublicCard, call.RequestedExtensions), null);
+                ActiveExtensionsOf(registration, call), null);
             var sink = AgentEventSink.ForExistingTask(_writer, null, stored);
             try
             {
@@ -225,13 +225,17 @@ internal sealed class TaskManager : IA2ARequestHandler
         return Task.FromResult(registration.ExtendedCard);
     }
 
+    /// <summary>The list the pipeline negotiated; for a call that skipped it (forwarded), the requested extensions the card declares.</summary>
+    private static IReadOnlyList<string> ActiveExtensionsOf(AgentRegistration registration, A2ACallContext call)
+        => call.ActiveExtensions ?? RequestValidator.ActiveExtensions(registration.PublicCard, call.RequestedExtensions);
+
     /// <summary>Validates the message, creates or resumes the task and starts the agent in the background.</summary>
     private async Task<(TaskExecution Execution, TaskEventBroker.Subscription? Subscription)> StartAsync(
         A2ACallContext call, SendMessageRequest request, bool subscribe, CancellationToken ct)
     {
         var registration = GetAgent(call);
         RequestValidator.ValidateMessage(request, registration.PublicCard);
-        var extensions = RequestValidator.ResolveExtensions(registration.PublicCard, call.RequestedExtensions);
+        var extensions = ActiveExtensionsOf(registration, call);
         var pushConfig = request.Configuration?.TaskPushNotificationConfig;
         if (pushConfig is not null)
         {

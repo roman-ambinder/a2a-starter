@@ -67,22 +67,6 @@ internal static class ServiceParameters
     /// <summary>True when <paramref name="raw"/> normalizes (see <see cref="NormalizeVersion"/>) to a version the core serves.</summary>
     internal static bool IsSupportedVersion(string? raw) => NormalizeVersion(raw) == A2AConstants.ProtocolVersion;
 
-    /// <summary>
-    /// Applies the extension rules of spec 3.3.4 / 4.6 for one operation on <paramref name="card"/>: throws
-    /// <see cref="A2AErrorCode.ExtensionSupportRequired"/> when a <c>required</c> extension was not requested, and returns the
-    /// activated list (requested ∩ declared). The transport echoes that list in <c>A2A-Extensions</c> / <c>a2a-extensions</c>.
-    /// </summary>
-    public static IReadOnlyList<string> ActivateExtensions(AgentCard card, IReadOnlyList<string> requested)
-        => Ambinder.A2A.Server.Tasks.RequestValidator.ResolveExtensions(card, requested);
-
-    /// <summary>Activates extensions (see <see cref="ActivateExtensions(AgentCard, IReadOnlyList{string})"/>) and echoes them in the <c>A2A-Extensions</c> response header.</summary>
-    public static void ActivateExtensions(HttpContext http, AgentCard card, IReadOnlyList<string> requested)
-    {
-        ArgumentNullException.ThrowIfNull(http);
-        var active = ActivateExtensions(card, requested);
-        if (active.Count > 0) http.Response.Headers[A2AConstants.ExtensionsHeader] = string.Join(',', active);
-    }
-
     private static string? FirstNonEmpty(IEnumerable<string?> values)
         => values.Select(v => v?.Trim()).FirstOrDefault(v => !string.IsNullOrEmpty(v));
 }

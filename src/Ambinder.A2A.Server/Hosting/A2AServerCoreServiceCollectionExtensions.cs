@@ -80,6 +80,7 @@ public static class A2AServerCoreServiceCollectionExtensions
         services.TryAddSingleton<A2APipelineRequestHandler>();
         services.TryAddSingleton<IA2ARequestHandler>(sp => sp.GetRequiredService<A2APipelineRequestHandler>());
         builder.AddBuiltInMiddleware(A2APipelineMiddleware.TracingSlot, typeof(TracingMiddleware));
+        builder.AddBuiltInMiddleware(A2APipelineMiddleware.ExtensionsSlot, typeof(ExtensionNegotiationMiddleware));
 
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
         return builder;

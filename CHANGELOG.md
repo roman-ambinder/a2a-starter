@@ -78,6 +78,9 @@ Every preview section keeps a `### Breaking changes` heading.
   they apply with and without ASP.NET Core.
 - Response metadata set by middleware (`A2AResponseMetadata`) is checked by the transport. An entry with an invalid header name or a
   value with control characters (gRPC: non-printable or non-ASCII) is dropped with a debug log, and never changes the response status.
+- Extension negotiation runs in the pipeline (built-in middleware, slot 400) for every transport and in-process calls: the required-extension
+  check and the `A2A-Extensions` echo (through `A2AResponseMetadata`). It runs after the request is parsed and validated, so an invalid
+  request is rejected before it. Forwarded calls skip it. `A2ACallContext.ActiveExtensions` and `A2AExtensionsKeys.Active` carry the result.
 - On gRPC, the `a2a-extensions` echo is now sent with the first event or at the commit point, not immediately when the call starts.
 
 <!-- No release tag exists yet. With the first tag, change this link to https://github.com/roman-ambinder/a2a-starter/compare/vX.Y.Z...HEAD and add a link per release. -->
