@@ -1,5 +1,5 @@
-using Ambinder.A2A.Server.Tasks;
 using Ambinder.A2A.Server.Stores;
+using Ambinder.A2A.Server.Tasks;
 
 namespace Ambinder.A2A.Server.Tests.Tasks;
 
@@ -69,6 +69,54 @@ public class TaskLockTableTests
         Assert.Equal(1, table.Count);
 
         holder.Dispose();
+        Assert.Equal(0, table.Count);
+    }
+
+    [Fact]
+    public async Task Already_cancelled_token_throws_and_leaves_no_entry()
+    {
+        var table = new TaskLockTable();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await table.LockAsync(Key("a"), cts.Token));
+        Assert.Equal(0, table.Count);
+    }
+
+    [Fact]
+    public async Task Queued_waiter_acquires_after_cancelled_waiter_ahead_of_it()
+    {
+        var table = new TaskLockTable();
+        var holder = await table.LockAsync(Key("a"), CancellationToken.None);
+        using var cts = new CancellationTokenSource();
+        var waiterA = table.LockAsync(Key("a"), cts.Token).AsTask();
+        var waiterB = table.LockAsync(Key("a"), CancellationToken.None).AsTask();
+        Assert.False(waiterA.IsCompleted);
+        Assert.False(waiterB.IsCompleted);
+
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiterA);
+        Assert.False(waiterB.IsCompleted);
+
+        holder.Dispose();
+        var b = await waiterB;
+        Assert.Equal(1, table.Count);
+        b.Dispose();
+        Assert.Equal(0, table.Count);
+    }
+
+    [Fact]
+    public async Task Same_agent_and_task_id_under_different_tenants_do_not_contend()
+    {
+        var table = new TaskLockTable();
+        var first = await table.LockAsync(new TaskKey("t1", "agent", "x"), CancellationToken.None);
+        var secondPending = table.LockAsync(new TaskKey("t2", "agent", "x"), CancellationToken.None).AsTask();
+        Assert.True(secondPending.IsCompleted);
+        var second = await secondPending;
+        Assert.Equal(2, table.Count);
+
+        first.Dispose();
+        second.Dispose();
         Assert.Equal(0, table.Count);
     }
 }

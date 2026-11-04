@@ -18,6 +18,7 @@ internal sealed class TaskLockTable
 
     public async ValueTask<Releaser> LockAsync(TaskKey key, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         Entry entry;
         lock (_sync)
         {
@@ -53,14 +54,18 @@ internal sealed class TaskLockTable
         }
     }
 
-    private sealed class Entry
+    internal sealed class Entry
     {
         public SemaphoreSlim Gate { get; } = new(1, 1);
         public int RefCount;
     }
 
-    internal readonly struct Releaser(TaskLockTable table, TaskKey key, object entry) : IDisposable
+    /// <summary>
+    /// Handle for a held lock. It must be disposed exactly once and must not be copied: every copy
+    /// releases the same entry, so a second Dispose would release a lock held by someone else.
+    /// </summary>
+    internal readonly struct Releaser(TaskLockTable table, TaskKey key, Entry entry) : IDisposable
     {
-        public void Dispose() => table.Release(key, (Entry)entry, releaseGate: true);
+        public void Dispose() => table.Release(key, entry, releaseGate: true);
     }
 }
