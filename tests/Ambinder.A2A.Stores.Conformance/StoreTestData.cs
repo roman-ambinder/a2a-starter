@@ -1,24 +1,35 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Stores;
-using Microsoft.Extensions.Time.Testing;
 
 namespace Ambinder.A2A.Testing.Conformance;
 
-/// <summary>Builders for the records the conformance cases write. Ids come from a counter, never from the clock or a GUID, so failures are reproducible.</summary>
+/// <summary>
+/// Builders for the records the conformance cases write. Ids come from a counter held per <see cref="StoreSet"/>, never from the clock or a GUID,
+/// so a case produces the same ids on every run no matter which cases ran before it. All instants are rounded down to whole milliseconds
+/// so stores that keep less than 100 ns precision (for example PostgreSQL, which keeps microseconds) round-trip them exactly.
+/// </summary>
 internal static class StoreTestData
 {
-    private static long _counter;
+    private sealed class Counter
+    {
+        internal long Value;
+    }
 
-    /// <summary>Returns a new unique, short id with the given prefix.</summary>
-    internal static string NextId(string prefix) =>
-        prefix + "-" + Interlocked.Increment(ref _counter).ToString("D6", CultureInfo.InvariantCulture);
+    private static readonly ConditionalWeakTable<StoreSet, Counter> Counters = new();
 
-    /// <summary>True for terminal and interrupted states (the core's <c>TaskStateRules.IsFinal</c>, which is internal to the core).</summary>
-    internal static bool IsFinal(TaskState state) =>
-        state is TaskState.Completed or TaskState.Failed or TaskState.Canceled or TaskState.Rejected
-            or TaskState.InputRequired or TaskState.AuthRequired;
+    /// <summary>Returns a new id, unique within <paramref name="s"/>, with the given prefix.</summary>
+    internal static string NextId(StoreSet s, string prefix) =>
+        prefix + "-" + Interlocked.Increment(ref Counters.GetOrCreateValue(s).Value).ToString("D6", CultureInfo.InvariantCulture);
+
+    /// <summary>Rounds an instant down to whole milliseconds.</summary>
+    internal static DateTimeOffset Ms(DateTimeOffset value) =>
+        new(value.UtcTicks - (value.UtcTicks % TimeSpan.TicksPerMillisecond), TimeSpan.Zero);
+
+    /// <summary>The suite clock's now, rounded down to whole milliseconds.</summary>
+    internal static DateTimeOffset Now(StoreSet s) => Ms(s.Time.GetUtcNow());
 
     /// <summary>A text message with a fixed id.</summary>
     internal static Message NewMessage(string id, string text, Role role = Role.User) =>
@@ -37,10 +48,10 @@ internal static class StoreTestData
 
     /// <summary>
     /// A task ready for <c>CreateAsync</c>: no <c>Version</c>, <c>Status.Timestamp</c> set (the core always sets it).
-    /// <paramref name="timestamp"/> defaults to the clock's now; <c>CreatedAt</c> and <c>UpdatedAt</c> default to now.
+    /// <paramref name="timestamp"/> defaults to the clock's now; every instant is rounded down to whole milliseconds; <c>CreatedAt</c> and <c>UpdatedAt</c> default to now.
     /// </summary>
     internal static StoredTask NewTask(
-        FakeTimeProvider time,
+        StoreSet s,
         string tenant = "t1",
         string agent = "agent",
         string owner = "alice",
@@ -56,8 +67,8 @@ internal static class StoreTestData
         DateTimeOffset? cancelRequestedAt = null,
         DateTimeOffset? updatedAt = null)
     {
-        var now = time.GetUtcNow();
-        var id = taskId ?? NextId("task");
+        var now = Now(s);
+        var id = taskId ?? NextId(s, "task");
         var messages = new List<Message>(history);
         for (var i = 1; i <= history; i++)
             messages.Add(NewMessage($"{id}-m{i}", $"message {i}", i % 2 == 1 ? Role.User : Role.Agent));
@@ -73,30 +84,30 @@ internal static class StoreTestData
             {
                 Id = id,
                 ContextId = contextId,
-                Status = new AgentTaskStatus { State = state, Timestamp = timestamp ?? now },
+                Status = new AgentTaskStatus { State = state, Timestamp = Ms(timestamp ?? now) },
                 History = messages,
                 Artifacts = arts,
             },
             CreatedAt = now,
-            UpdatedAt = updatedAt ?? now,
-            ExpiresAt = expiresAt,
+            UpdatedAt = Ms(updatedAt ?? now),
+            ExpiresAt = expiresAt is { } e ? Ms(e) : null,
             Runner = runner,
-            CancelRequestedAt = cancelRequestedAt,
+            CancelRequestedAt = cancelRequestedAt is { } c ? Ms(c) : null,
             OriginMessageId = originMessageId,
         };
     }
 
     /// <summary>A runner record claimed at <paramref name="claimedAt"/>.</summary>
     internal static TaskRunner NewRunner(string instanceId, DateTimeOffset claimedAt) =>
-        new() { InstanceId = instanceId, ClaimedAt = claimedAt };
+        new() { InstanceId = instanceId, ClaimedAt = Ms(claimedAt) };
 
     /// <summary>An outbox row for <paramref name="task"/>, due now.</summary>
-    internal static OutboxEntry NewOutbox(StoredTask task, FakeTimeProvider time, long sequence, string lane = "cfg-1", string kind = "push")
+    internal static OutboxEntry NewOutbox(StoredTask task, StoreSet s, long sequence, string lane = "cfg-1", string kind = "push")
     {
-        var now = time.GetUtcNow();
+        var now = Now(s);
         return new OutboxEntry
         {
-            Id = NextId("outbox"),
+            Id = NextId(s, "outbox"),
             Task = task.Key,
             Sequence = sequence,
             Kind = kind,

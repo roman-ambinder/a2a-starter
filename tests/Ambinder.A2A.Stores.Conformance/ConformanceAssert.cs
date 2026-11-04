@@ -77,7 +77,6 @@ internal static class ConformanceAssert
         throw Fail($"{message} Expected {typeof(TException).Name}, but nothing was thrown.");
     }
 
-
     /// <summary>Asserts <paramref name="action"/> throws an <see cref="A2AStoreException"/> of kind <paramref name="kind"/>.</summary>
     internal static async Task StoreErrorAsync(Func<Task> action, StoreErrorKind kind, string message)
     {
@@ -98,15 +97,21 @@ internal static class ConformanceAssert
     }
 
     /// <summary>
-    /// Asserts two stored tasks are equal field by field. The <see cref="AgentTask"/> (including <c>Metadata</c>) is compared
-    /// through its source-generated JSON; instants are compared by UTC ticks. <c>Version</c> is skipped when <paramref name="ignoreVersion"/> is true.
+    /// Asserts two stored tasks are equal field by field. The <see cref="AgentTask"/> (including <c>Metadata</c> and any other JSON object)
+    /// is compared semantically: JSON objects are equal when they hold the same properties with equal values, whatever the property order
+    /// (a JSON column such as PostgreSQL <c>jsonb</c> does not keep it). Arrays stay ordered, and so do the lists on the stored task:
+    /// the order of <c>Caller.Roles</c>, <c>Caller.Scopes</c> and <c>ContinuationGrant.AllowedOwners</c> is part of the contract.
+    /// Instants are compared by UTC ticks. <c>Version</c> is skipped when <paramref name="ignoreVersion"/> is true.
     /// </summary>
     internal static void TaskEquivalent(StoredTask expected, StoredTask? actual, bool ignoreVersion = false)
     {
         if (actual is null) throw Fail($"Expected task '{expected.Key.TaskId}' but the store returned null.");
         Equal(expected.Key, actual.Key, "Key differs.");
         Equal(expected.Owner, actual.Owner, "Owner differs.");
-        Equal(JsonSerializer.Serialize(expected.Task, A2AJson.AgentTask), JsonSerializer.Serialize(actual.Task, A2AJson.AgentTask), "Task (AgentTask JSON) differs.");
+        var expectedJson = JsonSerializer.SerializeToElement(expected.Task, A2AJson.AgentTask);
+        var actualJson = JsonSerializer.SerializeToElement(actual.Task, A2AJson.AgentTask);
+        if (!JsonSemanticallyEqual(expectedJson, actualJson))
+            throw Fail($"Task (AgentTask JSON) differs. Expected: <{expectedJson.GetRawText()}>. Actual: <{actualJson.GetRawText()}>.");
         if (!ignoreVersion) Equal(expected.Version, actual.Version, "Version differs.");
         Equal(expected.Sequence, actual.Sequence, "Sequence differs.");
         Instant(expected.CreatedAt, actual.CreatedAt, "CreatedAt differs.");
@@ -139,6 +144,44 @@ internal static class ConformanceAssert
             Equal(ec.UserObjectId, ac.UserObjectId, "Caller.UserObjectId differs.");
             SequenceEqual(ec.Roles, ac.Roles, "Caller.Roles differ.");
             SequenceEqual(ec.Scopes, ac.Scopes, "Caller.Scopes differ.");
+        }
+    }
+
+    /// <summary>Deep JSON equality: object property order is ignored, array order is significant, numbers compare by value.</summary>
+    private static bool JsonSemanticallyEqual(JsonElement a, JsonElement b)
+    {
+        if (a.ValueKind != b.ValueKind) return false;
+
+        switch (a.ValueKind)
+        {
+            case JsonValueKind.Object:
+                var left = a.EnumerateObject().ToList();
+                var right = b.EnumerateObject().ToDictionary(p => p.Name, p => p.Value, StringComparer.Ordinal);
+                if (left.Count != right.Count) return false;
+                foreach (var p in left)
+                {
+                    if (!right.TryGetValue(p.Name, out var other) || !JsonSemanticallyEqual(p.Value, other)) return false;
+                }
+
+                return true;
+            case JsonValueKind.Array:
+                var la = a.EnumerateArray().ToList();
+                var lb = b.EnumerateArray().ToList();
+                if (la.Count != lb.Count) return false;
+                for (var i = 0; i < la.Count; i++)
+                {
+                    if (!JsonSemanticallyEqual(la[i], lb[i])) return false;
+                }
+
+                return true;
+            case JsonValueKind.String:
+                return string.Equals(a.GetString(), b.GetString(), StringComparison.Ordinal);
+            case JsonValueKind.Number:
+                return a.TryGetDecimal(out var da) && b.TryGetDecimal(out var db)
+                    ? da == db
+                    : string.Equals(a.GetRawText(), b.GetRawText(), StringComparison.Ordinal);
+            default:
+                return true; // true, false, null: the kinds already match.
         }
     }
 
