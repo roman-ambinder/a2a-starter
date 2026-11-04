@@ -1,1 +1,1 @@
-{"source": "hand-written", "specSection": "3.2.4", "expect": "roundtrip", "note": "historyLength is proto3 optional: an explicit 0 (no history) is present on the wire and must not be dropped."}
+{"source": "hand-written", "specSection": "3.1.3", "expect": "roundtrip", "note": "historyLength is proto3 optional: an explicit 0 (no history) is present on the wire and must not be dropped."}

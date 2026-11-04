@@ -25,6 +25,8 @@ public class CoverageTests
     [Fact]
     public void Every_enum_value_appears_in_an_enum_fixture()
     {
+        Assert.Contains("TaskState", Proto.Enums.Keys);
+        Assert.Contains("Role", Proto.Enums.Keys);
         foreach (var (name, values) in Proto.Enums)
         {
             var fixture = Fixtures.SingleOrDefault(f => f.Id == $"enums/{name}");
