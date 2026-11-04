@@ -133,7 +133,12 @@ public interface IPushPayloadFormatter
     /// Body bytes and content type for one event and one config. Runs inside the task write; must be fast and must not do I/O.
     PushPayload Format(StoredTask task, StreamResponse evt, TaskPushNotificationConfig config);
 }
-public readonly record struct PushPayload(ReadOnlyMemory<byte> Body, string ContentType);
+// No positional constructors (spec 02 §4; owner rule 2026-11-03: the six package 05 key structs are the only positional public types).
+public readonly record struct PushPayload
+{
+    public required ReadOnlyMemory<byte> Body { get; init; }
+    public required string ContentType { get; init; }
+}
 ```
 
 - The default formatter writes the `StreamResponse` JSON (source-generated context) with `application/a2a+json`. It serializes once per event and shares the bytes across configs.
@@ -298,8 +303,19 @@ public interface IPushDeadLetters
     ValueTask RequeueAsync(string entryId, CancellationToken ct);  // back to Pending, attempts reset
     ValueTask<int> PurgeAsync(DateTimeOffset olderThan, CancellationToken ct);
 }
-public sealed record PushDeadLetter(string EntryId, string Agent, string? Tenant, string TaskId, string ConfigId,
-    long Sequence, int Attempts, DateTimeOffset CreatedAt, DateTimeOffset DeadLetteredAt, string Reason);
+public sealed record PushDeadLetter
+{
+    public required string EntryId { get; init; }
+    public required string Agent { get; init; }
+    public string? Tenant { get; init; }
+    public required string TaskId { get; init; }
+    public required string ConfigId { get; init; }
+    public required long Sequence { get; init; }
+    public required int Attempts { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
+    public required DateTimeOffset DeadLetteredAt { get; init; }
+    public required string Reason { get; init; }
+}
 ```
 
 - Requeue works only while the config still exists. Otherwise it throws `InvalidOperationException` "config was deleted".

@@ -136,7 +136,12 @@ public sealed record StoredTask
     public StoredCaller? Caller { get; init; }           // reduced caller for runs on other pods and recovery (07, B8)
 }
 
-public sealed record TaskRunner(string InstanceId, DateTimeOffset ClaimedAt);
+// TaskRunner, TaskWrite, TaskPage, StoredPushConfig and PushConfigPage are property records. Owner decision 2026-11-03 (spec 02 §4): these five records have no positional constructor, so a new member later is not a breaking change.
+public sealed record TaskRunner
+{
+    public required string InstanceId { get; init; }
+    public required DateTimeOffset ClaimedAt { get; init; }
+}
 
 // Reduced caller, persisted with the task (B8). Never holds an access token.
 public sealed record StoredCaller
@@ -194,7 +199,11 @@ public interface ITaskStore
     ValueTask<int> PurgeExpiredAsync(DateTimeOffset now, int max, CancellationToken ct);
 }
 
-public sealed record TaskWrite(StoredTask Task, IReadOnlyList<OutboxEntry> Outbox);
+public sealed record TaskWrite
+{
+    public required StoredTask Task { get; init; }
+    public IReadOnlyList<OutboxEntry> Outbox { get; init; } = [];
+}
 public readonly record struct CreateResult(StoredTask Task, bool Created);
 ```
 
@@ -217,7 +226,12 @@ public sealed record TaskQuery
 
 public readonly record struct TaskCursor(DateTimeOffset StatusTimestamp, string TaskId);
 
-public sealed record TaskPage(IReadOnlyList<AgentTask> Tasks, TaskCursor? Next, int TotalSize);
+public sealed record TaskPage
+{
+    public required IReadOnlyList<AgentTask> Tasks { get; init; }
+    public TaskCursor? Next { get; init; }
+    public required int TotalSize { get; init; }
+}
 ```
 
 Rules every store must follow (all in the conformance suite):
@@ -296,7 +310,11 @@ public interface IOutboxStore
     ValueTask RescheduleAsync(OutboxEntry claimed, DateTimeOffset nextAttemptAt, string? lastError, CancellationToken ct);
     ValueTask DeadLetterAsync(OutboxEntry claimed, string reason, CancellationToken ct); // frees the lane for the next row
     ValueTask<IReadOnlyList<OutboxEntry>> ListDeadLettersAsync(OwnerScope? scope, int max, CancellationToken ct);
-    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct);
+    // Added in the plan review, 2026-11-03 (Claude's call): for 08's dead-letter operations.
+    // The query filters by kind, tenant, agent, task and age, and pages with a cursor.
+    ValueTask<OutboxEntry?> GetDeadLetterAsync(string id, CancellationToken ct);
+    ValueTask<OutboxEntryPage> QueryDeadLettersAsync(OutboxDeadLetterQuery query, CancellationToken ct);
+    ValueTask<bool> RequeueDeadLetterAsync(string id, DateTimeOffset nextAttemptAt, CancellationToken ct); // resets Attempts; clears LastError and the claim (plan review)
     ValueTask<int> PurgeDeadLettersAsync(DateTimeOffset deadLetteredBefore, int max, CancellationToken ct);
     ValueTask<OutboxStats> GetPendingStatsAsync(CancellationToken ct);         // count and oldest CreatedAt
 }
@@ -326,7 +344,7 @@ public interface ITaskWriteContributor
 public interface IPushConfigStore
 {
     // Inserts or replaces by (task, config id). The core assigns the id when empty. Returns what was stored.
-    ValueTask<StoredPushConfig> UpsertAsync(TaskRef task, TaskPushNotificationConfig config, string? protocolVersion, CancellationToken ct);
+    ValueTask<StoredPushConfig> UpsertAsync(TaskRef task, TaskPushNotificationConfig config, string? protocolVersion, string? issuer, CancellationToken ct);
     ValueTask<StoredPushConfig?> GetAsync(TaskRef task, string configId, CancellationToken ct);
     ValueTask<PushConfigPage> ListAsync(TaskRef task, int pageSize, long? afterSequence, CancellationToken ct);
     ValueTask<IReadOnlyList<StoredPushConfig>> GetAllAsync(TaskRef task, CancellationToken ct); // for delivery
@@ -336,16 +354,26 @@ public interface IPushConfigStore
 }
 
 public readonly record struct TaskRef(TaskKey Key, string Owner);   // from a loaded StoredTask
-public sealed record StoredPushConfig(TaskPushNotificationConfig Config, long CreatedSequence, DateTimeOffset CreatedAt)
+public sealed record StoredPushConfig
 {
+    public required TaskPushNotificationConfig Config { get; init; }
+    public required long CreatedSequence { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
     // Opaque protocol version of the API that created the config ("1.0", or "0.3" from package 15).
     // Package 08 picks the payload formatter by it. Null means "1.0".
     public string? ProtocolVersion { get; init; }
+    // Opaque push signature issuer: the public base URL of the request that created the config, set only when the server
+    // has no A2A:PublicBaseUrl (FromRequest mode). Package 08 signs with it. Null means "use PushOptions.Issuer".
+    public string? Issuer { get; init; }
 }
-public sealed record PushConfigPage(IReadOnlyList<StoredPushConfig> Configs, long? NextAfter);
+public sealed record PushConfigPage
+{
+    public required IReadOnlyList<StoredPushConfig> Configs { get; init; }
+    public long? NextAfter { get; init; }
+}
 ```
 
-`UpsertAsync` takes the protocol version as a nullable parameter (`null` means "1.0") and stores it unchanged. The core passes the call's `A2ACallContext.ProtocolVersion`, so a config created through package 15's 0.3 methods is stored with `"0.3"`. *(Reconciled: the text said "optional parameter", which cannot precede `ct`; the code block now shows the parameter.)*
+`UpsertAsync` takes the protocol version as a nullable parameter (`null` means "1.0") and stores it unchanged. It also takes the push signature issuer as a nullable parameter and stores it unchanged (*owner decision 2026-11-03, package 09 plan owner note 6*). The core passes the call's `A2ACallContext.ProtocolVersion`, so a config created through package 15's 0.3 methods is stored with `"0.3"`. *(Reconciled: the text said "optional parameter", which cannot precede `ct`; the code block now shows the parameter.)*
 
 - `TaskRef` carries the owner so Cosmos can keep configs in the task's partition. The core always loads the task first (as today, `TaskManager.cs:183,190`), so the owner is known.
 - Order is creation order (`CreatedSequence`), as today. The core encodes the page token (`v1:{sequence}`) and returns `""` on the last page. Today's store returns `null` (`InMemoryPushConfigStore.cs:62`); the proto says empty.
