@@ -21,14 +21,16 @@ Ambinder.A2A.Server.AgentRequestContext.ActiveExtensions.get -> System.Collectio
 Ambinder.A2A.Server.AgentRequestContext.ActiveExtensions.init -> void
 Ambinder.A2A.Server.AgentRequestContext.AgentName.get -> string!
 Ambinder.A2A.Server.AgentRequestContext.AgentName.init -> void
-Ambinder.A2A.Server.AgentRequestContext.AgentRequestContext(string! AgentName, string! TaskId, string! ContextId, Ambinder.A2A.Protocol.Message! Message, Ambinder.A2A.Protocol.AgentTask? CurrentTask, System.Security.Claims.ClaimsPrincipal! User, System.Collections.Generic.IReadOnlyList<string!>! ActiveExtensions, Ambinder.A2A.Protocol.SendMessageConfiguration? Configuration) -> void
+Ambinder.A2A.Server.AgentRequestContext.AgentRequestContext(string! AgentName, string! TaskId, string! ContextId, Ambinder.A2A.Protocol.Message! Message, Ambinder.A2A.Protocol.AgentTask? CurrentTask, System.Security.Claims.ClaimsPrincipal! User, Ambinder.A2A.Server.Security.A2ACaller! Caller, System.Collections.Generic.IReadOnlyList<string!>! ActiveExtensions, Ambinder.A2A.Protocol.SendMessageConfiguration? Configuration) -> void
+Ambinder.A2A.Server.AgentRequestContext.Caller.get -> Ambinder.A2A.Server.Security.A2ACaller!
+Ambinder.A2A.Server.AgentRequestContext.Caller.init -> void
 Ambinder.A2A.Server.AgentRequestContext.Configuration.get -> Ambinder.A2A.Protocol.SendMessageConfiguration?
 Ambinder.A2A.Server.AgentRequestContext.Configuration.init -> void
 Ambinder.A2A.Server.AgentRequestContext.ContextId.get -> string!
 Ambinder.A2A.Server.AgentRequestContext.ContextId.init -> void
 Ambinder.A2A.Server.AgentRequestContext.CurrentTask.get -> Ambinder.A2A.Protocol.AgentTask?
 Ambinder.A2A.Server.AgentRequestContext.CurrentTask.init -> void
-Ambinder.A2A.Server.AgentRequestContext.Deconstruct(out string! AgentName, out string! TaskId, out string! ContextId, out Ambinder.A2A.Protocol.Message! Message, out Ambinder.A2A.Protocol.AgentTask? CurrentTask, out System.Security.Claims.ClaimsPrincipal! User, out System.Collections.Generic.IReadOnlyList<string!>! ActiveExtensions, out Ambinder.A2A.Protocol.SendMessageConfiguration? Configuration) -> void
+Ambinder.A2A.Server.AgentRequestContext.Deconstruct(out string! AgentName, out string! TaskId, out string! ContextId, out Ambinder.A2A.Protocol.Message! Message, out Ambinder.A2A.Protocol.AgentTask? CurrentTask, out System.Security.Claims.ClaimsPrincipal! User, out Ambinder.A2A.Server.Security.A2ACaller! Caller, out System.Collections.Generic.IReadOnlyList<string!>! ActiveExtensions, out Ambinder.A2A.Protocol.SendMessageConfiguration? Configuration) -> void
 Ambinder.A2A.Server.AgentRequestContext.Equals(Ambinder.A2A.Server.AgentRequestContext? other) -> bool
 Ambinder.A2A.Server.AgentRequestContext.Message.get -> Ambinder.A2A.Protocol.Message!
 Ambinder.A2A.Server.AgentRequestContext.Message.init -> void
@@ -158,6 +160,8 @@ Ambinder.A2A.Server.Security.CallerKind.User = 2 -> Ambinder.A2A.Server.Security
 Ambinder.A2A.Server.Security.DefaultOwnerResolver
 Ambinder.A2A.Server.Security.DefaultOwnerResolver.DefaultOwnerResolver() -> void
 Ambinder.A2A.Server.Security.DefaultOwnerResolver.ResolveAsync(System.Security.Claims.ClaimsPrincipal! user, Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Security.A2ACaller!>
+Ambinder.A2A.Server.Security.IA2ACallerAccessor
+Ambinder.A2A.Server.Security.IA2ACallerAccessor.Current.get -> Ambinder.A2A.Server.Security.A2ACaller?
 Ambinder.A2A.Server.Security.IOwnerResolver
 Ambinder.A2A.Server.Security.IOwnerResolver.ResolveAsync(System.Security.Claims.ClaimsPrincipal! user, Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Security.A2ACaller!>
 Ambinder.A2A.Server.Security.OwnerKey

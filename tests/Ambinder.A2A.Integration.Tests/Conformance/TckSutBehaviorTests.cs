@@ -87,7 +87,12 @@ public sealed class TckSutBehaviorTests
     private static AgentRequestContext ContextFor(string messageId) => new(
         TckAgent.Name, "task", "ctx",
         new Message { MessageId = messageId, Role = Role.User, Parts = [Part.FromText("x")] },
-        null, new System.Security.Claims.ClaimsPrincipal(), [], null);
+        null, new System.Security.Claims.ClaimsPrincipal(),
+        new Ambinder.A2A.Server.Security.A2ACaller
+        {
+            Owner = "test", Kind = Ambinder.A2A.Server.Security.CallerKind.Other, Principal = new System.Security.Claims.ClaimsPrincipal(),
+        },
+        [], null);
 
     private sealed record Entry(string Id, string Scenario, string Response, string? TerminalState, string[] Requirements);
 

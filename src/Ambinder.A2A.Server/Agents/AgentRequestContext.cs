@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Security;
 
 namespace Ambinder.A2A.Server;
 
@@ -11,6 +12,7 @@ namespace Ambinder.A2A.Server;
 /// <param name="Message">The user message, with task and context ids filled in. For cancel: the last user message.</param>
 /// <param name="CurrentTask">The stored task for a continuation or cancel; null for a new message.</param>
 /// <param name="User">The caller.</param>
+/// <param name="Caller">Who called: owner key, kind and Entra identity. The same value <see cref="IA2ACallerAccessor.Current"/> returns during the run.</param>
 /// <param name="ActiveExtensions">Requested extensions that the agent card declares.</param>
 /// <param name="Configuration">The request's configuration, if any. Null for cancel.</param>
 public sealed record AgentRequestContext(
@@ -20,5 +22,6 @@ public sealed record AgentRequestContext(
     Message Message,
     AgentTask? CurrentTask,
     ClaimsPrincipal User,
+    A2ACaller Caller,
     IReadOnlyList<string> ActiveExtensions,
     SendMessageConfiguration? Configuration);

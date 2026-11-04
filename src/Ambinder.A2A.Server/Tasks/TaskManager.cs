@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
 using Microsoft.Extensions.DependencyInjection;
@@ -128,12 +129,13 @@ internal sealed class TaskManager : IA2ARequestHandler
 
             var task = stored.Task;
             var context = new AgentRequestContext(call.AgentName, task.Id, task.ContextId ?? "",
-                task.History.LastOrDefault(m => m.Role == Role.User) ?? new Message(), task, call.Caller.Principal,
+                task.History.LastOrDefault(m => m.Role == Role.User) ?? new Message(), task, call.Caller.Principal, call.Caller,
                 RequestValidator.ActiveExtensions(registration.PublicCard, call.RequestedExtensions), null);
             var sink = AgentEventSink.ForExistingTask(_writer, null, stored);
             try
             {
-                await InvokeHandlerAsync(registration, h => h.CancelAsync(context, sink, ct)).ConfigureAwait(false);
+                using (A2ACallerAccessor.Set(context.Caller))
+                    await InvokeHandlerAsync(registration, h => h.CancelAsync(context, sink, ct)).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -252,7 +254,7 @@ internal sealed class TaskManager : IA2ARequestHandler
             _running[(agent, taskId)] = execution;
             if (subscribe) subscription = _writer.Broker.Open(agent, taskId, ct);
             sink = AgentEventSink.ForNewTask(_writer, execution, call.Caller.Owner, call.Tenant, userMessage);
-            context = new AgentRequestContext(agent, taskId, contextId, userMessage, null, call.Caller.Principal, extensions, request.Configuration);
+            context = new AgentRequestContext(agent, taskId, contextId, userMessage, null, call.Caller.Principal, call.Caller, extensions, request.Configuration);
         }
         else
         {
@@ -297,7 +299,7 @@ internal sealed class TaskManager : IA2ARequestHandler
                 }
                 _running[(agent, taskId)] = execution;
                 sink = AgentEventSink.ForExistingTask(_writer, execution, stored);
-                context = new AgentRequestContext(agent, taskId, stored.Task.ContextId ?? "", userMessage, stored.Task, call.Caller.Principal,
+                context = new AgentRequestContext(agent, taskId, stored.Task.ContextId ?? "", userMessage, stored.Task, call.Caller.Principal, call.Caller,
                     extensions, request.Configuration);
             }
         }
@@ -317,7 +319,8 @@ internal sealed class TaskManager : IA2ARequestHandler
         if (!string.IsNullOrEmpty(context.ContextId)) span?.SetTag(A2ATelemetryNames.ContextId, context.ContextId);
         try
         {
-            await InvokeHandlerAsync(registration, h => h.ExecuteAsync(context, sink, ct)).ConfigureAwait(false);
+            using (A2ACallerAccessor.Set(context.Caller))
+                await InvokeHandlerAsync(registration, h => h.ExecuteAsync(context, sink, ct)).ConfigureAwait(false);
             if (!sink.Done && !execution.CancelRequested)
             {
                 Log.AgentEndedWithoutFinalState(_logger, execution.AgentName, execution.TaskId);
@@ -436,7 +439,7 @@ internal sealed class TaskManager : IA2ARequestHandler
         return stored;
     }
 
-    // TODO(Task 8): remove with the continuation grants (contradicts Review Focus 2)
+    // TODO(sdk-07 Task 8): remove with the continuation grants; this bridge lets any app of a tenant continue another app's AUTH_REQUIRED task.
     /// <summary>True only for AUTH_REQUIRED when both owners are app owners (<c>tid:{tid}/app:{id}</c>) of the same tenant.</summary>
     private static bool IsTenantStepUp(string taskOwner, string callerOwner, TaskState state)
         => state == TaskState.AuthRequired && AppTenantPrefix(taskOwner) is { } tenant && tenant == AppTenantPrefix(callerOwner);
