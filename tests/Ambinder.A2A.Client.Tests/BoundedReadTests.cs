@@ -1,6 +1,6 @@
+using System.Runtime.InteropServices;
 using Ambinder.A2A.Client;
 using Ambinder.A2A.Client.Tests.TestDoubles;
-using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Client.Tests;
@@ -72,9 +72,48 @@ public class BoundedReadTests
         var counting = new CountingStream(10 * MiB);
         using var content = new StreamContent(counting);
         var ex = await Assert.ThrowsAsync<A2AException>(() =>
-            BoundedContent.ReadAsync(content, MiB, "Agent card", "evil", "MaxCardBytes", Ct).AsTask());
+            BoundedContent.ReadAsync(content, MiB, "Agent card", "evil", "A2ACardResolverOptions.MaxCardBytes", Ct).AsTask());
         Assert.Contains("Agent card from agent 'evil' is larger than 1 MiB", ex.Message);
+        Assert.Contains("raise A2ACardResolverOptions.MaxCardBytes", ex.Message);
+        Assert.DoesNotContain("A2AClientOptions.Limits", ex.Message);
         Assert.True(counting.BytesRead <= MiB + 1);
+    }
+
+    [Fact]
+    public async Task Limit_above_int_MaxValue_is_clamped_and_reads_normally()
+    {
+        var bytes = new byte[100_000];
+        Random.Shared.NextBytes(bytes);
+        foreach (var limit in new[] { (long)int.MaxValue + 1, long.MaxValue })
+        {
+            using var content = new ByteArrayContent(bytes);
+            using var buffer = await BoundedContent.ReadAsync(content, limit, "Response body", "default", nameof(A2AClientLimits.MaxResponseBytes), Ct);
+            Assert.True(bytes.AsSpan().SequenceEqual(buffer.Span));
+        }
+    }
+
+    [Fact]
+    public async Task Declared_length_above_the_clamped_limit_is_refused()
+    {
+        using var content = new StreamContent(new InfiniteStream());
+        content.Headers.ContentLength = (long)Array.MaxLength + 1;
+        await Assert.ThrowsAsync<A2AException>(() =>
+            BoundedContent.ReadAsync(content, long.MaxValue, "Response body", "default", nameof(A2AClientLimits.MaxResponseBytes), Ct).AsTask());
+    }
+
+    [Fact]
+    public async Task Dispose_is_idempotent_through_a_second_reference_and_clears_the_array()
+    {
+        using var content = new ByteArrayContent([1, 2, 3, 4]);
+        var buffer = await BoundedContent.ReadAsync(content, MiB, "Response body", "default", nameof(A2AClientLimits.MaxResponseBytes), Ct);
+        var copy = buffer;
+        Assert.True(MemoryMarshal.TryGetArray(buffer.Memory, out var segment));
+        var array = segment.Array!;
+        buffer.Dispose();
+        copy.Dispose();
+        buffer.Dispose();
+        Assert.True(copy.Memory.IsEmpty);
+        Assert.All(array.AsSpan(0, 4).ToArray(), b => Assert.Equal(0, b));
     }
 
     [Fact]

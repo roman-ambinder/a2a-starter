@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using Ambinder.A2A.Client;
-using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Sse;

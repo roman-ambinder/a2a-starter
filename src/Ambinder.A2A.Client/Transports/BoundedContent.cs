@@ -2,30 +2,36 @@ using System.Buffers;
 using System.Globalization;
 using Ambinder.A2A.Protocol;
 
-namespace Ambinder.A2A.Client.Transports;
+namespace Ambinder.A2A.Client;
 
-/// <summary>A byte buffer rented from <see cref="ArrayPool{T}"/>. Dispose it to return the rental.</summary>
-internal struct PooledBuffer : IDisposable
+/// <summary>
+/// A byte buffer rented from <see cref="ArrayPool{T}"/>. Dispose it to return the rental. It is a class so that a copy of the
+/// reference cannot return the array twice; <see cref="Dispose"/> is idempotent and safe to call from any thread.
+/// The array is cleared on return because it holds an agent response.
+/// </summary>
+internal sealed class PooledBuffer : IDisposable
 {
     private byte[]? _array;
     private readonly int _length;
 
     public PooledBuffer(byte[] array, int length)
     {
+        ArgumentNullException.ThrowIfNull(array);
         _array = array;
         _length = length;
     }
 
-    /// <summary>The bytes that were read.</summary>
-    public readonly ReadOnlyMemory<byte> Memory => _array is null ? default : new ReadOnlyMemory<byte>(_array, 0, _length);
+    /// <summary>The bytes that were read. Empty after <see cref="Dispose"/>.</summary>
+    public ReadOnlyMemory<byte> Memory => Volatile.Read(ref _array) is { } array ? new ReadOnlyMemory<byte>(array, 0, _length) : default;
 
-    /// <summary>The bytes that were read.</summary>
-    public readonly ReadOnlySpan<byte> Span => Memory.Span;
+    /// <summary>The bytes that were read. Empty after <see cref="Dispose"/>.</summary>
+    public ReadOnlySpan<byte> Span => Memory.Span;
 
+    /// <summary>Clears the array and returns it to the pool. Calling it again does nothing.</summary>
     public void Dispose()
     {
         var array = Interlocked.Exchange(ref _array, null);
-        if (array is not null) ArrayPool<byte>.Shared.Return(array);
+        if (array is not null) ArrayPool<byte>.Shared.Return(array, clearArray: true);
     }
 }
 
@@ -42,13 +48,18 @@ internal static class BoundedContent
     /// <param name="limit">The largest allowed size, in bytes.</param>
     /// <param name="what">What is being read, for the message (for example <c>Response body</c>).</param>
     /// <param name="agent">The client name, for the message.</param>
-    /// <param name="option">The <see cref="A2AClientLimits"/> property to name in the message.</param>
+    /// <param name="option">
+    /// The <see cref="A2AClientLimits"/> property to name in the message (the message then says <c>A2AClientOptions.Limits.{option}</c>),
+    /// or a full option path that contains a dot (for example <c>A2ACardResolverOptions.MaxCardBytes</c>), which is named as given.
+    /// </param>
     /// <param name="ct">A token that cancels the read.</param>
     /// <exception cref="A2AException">The content is larger than the limit (<see cref="A2AErrorCode.InvalidAgentResponse"/>).</exception>
     public static async ValueTask<PooledBuffer> ReadAsync(HttpContent content, long limit, string what, string agent, string option,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(content);
+        // A buffer cannot be larger than Array.MaxLength, so a larger limit means the same as that size. This also keeps the (int) casts safe.
+        limit = Math.Min(limit, Array.MaxLength);
         if (content.Headers.ContentLength is { } declared && declared > limit)
             throw TooLarge(what, agent, limit, option);
 
@@ -70,7 +81,7 @@ internal static class BoundedContent
                     }
                     var grown = ArrayPool<byte>.Shared.Rent((int)Math.Min(limit, (long)buffer.Length * 2));
                     buffer.AsSpan(0, length).CopyTo(grown);
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                     buffer = grown;
                 }
 
@@ -83,7 +94,7 @@ internal static class BoundedContent
         }
         catch
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             throw;
         }
     }
@@ -97,14 +108,21 @@ internal static class BoundedContent
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(probe);
+            ArrayPool<byte>.Shared.Return(probe, clearArray: true);
         }
     }
 
     /// <summary>Builds the exception for a read that went over a limit.</summary>
+    /// <param name="what">What was read, for the message.</param>
+    /// <param name="agent">The client name, for the message.</param>
+    /// <param name="limit">The limit that was exceeded, in bytes.</param>
+    /// <param name="option">An <see cref="A2AClientLimits"/> property name, or a full option path that contains a dot.</param>
     public static A2AException TooLarge(string what, string agent, long limit, string option)
-        => new(A2AErrorCode.InvalidAgentResponse,
-            $"{what} from agent '{agent}' is larger than {FormatSize(limit)}; raise A2AClientOptions.Limits.{option} if this agent is trusted.");
+    {
+        var path = option.Contains('.', StringComparison.Ordinal) ? option : $"A2AClientOptions.Limits.{option}";
+        return new(A2AErrorCode.InvalidAgentResponse,
+            $"{what} from agent '{agent}' is larger than {FormatSize(limit)}; raise {path} if this agent is trusted.");
+    }
 
     /// <summary>Formats a size as <c>N MiB</c> or <c>N KiB</c> when it is an exact multiple, otherwise <c>N bytes</c>.</summary>
     public static string FormatSize(long bytes)
