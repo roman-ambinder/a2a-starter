@@ -30,6 +30,7 @@ This plan assumes package 01's rename and split are merged into `master`. It use
 | Shipped projects | `src/Ambinder.A2A.<Name>/` (Protocol, Server, AspNetCore, AspNetCore.Grpc, Client, Client.Grpc, …) |
 | New in this plan | `src/Ambinder.A2A.Testing/`, `src/Ambinder.A2A.Testing.AI/`, `src/Ambinder.A2A.Testing.Conformance/` (01 may have created empty projects; reuse them) |
 | Tests | `tests/Ambinder.A2A.<Package>.Tests` (01 naming rule) |
+| Extra test-side projects from 01 (01 plan, decision 5 and Task 6) | `tests/Ambinder.A2A.Client.Grpc.Tests` (xunit; the tests that need `Ambinder.A2A.Client.Grpc` internals, because a test assembly may see the internal proto types of only one gRPC assembly); `tests/Ambinder.A2A.Coexistence` (console, compiles against the official `A2A` package and ours, never run); `tests/Ambinder.A2A.CoreOnly.Smoke` (console app that `eng/check-core-only.sh` publishes to prove the core needs no ASP.NET Core, gRPC or Azure DLL). Spec 12 §7's target table does not list them; this plan keeps all three (Task 16). |
 | Props | `Directory.Build.props`, `src/Directory.Build.props` (packable, metadata), `tests/Directory.Build.props` and `samples/Directory.Build.props` (`IsPackable=false`) |
 | Dependency allow-list | `eng/package-dependencies.json` and its test (01 §6) |
 | CI | `.github/workflows/ci.yml` with 01's jobs (pack, allow-list, samples on packages, coexistence, reproducibility, Windows leg, AOT smoke) and its NuGet audit levels (C1) |
@@ -40,6 +41,7 @@ Phase 1 file names in the spec's §7 table (for example `tests/A2A.Server.Tests/
 - Task 0 (checks 01's layout).
 - Every task: project paths, `Ambinder.A2A.*` namespaces, test project names, `Ambinder.A2A.slnx` in commands.
 - Task 1: creating the three `src/` projects per the package map (README from 01's template, description, tags, `IsAotCompatible` = no for all three, `eng/package-dependencies.json` entries, pack output listed in the map).
+- Task 16, 19, 22, 24, 25: the three extra test-side projects 01 adds (row above) keep their names, places and jobs.
 - Task 22: test-side analyzer settings go into 01's `tests/Directory.Build.props` and `samples/Directory.Build.props`.
 - Task 23 and Task 25: they extend 01's `ci.yml` (job split) and keep 01's audit levels (C1) and Windows leg.
 - Task 28: `.gitignore` entries that 01 did not add (01 adds `TestResults/`; this plan adds `coverage/` and `*.trx` if missing).
@@ -430,6 +432,17 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** Create `tests/Ambinder.A2A.Samples.Tests/`, `tests/Ambinder.A2A.Repo.Tests/`. Move `…Integration.Tests/Flows/*` and `…/Samples/*` to `Samples.Tests`; `…/Repo/*` to `Repo.Tests`; `Fixtures/A2ATestHost.cs` to `Samples.Tests` (it keeps its port base). If 10 did not create `tests/Ambinder.A2A.Client.Tests`, create it and move `…Integration.Tests/Client/*` unit parts there (`TransportParityTests` stays in Integration on `A2ATestServer`). Create `tests/Ambinder.A2A.Extensions.AI.Tests` only if 11 did not.
 
+- [ ] **Step 0: Keep 01's three extra projects** (§0.1). They stay where 01 put them, under the same names. The target layout of spec 12 §7 is extended with:
+
+| Project | Content | Uses |
+|---|---|---|
+| `Ambinder.A2A.Client.Grpc.Tests` (01) | gRPC client transport tests that need `Ambinder.A2A.Client.Grpc` internals | fake handlers, `A2ATestServer` (gRPC on `TestServer`) |
+| `Ambinder.A2A.Coexistence` (01) | not a test project: compiles with the official `A2A` package; built by the solution build, never run | none |
+| `Ambinder.A2A.CoreOnly.Smoke` (01) | not a test project: published by 01's `core-only` job | none |
+
+   - Do not merge `Client.Grpc.Tests` into `Client.Tests`. The two test assemblies see the internals of different assemblies (01 decision 5), and the generated `Lf.A2a.V1` types would clash.
+   - If 10 moved gRPC transport tests elsewhere and `Client.Grpc.Tests` is empty, keep the project only if 10's plan still uses it; otherwise delete it and list that in the commit message.
+   - `Coexistence` and `CoreOnly.Smoke` keep `IsTestProject=false` (set it explicitly if 01 did not), so `dotnet test` and the coverage run skip them.
 - [ ] **Step 1:** Moves only (no test changes). Update `.csproj` references: only `Samples.Tests` references `samples/`.
 - [ ] **Step 2:** Run the whole suite. Expected: the same test-case count as Task 0 (Review Focus 5) and green.
 - [ ] **Step 3:** Commit `test: split Samples.Tests, Repo.Tests and Client.Tests`.
@@ -455,7 +468,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 **Files:** every file from Task 0's sleep and port lists; `tests/BannedSymbols.Tests.txt`; `tests/Directory.Build.props` (add `Microsoft.CodeAnalysis.BannedApiAnalyzers` with that file for test projects); `tests/Ambinder.A2A.Repo.Tests/StructureRulesTests.cs`.
 
-- [ ] **Step 1: Write failing `Repo.Tests`** (spec §7 rules 1–3): no `ProjectReference` to `samples/` outside `Samples.Tests` (parse every `.csproj`); no fixed port outside `Samples.Tests` (scan for `UseUrls`, `ListenLocalhost(\d+)`, `localhost:\d{4,5}`, `A2A_TEST_PORT_BASE`). Deployable hosts are not tests and are excluded by name: `tests/Ambinder.A2A.Tck.Sut` (03), `tests/Ambinder.A2A.Cluster.TckHost` and `tests/Ambinder.A2A.Cluster.KindHost` (06), and 16's `itk/` agent (review item 13); no `Thread.Sleep`/`Task.Delay` in tests outside `src/Ambinder.A2A.Testing`.
+- [ ] **Step 1: Write failing `Repo.Tests`** (spec §7 rules 1–3): no `ProjectReference` to `samples/` outside `Samples.Tests` (parse every `.csproj`); no fixed port outside `Samples.Tests` (scan for `UseUrls`, `ListenLocalhost(\d+)`, `localhost:\d{4,5}`, `A2A_TEST_PORT_BASE`). Deployable hosts are not tests and are excluded by name: `tests/Ambinder.A2A.Tck.Sut` (03), `tests/Ambinder.A2A.Cluster.TckHost` and `tests/Ambinder.A2A.Cluster.KindHost` (06), and 16's `itk/` agent (review item 13). 01's `tests/Ambinder.A2A.Coexistence` and `tests/Ambinder.A2A.CoreOnly.Smoke` are not excluded: they open no port and do not sleep, and the rules keep it that way. `tests/Ambinder.A2A.Client.Grpc.Tests` is a test project under every rule; no `Thread.Sleep`/`Task.Delay` in tests outside `src/Ambinder.A2A.Testing`.
 - [ ] **Step 2:** Run. Expected: FAIL listing the offenders.
 - [ ] **Step 3:** Replace each sleep with `Events.WaitForAsync`, `FakeTimeProvider.Advance` or `Gate`/`Signal`; each fixed port with the in-memory host or port 0. Add the banned-symbol file (`T:System.Threading.Thread.Sleep`… and `M:System.Threading.Tasks.Task.Delay(…)` overloads, each with a message naming the replacement).
 - [ ] **Step 4:** Run the whole suite three times in a row. Expected: green every time; Repo.Tests green; final case count ≥ Task 0 baseline minus documented duplicates.
@@ -488,7 +501,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 - [ ] **Step 1:** Check 02's `src/` settings (Task 0). Do not change them. If any `src/` item from spec §6 is missing, list it as "02 open" in the PR body.
 - [ ] **Step 2: Write failing test** (§0.3 item 6): the source scan finds a sample assertion-free `[Fact]` in a fixture file under `Repo.Tests/TestData/` and reports it.
-- [ ] **Step 3:** Turn on the xunit analyzer rules as errors for empty test bodies and the `xUnit2013` family; fix every finding in the repo in this PR (spec: "fixed in the same PR, never baselined").
+- [ ] **Step 3:** Turn on the xunit analyzer rules as errors for empty test bodies and the `xUnit2013` family; fix every finding in the repo in this PR (spec: "fixed in the same PR, never baselined"). The source scan runs on every project with `IsTestProject=true`, `Client.Grpc.Tests` included. It skips `Coexistence` and `CoreOnly.Smoke`, which have no test methods. The analyzer settings (`AnalysisMode Default`) apply to all three, because they live under `tests/`.
 - [ ] **Step 4:** `dotnet build Ambinder.A2A.slnx` clean; run Repo.Tests. Expected: PASS.
 - [ ] **Step 5:** Commit `build: test-side analyzers and assertion-free test check`.
 
@@ -516,7 +529,7 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 - [ ] **Step 3: Implement:**
   - Run tests with `--coverage --coverage-output-format cobertura`; merge with `dotnet-coverage merge`; render HTML and Markdown summary with ReportGenerator; upload both as artifacts; append the Markdown to `$GITHUB_STEP_SUMMARY`.
   - Exclusions only: `[GeneratedCode]`, proto output, source-generated JSON, `samples/`, `tests/`.
-  - Thresholds per spec table: Protocol and Server 90/80; Client, Extensions.AI, Testing 85/75; stores and cluster 80/70.
+  - Thresholds per spec table: Protocol and Server 90/80; Client, Extensions.AI, Testing 85/75; stores and cluster 80/70. Spec 12 names no row for `Ambinder.A2A.Client.Grpc`: count it in the Client row (85/75), with coverage from `Client.Grpc.Tests` and the integration tests *(plan-writer's call)*. `Coexistence` and `CoreOnly.Smoke` are not run, so they add no coverage and are not a scope.
   - Master baseline: the `build-test` job on `push` to master uploads its summary as an artifact; PR runs download the latest one (`actions/download-artifact` with run lookup via `gh api` is acceptable) for the 1-point delta. If none exists yet, the delta check is skipped with a notice.
 - [ ] **Step 4:** Run in CI. If a scope is under its threshold, add tests for real behavior in this PR (never exclusions). Record final numbers in the PR body.
 - [ ] **Step 5:** Commit `ci: coverage collection and gates`.
@@ -527,6 +540,10 @@ Record total test cases, the sleep occurrences and files, and the port-base file
 
 - [ ] **Step 1:** Split `ci.yml` into jobs per spec §6: `build-test` (restore, build with analyzers, unit + library integration tests, coverage + gates), `samples` (build samples, `Samples.Tests`), plus the slots that call 03's `tck`, 16's `interop-smoke` (and `interop-full` nightly, C15) and 14's `perf` job (`perf.yml`, 14 plan Task 14) when they exist. Keep every 01 job, and the jobs and workflows other packages added: 05's `stores-containers` job and its SQL-script and migration drift steps, 06's `tck-cluster` leg and container suite, 09's `aks-kind.yml`/`aks-live.yml` (review item 9), and 02's `public-api-diff` job. Keep that job's name: the owner makes it a required check (02 plan Task 14.1), and a renamed job would never report *(cross-plan review)*. Jobs run in parallel.
 - [ ] **Step 2:** `nightly.yml` (`schedule` + `workflow_dispatch`; 05 may have created it already — extend it and keep 05's soak and `Db` benchmark steps): the audit (Task 23), `Stress.Tests` (Task 26), the FsCheck properties with a higher iteration count, Stryker.NET on Protocol and Server task logic (advisory: score to the job summary, never fails), and a call to 01's Windows leg if 01 put it elsewhere. Nightly and release builds use 01's strict audit flag (C1).
+- [ ] **Step 2a: 01's extra projects in the layout.**
+  - `build-test` runs `Client.Grpc.Tests` with the other unit tests, on Linux on every PR. It is not added to 01's Windows leg, which covers Protocol, Server and Client only.
+  - `Coexistence` keeps compiling inside `build-test`'s solution build.
+  - `CoreOnly.Smoke` keeps 01's own `core-only` job; this plan does not move it.
 - [ ] **Step 3:** `build-test` prints its test run time to the job summary and fails above 6 minutes.
 - [ ] **Step 4:** Push and confirm all jobs run. Record the `build-test` time.
 - [ ] **Step 5:** Commit `ci: job layout and nightly workflow`.
