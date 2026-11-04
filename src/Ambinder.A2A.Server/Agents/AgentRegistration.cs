@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Security;
 
 namespace Ambinder.A2A.Server.Agents;
 
@@ -17,4 +18,12 @@ public sealed record AgentRegistration(
     Type HandlerType,
     AgentCard PublicCard,
     AgentCard? ExtendedCard,
-    string? AuthorizationPolicy);
+    string? AuthorizationPolicy)
+{
+    /// <summary>
+    /// Who may call the ordinary operations of this agent, or <see langword="null"/> when no mode was set. A null mode means
+    /// <see cref="AgentAccess.Authenticated"/>, except in the Development environment when no authentication scheme is
+    /// registered at all: then the agent runs as <see cref="AgentAccess.Anonymous"/> and startup logs one warning.
+    /// </summary>
+    public AgentAccess? Access { get; init; }
+}

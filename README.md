@@ -214,8 +214,8 @@ Every public test class under `tests/Ambinder.A2A.Integration.Tests/Flows/` is n
 
 1. Copy or reference `src/Ambinder.A2A.Protocol`, `src/Ambinder.A2A.Server`, `src/Ambinder.A2A.AspNetCore` and, to serve gRPC, `src/Ambinder.A2A.AspNetCore.Grpc` with `src/Grpc.Shared` ([details](src/Ambinder.A2A.Server/README.md)), plus `proto/` (`Ambinder.A2A.AspNetCore.Grpc` compiles `proto/a2a.proto`).
 2. Write an `IAgentHandler` (see `samples/AgentServer/Agents/EchoAgent.cs` for the smallest one).
-3. Register it with `AddA2AServer(...).AddA2AGrpc().AddAgent<THandler>(name, publicCard, extendedCard, policy)` (`AddA2AGrpc()` only when serving gRPC), then call `MapA2A()` and `MapA2AGrpc()`.
-4. Bring your own authentication and authorization policies. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
+3. Register it with `AddA2AServer(...).AddA2AGrpc().AddAgent<THandler>(name, publicCard, extendedCard, policy, access)` (`AddA2AGrpc()` only when serving gRPC), then call `MapA2A()` and `MapA2AGrpc()`.
+4. Bring your own authentication and authorization policies. Agents require authentication by default; pass `access: AgentAccess.Anonymous` to `AddAgent` for an open one. `samples/AgentServer/Auth/AuthSetup.cs` shows Entra JWT plus API key.
 5. Swap `ITaskStore` and `IPushConfigStore` for durable ones before production.
 
 `samples/AgentServer/AgentServerApp.cs` is the full wiring. The default request handler records spans and metrics with `System.Diagnostics`; see [docs/production.md](docs/production.md#6-observability-otlp).

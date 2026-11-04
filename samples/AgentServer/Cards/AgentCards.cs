@@ -1,4 +1,5 @@
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using AgentServer.Auth;
 
@@ -29,7 +30,18 @@ public static class AgentCards
     public const string EntraOidcScheme = "entraOidc";
     public const string ApiKeyScheme = "apiKey";
 
-    /// <summary>Authorization policy per agent (null = open).</summary>
+    /// <summary>
+    /// Access mode per agent: only the echo agent is open to anonymous callers; every other agent needs a token or an API key
+    /// (agents are authenticated by default).
+    /// </summary>
+    public static AgentAccess? AccessFor(string name) => name switch
+    {
+        Echo => AgentAccess.Anonymous,
+        Report or Booking or Secure => null,
+        _ => throw Unknown(name),
+    };
+
+    /// <summary>Authorization policy per agent (null = no extra policy).</summary>
     public static string? PolicyFor(string name) => name switch
     {
         Echo => null,

@@ -47,6 +47,7 @@ public static class A2AServerServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<A2ASecurityOptions>, SecurityOptionsConfiguration>());
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
+        services.TryAddSingleton<DevelopmentAnonymousAgents>();
         services.TryAddSingleton<AgentCardRenderer>();
         services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;

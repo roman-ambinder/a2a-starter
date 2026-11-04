@@ -47,12 +47,13 @@ public static class AgentServerApp
             Func<IServiceProvider, AgentCard>? extendedCard =
                 AgentCards.HasExtendedCard(name) ? sp => AgentCards.Build(name, Server(sp), auth, extended: true) : null;
             var policy = AgentCards.PolicyFor(name);
+            var access = AgentCards.AccessFor(name);
             switch (name)
             {
-                case AgentCards.Echo: a2a.AddAgent<EchoAgent>(name, publicCard, extendedCard, policy); break;
-                case AgentCards.Report: a2a.AddAgent<ReportAgent>(name, publicCard, extendedCard, policy); break;
-                case AgentCards.Booking: a2a.AddAgent<BookingAgent>(name, publicCard, extendedCard, policy); break;
-                case AgentCards.Secure: a2a.AddAgent<SecureAgent>(name, publicCard, extendedCard, policy); break;
+                case AgentCards.Echo: a2a.AddAgent<EchoAgent>(name, publicCard, extendedCard, policy, access); break;
+                case AgentCards.Report: a2a.AddAgent<ReportAgent>(name, publicCard, extendedCard, policy, access); break;
+                case AgentCards.Booking: a2a.AddAgent<BookingAgent>(name, publicCard, extendedCard, policy, access); break;
+                case AgentCards.Secure: a2a.AddAgent<SecureAgent>(name, publicCard, extendedCard, policy, access); break;
                 default: throw new InvalidOperationException($"No handler for agent '{name}'.");
             }
         }

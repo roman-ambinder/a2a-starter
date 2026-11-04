@@ -61,7 +61,7 @@ Ambinder.A2A.Server.Agents.AgentRegistration.PublicCard.init -> void
 Ambinder.A2A.Server.Auth.IAgentAuthorizer
 Ambinder.A2A.Server.Auth.IAgentAuthorizer.AuthorizeAsync(Ambinder.A2A.Server.Agents.AgentRegistration! agent, System.Security.Claims.ClaimsPrincipal! user, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder
-Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string! name, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>! publicCard, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>? extendedCard = null, string? authorizationPolicy = null) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string! name, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>! publicCard, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>? extendedCard = null, string? authorizationPolicy = null, Ambinder.A2A.Server.Security.AgentAccess? access = null) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Ambinder.A2A.Server.Hosting.A2AServerOptions
 Ambinder.A2A.Server.Hosting.A2AServerOptions.A2AServerOptions() -> void
@@ -227,3 +227,8 @@ static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Task
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 ~override Ambinder.A2A.Server.Security.OwnerKey.Equals(object obj) -> bool
+Ambinder.A2A.Server.Agents.AgentRegistration.Access.get -> Ambinder.A2A.Server.Security.AgentAccess?
+Ambinder.A2A.Server.Agents.AgentRegistration.Access.init -> void
+Ambinder.A2A.Server.Security.AgentAccess
+Ambinder.A2A.Server.Security.AgentAccess.Anonymous = 1 -> Ambinder.A2A.Server.Security.AgentAccess
+Ambinder.A2A.Server.Security.AgentAccess.Authenticated = 0 -> Ambinder.A2A.Server.Security.AgentAccess

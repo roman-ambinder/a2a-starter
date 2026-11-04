@@ -6,9 +6,6 @@ namespace Ambinder.A2A.Server.Tasks;
 /// <summary>In-memory <see cref="ITaskStore"/>. Copies tasks on save and on read.</summary>
 internal sealed class InMemoryTaskStore : ITaskStore
 {
-    private const int DefaultPageSize = 50;
-    private const int MaxPageSize = 100;
-
     private readonly ConcurrentDictionary<(string Agent, string TaskId), StoredTask> _tasks = new();
 
     public ValueTask<StoredTask?> GetAsync(string agentName, string taskId, CancellationToken ct)
@@ -22,11 +19,7 @@ internal sealed class InMemoryTaskStore : ITaskStore
 
     public ValueTask<ListTasksResponse> ListAsync(string agentName, string owner, ListTasksRequest request, CancellationToken ct)
     {
-        var pageSize = request.PageSize ?? DefaultPageSize;
-        if (pageSize is < 1 or > MaxPageSize)
-            throw new A2AException(A2AErrorCode.InvalidParams, $"pageSize must be between 1 and {MaxPageSize}. Send a value in that range, or omit it.");
-        if (request.HistoryLength is < 0)
-            throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative. Send 0 or more, or omit it.");
+        var pageSize = ListTasksRules.ValidatePageSizeAndHistory(request);
 
         (DateTimeOffset Ts, string Id)? cursor = null;
         if (!string.IsNullOrEmpty(request.PageToken))

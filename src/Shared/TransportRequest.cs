@@ -45,13 +45,15 @@ internal static partial class TransportRequest
     /// <summary>
     /// The extra check for GetExtendedAgentCard: an authenticated caller, but only when the card declares
     /// <c>capabilities.extendedAgentCard</c>. Otherwise the handler answers UnsupportedOperation to anyone (spec 3.3.4).
+    /// This holds for every access mode: <see cref="AgentAccess.Anonymous"/> covers the ordinary operations only.
     /// Throws <see cref="A2AAuthException"/> (401).
     /// </summary>
     public static void AuthorizeExtendedCard(AgentRegistration agent, A2ACaller caller)
     {
         if (agent.PublicCard.Capabilities.ExtendedAgentCard != true || IsAuthenticated(caller.Principal)) return;
         TagError("401");
-        throw new A2AAuthException(401, "Authentication is required.");
+        throw new A2AAuthException(401,
+            $"Authentication is required. Send a bearer token for agent '{agent.Name}'; the extended agent card is never served to anonymous callers.");
     }
 
     private static void TagError(string type) => Activity.Current?.SetTag("error.type", type);

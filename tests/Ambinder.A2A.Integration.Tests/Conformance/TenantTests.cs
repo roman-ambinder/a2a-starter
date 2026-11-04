@@ -174,7 +174,7 @@ public sealed class TenantTests(TenantTests.TenantServer server) : IClassFixture
                     o.InterfaceTenants["echo"] = "t1";
                 })
                 .AddA2AGrpc()
-                .AddAgent<EchoAgent>("echo", _ => MinimalServer.Card("echo", extended: false));
+                .AddAgent<EchoAgent>("echo", _ => MinimalServer.Card("echo", extended: false), access: Ambinder.A2A.Server.Security.AgentAccess.Anonymous);
             _app = builder.Build();
             _app.MapA2A();
             _app.MapA2AGrpc();

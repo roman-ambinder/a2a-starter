@@ -163,7 +163,7 @@ public sealed class CallerResolutionTests
             builder.Services
                 .AddA2AServer(o => o.PublicBaseUrl = "http://127.0.0.1:1")
                 .AddA2AGrpc()
-                .AddAgent<EchoAgent>(AgentName, _ => MinimalServer.Card(AgentName, extended: false));
+                .AddAgent<EchoAgent>(AgentName, _ => MinimalServer.Card(AgentName, extended: false), access: AgentAccess.Anonymous);
 
             server.App = builder.Build();
             server.App.UseAuthentication();

@@ -5,7 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 var baseUrl = builder.Configuration["A2A:PublicBaseUrl"] ?? "http://localhost:5100";
 builder.ConfigureA2AKestrel(); // listens on the port of PublicBaseUrl
 builder.Services.AddA2AServer(o => { o.PublicBaseUrl = baseUrl; o.DefaultAgent = "hello"; })
-    .AddAgent<HelloAgent>("hello", _ => new AgentCard { Name = "hello", Description = "Says hello.", Version = "1.0.0" });
+    // Agents need authentication by default. This demo has none, so it opts in to anonymous callers.
+    .AddAgent<HelloAgent>("hello", _ => new AgentCard { Name = "hello", Description = "Says hello.", Version = "1.0.0" },
+        access: Ambinder.A2A.Server.Security.AgentAccess.Anonymous);
 
 var app = builder.Build();
 app.MapA2A(); // the agent card and the JSON-RPC and HTTP+JSON endpoints

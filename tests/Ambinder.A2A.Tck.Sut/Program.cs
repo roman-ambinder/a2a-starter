@@ -4,6 +4,7 @@ using Ambinder.A2A.Protocol;
 using Ambinder.A2A.AspNetCore.Grpc;
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Security;
 
 // System under test for the official A2A TCK (https://github.com/a2aproject/a2a-tck). Public SDK APIs only.
 // Run:  dotnet run --project tests/Ambinder.A2A.Tck.Sut -- --port 9999 --grpc-port 10000
@@ -23,7 +24,7 @@ builder.Services
         o.Push.AllowPrivateNetworks = true; // the TCK webhook receiver listens on localhost
     })
     .AddA2AGrpc()
-    .AddAgent<TckAgent>(TckAgent.Name, _ => TckAgent.Card);
+    .AddAgent<TckAgent>(TckAgent.Name, _ => TckAgent.Card, access: AgentAccess.Anonymous); // the TCK cannot send credentials
 builder.ConfigureA2AKestrel();
 
 var app = builder.Build();

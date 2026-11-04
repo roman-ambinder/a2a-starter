@@ -1,5 +1,6 @@
 using Ambinder.A2A.Integration.Tests.Fixtures;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +48,7 @@ public sealed class StartupValidationTests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddAuthorizationBuilder().AddPolicy("Known", p => p.RequireAuthenticatedUser());
         builder.Services.AddA2AServer(o => { o.PublicBaseUrl = "http://127.0.0.1:1"; o.DefaultAgent = "a"; })
-            .AddAgent<EchoAgent>("a", _ => MinimalServer.Card("a", extended: false), authorizationPolicy: "Known");
+            .AddAgent<EchoAgent>("a", _ => MinimalServer.Card("a", extended: false), authorizationPolicy: "Known", access: AgentAccess.Anonymous);
         await using var app = builder.Build();
         app.MapA2A();
         await app.StartAsync(TestContext.Current.CancellationToken);

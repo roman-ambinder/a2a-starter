@@ -7,6 +7,7 @@ using Ambinder.A2A.Server;
 using Ambinder.A2A.AspNetCore.Grpc;
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -94,8 +95,8 @@ public sealed class MinimalServer : IAsyncLifetime
             .AddAgent<EchoAgent>(EchoAgentName, _ => Card(EchoAgentName, extended: true), _ => Card(EchoAgentName, extended: true) with
             {
                 Description = "Extended echo card",
-            })
-            .AddAgent<StatesAgent>(StatesAgentName, _ => Card(StatesAgentName, extended: false))
+            }, access: AgentAccess.Anonymous)
+            .AddAgent<StatesAgent>(StatesAgentName, _ => Card(StatesAgentName, extended: false), access: AgentAccess.Anonymous)
             .AddAgent<EchoAgent>(ProtectedAgentName, _ => Card(ProtectedAgentName, extended: false), authorizationPolicy: InvokerPolicy);
 
         _app = builder.Build();

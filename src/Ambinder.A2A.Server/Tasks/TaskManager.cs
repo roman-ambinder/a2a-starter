@@ -98,6 +98,10 @@ internal sealed class TaskManager : IA2ARequestHandler
     public async Task<ListTasksResponse> ListTasksAsync(A2ACallContext call, ListTasksRequest request, CancellationToken ct)
     {
         GetAgent(call);
+        // Anonymous callers never list: the "anonymous" owner is shared by everyone who sends no credentials, so a page would show
+        // one anonymous caller's tasks to the next. They reach a task only by its id.
+        if (call.Caller.Kind == CallerKind.Anonymous)
+            return new ListTasksResponse { NextPageToken = "", PageSize = ListTasksRules.ValidatePageSizeAndHistory(request), TotalSize = 0 };
         return await _writer.Store.ListAsync(call.AgentName, call.Caller.Owner, request, ct).ConfigureAwait(false);
     }
 

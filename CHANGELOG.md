@@ -63,6 +63,14 @@ Every preview section keeps a `### Breaking changes` heading.
 - **`AgentRequestContext` gains a positional `Caller` parameter** (an `A2ACaller`, after `User`). The constructor and `Deconstruct` change, so
   code that creates the record or deconstructs it must be updated; reading properties is unaffected. `Caller` is the value
   `IA2ACallerAccessor.Current` returns during the run. The positional shape is interim; package 11 converts the record.
+- **Agents require authentication by default.** An agent that does not opt out answers an unauthenticated caller with 401 and a
+  challenge on JSON-RPC, REST and gRPC (cards and the push JWKS stay public). The host fails startup when an agent needs
+  authentication and no authentication scheme is registered: "Agent 'x' requires authentication but no scheme is registered. Call
+  AddEntraAuthentication(...) or mark the agent AllowAnonymous()." In the Development environment, with no scheme registered, an
+  agent with no access mode runs anonymously and startup logs one warning per agent. To keep an agent open, pass
+  `access: AgentAccess.Anonymous` to `AddAgent`; anonymous callers are owner `anonymous`, get an empty `ListTasks` page and reach
+  tasks only by id. The extended agent card always needs an authenticated caller, even on an anonymous agent.
+  `AddAgent` has a new optional `access` parameter and `AgentRegistration` a new `Access` property.
 
 ### Added
 

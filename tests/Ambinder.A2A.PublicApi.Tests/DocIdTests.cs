@@ -20,7 +20,7 @@ public class DocIdTests
     {
         var method = typeof(A2AServerBuilder).GetMethod(nameof(A2AServerBuilder.AddAgent))!;
         Assert.Equal(
-            "M:Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent``1(System.String,System.Func{System.IServiceProvider,Ambinder.A2A.Protocol.AgentCard},System.Func{System.IServiceProvider,Ambinder.A2A.Protocol.AgentCard},System.String)",
+            "M:Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent``1(System.String,System.Func{System.IServiceProvider,Ambinder.A2A.Protocol.AgentCard},System.Func{System.IServiceProvider,Ambinder.A2A.Protocol.AgentCard},System.String,System.Nullable{Ambinder.A2A.Server.Security.AgentAccess})",
             DocIds.For(method));
     }
 

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -26,7 +27,12 @@ public sealed partial class A2AServerBuilder
     /// <param name="name">URL-safe agent name (letters, digits, <c>-</c>, <c>_</c>, <c>.</c>).</param>
     /// <param name="publicCard">The anonymous card.</param>
     /// <param name="extendedCard">The extended card for authenticated callers. Also set <c>capabilities.extendedAgentCard</c> on the public card.</param>
-    /// <param name="authorizationPolicy">ASP.NET Core policy every operation of this agent must pass (cards excepted). Null → open.</param>
+    /// <param name="authorizationPolicy">ASP.NET Core policy every operation of this agent must pass (cards excepted). Null → no extra policy.</param>
+    /// <param name="access">
+    /// Who may call this agent's ordinary operations. Null (not set) means <see cref="AgentAccess.Authenticated"/>, except in the
+    /// Development environment when no authentication scheme is registered. Pass <see cref="AgentAccess.Anonymous"/> to allow
+    /// unauthenticated callers; the extended card still needs an authenticated caller.
+    /// </param>
     /// <typeparam name="THandler">The handler type. The server creates a new instance for each execution with dependency injection, so the type may take registered services in its constructor.</typeparam>
     /// <returns>This builder, so calls can be chained.</returns>
     /// <exception cref="ArgumentException">The name is empty, has other characters than letters, digits, <c>-</c>, <c>_</c> or <c>.</c>, or is already registered.</exception>
@@ -46,7 +52,7 @@ public sealed partial class A2AServerBuilder
     /// </code>
     /// </example>
     public A2AServerBuilder AddAgent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>(string name, Func<IServiceProvider, AgentCard> publicCard,
-        Func<IServiceProvider, AgentCard>? extendedCard = null, string? authorizationPolicy = null)
+        Func<IServiceProvider, AgentCard>? extendedCard = null, string? authorizationPolicy = null, AgentAccess? access = null)
         where THandler : class, IAgentHandler
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -55,7 +61,7 @@ public sealed partial class A2AServerBuilder
             throw new ArgumentException($"Agent name '{name}' must contain only letters, digits, '-', '_' or '.'.", nameof(name));
         if (_agents.Any(a => a.Name == name))
             throw new ArgumentException($"Agent '{name}' is registered twice.", nameof(name));
-        _agents.Add(new Definition(name, typeof(THandler), publicCard, extendedCard, authorizationPolicy));
+        _agents.Add(new Definition(name, typeof(THandler), publicCard, extendedCard, authorizationPolicy, access));
         return this;
     }
 
@@ -67,7 +73,7 @@ public sealed partial class A2AServerBuilder
             a.HandlerType,
             AgentCardInterfaces.Apply(a.PublicCard(services), a.Name, options),
             a.ExtendedCard is null ? null : AgentCardInterfaces.Apply(a.ExtendedCard(services), a.Name, options),
-            a.AuthorizationPolicy)).ToList();
+            a.AuthorizationPolicy) { Access = a.Access }).ToList();
         if (options.DefaultAgent is { } d && registrations.All(r => r.Name != d))
             throw new InvalidOperationException(
                 $"A2AServerOptions.DefaultAgent is '{d}', which is not a registered agent (registered: {(registrations.Count == 0 ? "none" : string.Join(", ", registrations.Select(r => $"'{r.Name}'")))}). " +
@@ -80,5 +86,5 @@ public sealed partial class A2AServerBuilder
 
     private sealed record Definition(string Name,
         [property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type HandlerType, Func<IServiceProvider, AgentCard> PublicCard,
-        Func<IServiceProvider, AgentCard>? ExtendedCard, string? AuthorizationPolicy);
+        Func<IServiceProvider, AgentCard>? ExtendedCard, string? AuthorizationPolicy, AgentAccess? Access);
 }
