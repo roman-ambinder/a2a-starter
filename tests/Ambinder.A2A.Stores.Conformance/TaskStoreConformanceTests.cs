@@ -9,17 +9,17 @@ public abstract class TaskStoreConformanceTests
     protected abstract ValueTask<StoreSet> CreateStoresAsync();
 
     /// <summary>The case ids, one test each.</summary>
-    public static TheoryData<string> CaseIds { get; } = new(TaskStoreConformanceCases.All.Select(c => c.Id));
+    public static TheoryData<string> CaseIds { get; } = new(ConformanceCatalog.UniqueIds(TaskStoreConformanceCases.All));
 
     /// <summary>Runs one conformance case.</summary>
     [Theory(SkipExceptions = [typeof(ConformanceSkipException)])]
     [MemberData(nameof(CaseIds))]
     public async Task Case(string id)
     {
-        var c = TaskStoreConformanceCases.All.Single(x => x.Id == id);
+        var c = ConformanceCatalog.Find(TaskStoreConformanceCases.All, id);
+        ConformanceAssert.CurrentCase.Value = id;
         await using var stores = await CreateStoresAsync();
         if (c.SkipReason?.Invoke(stores.Capabilities) is { } reason) throw new ConformanceSkipException(reason);
-        ConformanceAssert.CurrentCase.Value = id;
         await c.Run(stores, TestContext.Current.CancellationToken);
     }
 }

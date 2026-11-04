@@ -21,4 +21,14 @@ public sealed record ConformanceCase
 public sealed class ConformanceSkipException(string reason) : Exception(reason);
 
 /// <summary>Thrown when a conformance assertion fails; the message names the case id and the values.</summary>
-public sealed class ConformanceFailedException(string message) : Exception(message);
+public sealed class ConformanceFailedException : Exception
+{
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">The failure message.</param>
+    public ConformanceFailedException(string message) : base(message) { }
+
+    /// <summary>Creates the exception wrapping the unexpected exception that caused it.</summary>
+    /// <param name="message">The failure message.</param>
+    /// <param name="inner">The original exception.</param>
+    public ConformanceFailedException(string message, Exception? inner) : base(message, inner) { }
+}
