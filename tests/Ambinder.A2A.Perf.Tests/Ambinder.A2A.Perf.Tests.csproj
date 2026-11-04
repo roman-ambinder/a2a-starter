@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- One test at a time: GC.GetTotalAllocatedBytes counts every thread, so parallel tests would pollute each measurement. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Ambinder.A2A.Perf.Testing/Ambinder.A2A.Perf.Testing.csproj" />
+    <!-- Public API only: no src assembly shares internals with this project. -->
+    <ProjectReference Include="../../src/Ambinder.A2A.Protocol/Ambinder.A2A.Protocol.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
+    <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
+  </ItemGroup>
+</Project>

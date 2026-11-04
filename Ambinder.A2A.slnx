@@ -25,6 +25,8 @@
     <Project Path="tests/Ambinder.A2A.Coexistence/Ambinder.A2A.Coexistence.csproj" />
     <Project Path="tests/Ambinder.A2A.CoreOnly.Smoke/Ambinder.A2A.CoreOnly.Smoke.csproj" />
     <Project Path="tests/Ambinder.A2A.MockEntra.Tests/Ambinder.A2A.MockEntra.Tests.csproj" />
+    <Project Path="tests/Ambinder.A2A.Perf.Testing/Ambinder.A2A.Perf.Testing.csproj" />
+    <Project Path="tests/Ambinder.A2A.Perf.Tests/Ambinder.A2A.Perf.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.PublicApi.Tests/Ambinder.A2A.PublicApi.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Protocol.Tests/Ambinder.A2A.Protocol.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Client.Grpc.Tests/Ambinder.A2A.Client.Grpc.Tests.csproj" />
