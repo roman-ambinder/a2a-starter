@@ -4,6 +4,9 @@ Date: 2026-11-03
 Spec: [`2026-11-03-sdk-01-packaging-release-design.md`](../specs/2026-11-03-sdk-01-packaging-release-design.md) (approved; the authority)
 Work plan: [`2026-11-03-sdk-00-work-plan.md`](../specs/2026-11-03-sdk-00-work-plan.md)
 Milestone: M1
+Status: executed and merged into `master` by PR #84 (`e268cc1`). *(Plan review, 2026-11-04.)*
+- The merge also ported package 03's code to this layout (`02781b9`). So `tck.yml` already holds 03's TCK job, and only `interop.yml`, `benchmarks.yml` and `docs.yml` are still stubs.
+- 03's dispatcher seam (`IA2AVersionDispatcher`, `A2AVersionDispatchContext`, `IA2ACallerResolver`) is `internal` in `Ambinder.A2A.AspNetCore`, with a stand-in `DispatchCaller` record, by owner decision (03 plan, Task 8). Package 07's Phase A makes it public.
 
 > For the executor: run this plan task by task. Each task is done by one implementer subagent, then checked by a reviewer
 > subagent. Each task ends with a green `dotnet build -c Release` (0 warnings) and a green full test run, and with its own
@@ -49,8 +52,8 @@ These are not owner decisions. Each one is listed in the PR for the owner to see
    cannot move into `MapA2A`. Following the ASP.NET convention (`AddMvcCore`/`AddMvc`), `Ambinder.A2A.Server` gets
    `AddA2AServerCore(...)` (everything host-neutral, returns `A2AServerBuilder`), and `Ambinder.A2A.AspNetCore` gets
    `AddA2AServer(...)` with the same signature as today, which calls the core and adds the ASP.NET Core parts. A server app
-   still writes `AddA2AServer(...)`. The spec 01 map row puts `AddA2AServer` in Server; the PR flags this for the owner.
-   Package 09 may revisit.
+   still writes `AddA2AServer(...)`. The spec 01 map row puts `AddA2AServer` in Server. The owner accepted this split on
+   2026-11-03 (package 02 plan, assumption A14).
 2. **gRPC is opt-in through `AddA2AGrpc()`** (named by spec 09 §7.1) on `A2AServerBuilder`, in `Ambinder.A2A.AspNetCore.Grpc`.
    `AddA2AServer` no longer calls `AddGrpc()`. `ConfigureA2AKestrel` (it only sets Kestrel listeners) is a hosting helper in
    `Ambinder.A2A.AspNetCore`.
@@ -58,7 +61,8 @@ These are not owner decisions. Each one is listed in the PR for the owner to see
    `A2AClientOptions.Transports` (`IReadOnlyList<IA2AClientTransport>`, default empty). `Ambinder.A2A.Client.Grpc` provides
    `GrpcClientTransport` (`GrpcClientTransport.Instance`). Selection rules stay the same, but a binding counts as supported only
    when it is built in or in `Transports`. A card with only a gRPC interface and no gRPC transport throws
-   `NotSupportedException` whose message names `Ambinder.A2A.Client.Grpc` (rule 5; package 10 owns the final text and may replace
+   `NotSupportedException` whose message names `Ambinder.A2A.Client.Grpc` (rule 5; package 10 owns the final text, and its plan replaces the seam: assumption A10, Task 19 removes `IA2AClientTransport`,
+   `A2AClientOptions.Transports` and `GrpcClientTransport`; it may replace
    the seam). Minimal interface:
    ```csharp
    public interface IA2AClientTransport
