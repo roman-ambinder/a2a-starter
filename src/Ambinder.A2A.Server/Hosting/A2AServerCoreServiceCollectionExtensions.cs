@@ -59,6 +59,11 @@ public static class A2AServerCoreServiceCollectionExtensions
         // One PushOptions instance for the task manager and the sender: the one inside A2AServerOptions.
         services.AddSingleton<IOptions<PushOptions>>(sp => Microsoft.Extensions.Options.Options.Create(sp.GetRequiredService<IOptions<A2AServerOptions>>().Value.Push));
         services.AddA2APush();
+        // The effective PushOptions lives inside A2AServerOptions, so validate that instance when the host starts.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<PushOptions>, PushOptionsValidator>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<A2AServerOptions>, PushOptionsInServerOptionsValidator>());
+        services.AddOptions<A2AServerOptions>().ValidateOnStart();
+        services.AddOptions<PushOptions>().ValidateOnStart();
 
         services.TryAddSingleton<ITaskStore, InMemoryTaskStore>();
         services.TryAddSingleton<TaskEventBroker>(_ => new TaskEventBroker());

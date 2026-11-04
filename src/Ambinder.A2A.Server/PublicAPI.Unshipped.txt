@@ -127,15 +127,56 @@ Ambinder.A2A.Server.Push.IPushConfigStore.SaveAsync(string! agentName, string! t
 Ambinder.A2A.Server.Push.PushOptions
 Ambinder.A2A.Server.Push.PushOptions.AllowPrivateNetworks.get -> bool
 Ambinder.A2A.Server.Push.PushOptions.AllowPrivateNetworks.set -> void
+Ambinder.A2A.Server.Push.PushOptions.BatchSize.get -> int
+Ambinder.A2A.Server.Push.PushOptions.BatchSize.set -> void
+Ambinder.A2A.Server.Push.PushOptions.ClaimDuration.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.ClaimDuration.set -> void
+Ambinder.A2A.Server.Push.PushOptions.DeadLetterRetention.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.DeadLetterRetention.set -> void
+Ambinder.A2A.Server.Push.PushOptions.DeleteConfigsAfterFinalDelivery.get -> bool
+Ambinder.A2A.Server.Push.PushOptions.DeleteConfigsAfterFinalDelivery.set -> void
+Ambinder.A2A.Server.Push.PushOptions.HonorRetryAfter.get -> bool
+Ambinder.A2A.Server.Push.PushOptions.HonorRetryAfter.set -> void
+Ambinder.A2A.Server.Push.PushOptions.InMemoryOutboxCapacity.get -> int
+Ambinder.A2A.Server.Push.PushOptions.InMemoryOutboxCapacity.set -> void
 Ambinder.A2A.Server.Push.PushOptions.InitialBackoff.get -> System.TimeSpan
 Ambinder.A2A.Server.Push.PushOptions.InitialBackoff.set -> void
-Ambinder.A2A.Server.Push.PushOptions.Issuer.get -> string!
-Ambinder.A2A.Server.Push.PushOptions.Issuer.set -> void
-Ambinder.A2A.Server.Push.PushOptions.MaxRetries.get -> int
-Ambinder.A2A.Server.Push.PushOptions.MaxRetries.set -> void
-Ambinder.A2A.Server.Push.PushOptions.PushOptions() -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxAttempts.get -> int
+Ambinder.A2A.Server.Push.PushOptions.MaxAttempts.set -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxBackoff.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.MaxBackoff.set -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxConcurrentDeliveries.get -> int
+Ambinder.A2A.Server.Push.PushOptions.MaxConcurrentDeliveries.set -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxConfigsPerTask.get -> int
+Ambinder.A2A.Server.Push.PushOptions.MaxConfigsPerTask.set -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxDeliveryAge.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.MaxDeliveryAge.set -> void
+Ambinder.A2A.Server.Push.PushOptions.MaxUrlLength.get -> int
+Ambinder.A2A.Server.Push.PushOptions.MaxUrlLength.set -> void
+Ambinder.A2A.Server.Push.PushOptions.PollInterval.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.PollInterval.set -> void
+Ambinder.A2A.Server.Push.PushOptions.Proxy.get -> System.Uri?
+Ambinder.A2A.Server.Push.PushOptions.Proxy.set -> void
+Ambinder.A2A.Server.Push.PushOptions.ProxyEnforcesEgressPolicy.get -> bool
+Ambinder.A2A.Server.Push.PushOptions.ProxyEnforcesEgressPolicy.set -> void
+Ambinder.A2A.Server.Push.PushOptions.ShutdownTimeout.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushOptions.ShutdownTimeout.set -> void
 Ambinder.A2A.Server.Push.PushOptions.Timeout.get -> System.TimeSpan
 Ambinder.A2A.Server.Push.PushOptions.Timeout.set -> void
+Ambinder.A2A.Server.Push.PushOptions.UseSystemProxy.get -> bool
+Ambinder.A2A.Server.Push.PushOptions.UseSystemProxy.set -> void
+Ambinder.A2A.Server.Push.PushOptions.AllowedHosts.get -> System.Collections.Generic.IList<string!>!
+Ambinder.A2A.Server.Push.PushOptions.AllowedNetworks.get -> System.Collections.Generic.IList<string!>!
+Ambinder.A2A.Server.Push.PushOptions.PushOptions() -> void
+Ambinder.A2A.Server.Push.PushOptions.Signature.get -> Ambinder.A2A.Server.Push.PushSignatureOptions!
+Ambinder.A2A.Server.Push.PushSignatureOptions
+Ambinder.A2A.Server.Push.PushSignatureOptions.Algorithm.get -> string?
+Ambinder.A2A.Server.Push.PushSignatureOptions.Algorithm.set -> void
+Ambinder.A2A.Server.Push.PushSignatureOptions.Enabled.get -> bool?
+Ambinder.A2A.Server.Push.PushSignatureOptions.Enabled.set -> void
+Ambinder.A2A.Server.Push.PushSignatureOptions.PushSignatureOptions() -> void
+Ambinder.A2A.Server.Push.PushSignatureOptions.TokenLifetime.get -> System.TimeSpan
+Ambinder.A2A.Server.Push.PushSignatureOptions.TokenLifetime.set -> void
 Ambinder.A2A.Server.Tasks.ITaskEventObserver
 Ambinder.A2A.Server.Tasks.ITaskEventObserver.OnTaskEventAsync(Ambinder.A2A.Server.Tasks.StoredTask! task, Ambinder.A2A.Protocol.StreamResponse! evt, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
 Ambinder.A2A.Server.Tasks.ITaskStore

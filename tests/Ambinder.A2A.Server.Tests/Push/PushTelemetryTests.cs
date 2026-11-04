@@ -35,7 +35,7 @@ public sealed class PushTelemetryTests
         services.AddA2APush(o =>
         {
             o.InitialBackoff = TimeSpan.FromMilliseconds(10);
-            o.MaxRetries = maxRetries;
+            o.MaxAttempts = maxRetries + 1;
             o.AllowPrivateNetworks = true;
             o.Issuer = "https://agents.example.test";
         });

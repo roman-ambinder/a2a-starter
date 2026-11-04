@@ -16,7 +16,7 @@ namespace Ambinder.A2A.Server.Push;
 /// <summary>
 /// Delivers task events to webhooks. As an <see cref="ITaskEventObserver"/> it only queues work (it runs under the task lock);
 /// as a hosted service it does all the HTTP in the background. Events of one task are delivered in order; different tasks in parallel.
-/// A failing webhook is retried (<see cref="PushOptions.MaxRetries"/>, exponential backoff), then logged and given up on.
+/// A failing webhook is retried (<see cref="PushOptions.MaxAttempts"/>, exponential backoff), then logged and given up on.
 /// When a task is terminal, its configs are removed after the last delivery for that event finishes.
 /// </summary>
 internal sealed class PushNotificationSender : BackgroundService, ITaskEventObserver
@@ -169,7 +169,7 @@ internal sealed class PushNotificationSender : BackgroundService, ITaskEventObse
     private async Task<string> AttemptDeliveryAsync(PushWorkItem item, TaskPushNotificationConfig config, Uri target, byte[] body, Activity? span, CancellationToken ct)
     {
         var where = target.GetLeftPart(UriPartial.Path); // no query string in logs: it may hold secrets
-        var attempts = 1 + Math.Max(0, _options.MaxRetries);
+        var attempts = 1 + Math.Max(0, _options.MaxAttempts - 1); // the old sender counts retries; MaxAttempts includes the first attempt
 
         for (var attempt = 1; attempt <= attempts; attempt++)
         {

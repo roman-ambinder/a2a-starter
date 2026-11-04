@@ -57,6 +57,7 @@ public class PushTests
             services.AddA2APush(o =>
             {
                 o.InitialBackoff = TimeSpan.FromMilliseconds(10);
+                o.MaxAttempts = 4; // the old sender's former default (3 retries); the new default of 10 would slow these tests
                 o.AllowPrivateNetworks = true;
                 o.Issuer = "https://agents.example.test";
                 configure?.Invoke(o);

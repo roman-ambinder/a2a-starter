@@ -76,7 +76,7 @@ public sealed class PushWireTests
         {
             o.PublicBaseUrl = "http://127.0.0.1";
             o.Push.AllowPrivateNetworks = true;
-            o.Push.MaxRetries = 0;
+            o.Push.MaxAttempts = 1;
         });
         await using var provider = services.BuildServiceProvider();
         var sender = provider.GetRequiredService<PushNotificationSender>();
