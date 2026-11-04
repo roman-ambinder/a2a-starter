@@ -2,7 +2,7 @@ using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Server.Push;
 
-/// <summary>Validates and stores push configs for <see cref="Tasks.TaskManager"/>. Task existence and ownership are checked by the caller.</summary>
+/// <summary>Validates and stores push configs for the task manager. Task existence and ownership are checked by the caller.</summary>
 internal sealed class PushConfigService(IPushConfigStore store, PushOptions options)
 {
     public async ValueTask<TaskPushNotificationConfig> SaveAsync(string agentName, string taskId, TaskPushNotificationConfig config, CancellationToken ct)

@@ -3,7 +3,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Tasks;
 
 /// <summary>Task state classification and the transitions an agent may make.</summary>
-public static class TaskStateRules
+internal static class TaskStateRules
 {
     /// <summary>COMPLETED, FAILED, CANCELED, REJECTED: the task can never change again.</summary>
     public static bool IsTerminal(TaskState state)

@@ -4,7 +4,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Tasks;
 
 /// <summary>In-memory <see cref="ITaskStore"/>. Copies tasks on save and on read.</summary>
-public sealed class InMemoryTaskStore : ITaskStore
+internal sealed class InMemoryTaskStore : ITaskStore
 {
     private const int DefaultPageSize = 50;
     private const int MaxPageSize = 100;

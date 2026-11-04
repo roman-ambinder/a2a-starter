@@ -13,6 +13,8 @@ internal static class PushServiceCollectionExtensions
         if (configure is not null) services.Configure(configure);
         services.TryAddSingleton<IPushConfigStore, InMemoryPushConfigStore>();
         services.TryAddSingleton<PushSigningKey>();
+        services.TryAddKeyedSingleton<Func<System.Text.Json.Nodes.JsonObject>>(InternalServiceKeys.PushJwks,
+            (sp, _) => () => sp.GetRequiredService<PushSigningKey>().GetJwks());
         services.TryAddSingleton<PushNotificationSender>();
         services.AddSingleton<Tasks.ITaskEventObserver>(sp => sp.GetRequiredService<PushNotificationSender>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<PushNotificationSender>());

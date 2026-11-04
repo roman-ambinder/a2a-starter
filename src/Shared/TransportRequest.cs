@@ -13,6 +13,12 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 internal static class TransportRequest
 {
     /// <summary>
+    /// True when the primary identity (<see cref="System.Security.Claims.ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
+    /// <see cref="DefaultOwnerResolver.GetOwner"/>, so a caller is never authorized and then treated as anonymous for ownership.
+    /// </summary>
+    public static bool IsAuthenticated(System.Security.Claims.ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+
+    /// <summary>
     /// Runs the agent's policy (<see cref="IAgentAuthorizer"/>), then, when <paramref name="requireAuthenticated"/>,
     /// demands an authenticated caller. Returns the owner key. Throws <see cref="A2AAuthException"/>.
     /// </summary>
@@ -20,7 +26,7 @@ internal static class TransportRequest
     {
         var authorizer = http.RequestServices.GetRequiredService<IAgentAuthorizer>();
         await authorizer.AuthorizeAsync(agent, http.User, http.RequestAborted).ConfigureAwait(false);
-        if (requireAuthenticated && !AgentAuthorizer.IsAuthenticated(http.User))
+        if (requireAuthenticated && !IsAuthenticated(http.User))
             throw new A2AAuthException(401, "Authentication is required.");
         var owners = http.RequestServices.GetService<IOwnerResolver>() ?? DefaultOwnerResolver.Instance;
         return owners.GetOwner(http.User);

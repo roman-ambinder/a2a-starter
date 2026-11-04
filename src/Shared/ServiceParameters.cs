@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 namespace Ambinder.A2A.AspNetCore.Transports;
 
 /// <summary>Reads the A2A service parameters (version and extensions) from an HTTP request.</summary>
-public static class ServiceParameters
+internal static class ServiceParameters
 {
     private static readonly JsonElement SupportedVersionsData =
         JsonDocument.Parse($$"""{"supportedVersions":["{{A2AConstants.ProtocolVersion}}"]}""").RootElement.Clone();

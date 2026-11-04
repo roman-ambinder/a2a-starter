@@ -10,7 +10,7 @@ namespace Ambinder.A2A.Server.Push;
 /// HTTPS and rejects hosts that resolve to loopback, link-local, private (RFC 1918), unique-local IPv6 and similar addresses.
 /// Throws <see cref="A2AException"/> with <see cref="A2AErrorCode.InvalidParams"/>.
 /// </summary>
-public static class WebhookUrlValidator
+internal static class WebhookUrlValidator
 {
     public static void Validate(Uri url, bool allowPrivateNetworks)
     {

@@ -105,7 +105,7 @@ internal sealed class TaskWriter(
         Parts = [Part.FromText(text)],
     };
 
-    public readonly struct Releaser(SemaphoreSlim semaphore) : IDisposable
+    internal readonly struct Releaser(SemaphoreSlim semaphore) : IDisposable
     {
         public void Dispose() => semaphore.Release();
     }

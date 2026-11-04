@@ -42,6 +42,9 @@ Every preview section keeps a `### Breaking changes` heading.
 - **`A2A.Protocol.Grpc` is removed.** The generated protobuf types and `ProtoMapper` are internal in both gRPC packages, and
   the gRPC service class is internal.
 - **`A2AJsonContext` and `UtcTimestampConverter` are now internal** (`Ambinder.A2A.Protocol`). Use the `A2AJson` accessors or `A2AJson.TypeInfoResolver` instead. `ProtoEnumConverter<T>` stays public, only because the public enums `TaskState` and `Role` name it in `[JsonConverter]` and the source generator needs an accessible converter; do not use it directly.
+- **Server plumbing is now internal** (`Ambinder.A2A.Server`): `TaskManager`, `TaskEventBroker`, `TaskWriter.Releaser`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `PageToken`, `TaskStateRules`, `WebhookUrlValidator`, `AgentCardInterfaces`, `InMemoryTaskStore` and `InMemoryPushConfigStore`. Use `IA2ARequestHandler`, `ITaskStore` and `IPushConfigStore`; `AddA2AServer` registers the defaults.
+- **ASP.NET Core plumbing is now internal** (`Ambinder.A2A.AspNetCore`): `RequestValidation`, `ServiceParameters`, `RestErrorWriter`, `SseWriter` and `AgentAuthorizer` (use `IAgentAuthorizer`).
+- **`GrpcErrorMapper` is now internal** (`Ambinder.A2A.AspNetCore.Grpc`).
 
 ### Added
 

@@ -27,7 +27,7 @@ internal static class AgentCardEndpoints
 
     public static async Task PushJwksAsync(HttpContext http)
     {
-        var jwks = http.RequestServices.GetRequiredService<PushSigningKey>().GetJwks();
+        var jwks = http.RequestServices.GetRequiredKeyedService<Func<System.Text.Json.Nodes.JsonObject>>(InternalServiceKeys.PushJwks)();
         http.Response.ContentType = "application/json";
         await http.Response.WriteAsync(jwks.ToJsonString(), http.RequestAborted);
     }

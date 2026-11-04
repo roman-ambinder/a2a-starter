@@ -13,7 +13,7 @@ namespace Ambinder.A2A.AspNetCore.Grpc;
 /// error catalog; errors with a reason also get an <c>ErrorInfo{reason, domain=a2a-protocol.org, metadata}</c> detail, where
 /// metadata is <see cref="A2AException.Data"/> flattened to strings exactly as the REST binding does.
 /// </summary>
-public static class GrpcErrorMapper
+internal static class GrpcErrorMapper
 {
     /// <summary>Catalog status plus, when the catalog has a reason, an ErrorInfo detail. JSON-RPC-only errors carry status and message only.</summary>
     public static RpcException ToRpcException(A2AException error)

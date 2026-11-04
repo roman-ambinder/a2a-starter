@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http.Features;
 namespace Ambinder.A2A.AspNetCore.Transports.Sse;
 
 /// <summary>Writes Server-Sent Events frames (<c>data: &lt;json&gt;\n\n</c>), flushing after each one. Shared by JSON-RPC and REST.</summary>
-public static class SseWriter
+internal static class SseWriter
 {
     private static readonly byte[] Prefix = "data: "u8.ToArray();
     private static readonly byte[] Suffix = "\n\n"u8.ToArray();

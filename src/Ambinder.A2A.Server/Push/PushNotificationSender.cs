@@ -19,7 +19,7 @@ namespace Ambinder.A2A.Server.Push;
 /// A failing webhook is retried (<see cref="PushOptions.MaxRetries"/>, exponential backoff), then logged and given up on.
 /// When a task is terminal, its configs are removed after the last delivery for that event finishes.
 /// </summary>
-public sealed class PushNotificationSender : BackgroundService, ITaskEventObserver
+internal sealed class PushNotificationSender : BackgroundService, ITaskEventObserver
 {
     public const string HttpClientName = "a2a-push";
     private const int QueueCapacity = 10_000;

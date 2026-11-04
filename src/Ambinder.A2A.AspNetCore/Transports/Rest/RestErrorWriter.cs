@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 namespace Ambinder.A2A.AspNetCore.Transports.Rest;
 
 /// <summary>Writes A2A errors for the HTTP+JSON binding in the google.rpc.Status JSON form.</summary>
-public static class RestErrorWriter
+internal static class RestErrorWriter
 {
     /// <summary>Sends the catalog's HTTP status and the body from <see cref="ToJson"/>. No-op body if the response has started.</summary>
     public static async Task Write(HttpContext http, A2AException error)

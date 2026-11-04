@@ -10,7 +10,7 @@ namespace Ambinder.A2A.AspNetCore.Auth;
 /// <see cref="IAgentAuthorizer"/> over ASP.NET Core <see cref="IAuthorizationService"/>. The policy is evaluated against the
 /// principal the authentication middleware produced (the default scheme); policy-level <c>AuthenticationSchemes</c> are not re-run.
 /// </summary>
-public sealed class AgentAuthorizer(IAuthorizationService authorization) : IAgentAuthorizer
+internal sealed class AgentAuthorizer(IAuthorizationService authorization) : IAgentAuthorizer
 {
     public async Task AuthorizeAsync(AgentRegistration agent, ClaimsPrincipal user, CancellationToken ct)
     {
@@ -23,9 +23,6 @@ public sealed class AgentAuthorizer(IAuthorizationService authorization) : IAgen
         if (!result.Succeeded) throw new A2AAuthException(403, $"The caller is not allowed to use agent '{agent.Name}'.");
     }
 
-    /// <summary>
-    /// True when the primary identity (<see cref="ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
-    /// <see cref="DefaultOwnerResolver.GetOwner"/>, so a caller is never authorized here and then treated as anonymous for ownership.
-    /// </summary>
-    public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+    /// <summary>True when the primary identity is authenticated (the rule is shared with the gRPC package).</summary>
+    public static bool IsAuthenticated(ClaimsPrincipal user) => Transports.TransportRequest.IsAuthenticated(user);
 }

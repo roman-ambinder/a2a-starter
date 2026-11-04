@@ -11,7 +11,7 @@ namespace Ambinder.A2A.Server.Tasks;
 /// cannot block the agent. All subscribers of a task are completed after a final event
 /// (a message, or a terminal or interrupted state).
 /// </summary>
-public sealed class TaskEventBroker
+internal sealed class TaskEventBroker
 {
     public const int DefaultCapacity = 256;
 

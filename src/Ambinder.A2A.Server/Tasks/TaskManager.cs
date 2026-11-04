@@ -17,7 +17,7 @@ namespace Ambinder.A2A.Server.Tasks;
 /// only stop the caller's wait. A per-task lock guards every check-and-change; it is never held while
 /// the agent runs, only while one event is applied.
 /// </summary>
-public sealed class TaskManager : IA2ARequestHandler
+internal sealed class TaskManager : IA2ARequestHandler
 {
     private readonly AgentCatalog _catalog;
     private readonly IServiceProvider _services;

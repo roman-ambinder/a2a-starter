@@ -63,7 +63,7 @@ public sealed class Signal
 }
 
 /// <summary>A TaskManager wired to one scripted agent named "test".</summary>
-public sealed class TestHost
+internal sealed class TestHost
 {
     public const string AgentName = "test";
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);

@@ -8,7 +8,7 @@ namespace Ambinder.A2A.Server.Telemetry;
 /// Wraps an <see cref="IA2ARequestHandler"/> and records one span per operation (<c>a2a.server &lt;Method&gt;</c>).
 /// Streaming spans stay open for the whole enumeration. Records IDs and error types only, never message content.
 /// </summary>
-public sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2ARequestHandler
+internal sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2ARequestHandler
 {
     public Task<SendMessageResponse> SendMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
         => RunAsync("SendMessage", call, request.Message.TaskId, request.Message.ContextId,

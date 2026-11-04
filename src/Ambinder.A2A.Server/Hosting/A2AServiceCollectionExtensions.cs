@@ -14,7 +14,7 @@ public static class A2AServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the host-neutral A2A server core: options, agent catalog, in-memory task store, event broker,
-    /// <see cref="TaskManager"/> wrapped in <see cref="TracingRequestHandler"/> as <see cref="IA2ARequestHandler"/>,
+    /// the traced <see cref="IA2ARequestHandler"/> (one span per call),
     /// push delivery (config store, signing key, sender) and <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>).
     /// A web app calls <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c> instead, which calls this and adds the
     /// ASP.NET Core parts.

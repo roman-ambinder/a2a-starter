@@ -1,3 +1,21 @@
 old symbol,new symbol,package,change
 A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type> / A2AJson.TypeInfoResolver,Ambinder.A2A.Protocol,internal; replaced by A2AJson typed accessors
 A2A.Protocol.UtcTimestampConverter,,Ambinder.A2A.Protocol,internal
+A2A.Server.Tasks.TaskManager,,Ambinder.A2A.Server,internal; reached through IA2ARequestHandler
+A2A.Server.Tasks.TaskEventBroker,,Ambinder.A2A.Server,internal; replaced by ITaskEventBus (package 06)
+A2A.Server.Tasks.TaskWriter.Releaser,,Ambinder.A2A.Server,internal
+A2A.Server.Push.PushNotificationSender,,Ambinder.A2A.Server,internal; public seam designed in package 08
+A2A.Server.Push.PushSigningKey,,Ambinder.A2A.Server,internal; replaced by IPushSigningKeySource (package 08)
+A2A.Server.Telemetry.TracingRequestHandler,,Ambinder.A2A.Server,internal; tracing is on with AddA2AServer
+A2A.Server.Tasks.PageToken,,Ambinder.A2A.Server,internal
+A2A.Server.Tasks.TaskStateRules,,Ambinder.A2A.Server,internal
+A2A.Server.Push.WebhookUrlValidator,,Ambinder.A2A.Server,internal
+A2A.Server.Hosting.AgentCardInterfaces,,Ambinder.A2A.Server,internal
+A2A.Server.Tasks.InMemoryTaskStore,,Ambinder.A2A.Server,internal; registered by AddA2AServer
+A2A.Server.Push.InMemoryPushConfigStore,,Ambinder.A2A.Server,internal; registered by AddA2AServer
+A2A.Server.Transports.RequestValidation,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.ServiceParameters,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.RestErrorWriter,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.SseWriter,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Auth.AgentAuthorizer,,Ambinder.A2A.AspNetCore,internal; registered by AddA2AServer
+A2A.Server.Grpc.GrpcErrorMapper,,Ambinder.A2A.AspNetCore.Grpc,internal

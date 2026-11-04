@@ -6,7 +6,7 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 /// Required-field checks shared by JSON-RPC, REST and gRPC. A missing identifier is <see cref="A2AErrorCode.InvalidParams"/>,
 /// never <c>TaskNotFound</c>. Call it with the typed request after deserializing (and after path values are merged in).
 /// </summary>
-public static class RequestValidation
+internal static class RequestValidation
 {
     /// <summary>Throws <see cref="A2AException"/> (InvalidParams) when a required field of the request is missing or empty.</summary>
     public static void Validate(object request)

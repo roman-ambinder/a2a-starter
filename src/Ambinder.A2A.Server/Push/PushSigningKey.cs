@@ -9,7 +9,7 @@ namespace Ambinder.A2A.Server.Push;
 /// RSA 2048 key generated at startup. Signs the <c>X-A2A-Push-Signature</c> JWT (RS256) and publishes its public half as a JWKS.
 /// A new key per process: receivers must fetch the JWKS (by <c>kid</c>) rather than cache keys for good.
 /// </summary>
-public sealed class PushSigningKey : IDisposable
+internal sealed class PushSigningKey : IDisposable
 {
     private static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(5);
 
