@@ -50,3 +50,17 @@ Ambinder.A2A.Client.IA2AClientTransport.ProtocolBinding.get -> string!
 Ambinder.A2A.Client.IA2AClientTransport.TransportName.get -> string!
 static Ambinder.A2A.Client.A2AClientFactory.Create(Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2AClientOptions! options) -> Ambinder.A2A.Client.IA2AClient!
 static readonly Ambinder.A2A.Client.A2ACardResolver.CacheDuration -> System.TimeSpan
+Ambinder.A2A.Client.A2AStreamInterruptedException
+Ambinder.A2A.Client.A2AStreamInterruptedException.A2AStreamInterruptedException() -> void
+Ambinder.A2A.Client.A2AStreamInterruptedException.A2AStreamInterruptedException(string! message) -> void
+Ambinder.A2A.Client.A2ATimeoutException
+Ambinder.A2A.Client.A2ATimeoutException.A2ATimeoutException(string! operation, System.TimeSpan elapsed, string! option, string? alternative = null) -> void
+Ambinder.A2A.Client.A2ATimeoutException.Elapsed.get -> System.TimeSpan
+Ambinder.A2A.Client.A2ATimeoutException.Operation.get -> string!
+Ambinder.A2A.Client.A2ATimeoutException.Option.get -> string!
+Ambinder.A2A.Client.A2ATransportException
+Ambinder.A2A.Client.A2ATransportException.A2ATransportException(string! message, bool isTransient, int? httpStatus = null, string? grpcStatus = null) -> void
+Ambinder.A2A.Client.A2ATransportException.GrpcStatus.get -> string?
+Ambinder.A2A.Client.A2ATransportException.HttpStatus.get -> int?
+Ambinder.A2A.Client.A2ATransportException.IsTransient.get -> bool
+static Ambinder.A2A.Client.A2ATransportException.FromHttpStatus(int status, string! agent, string! method) -> Ambinder.A2A.Client.A2ATransportException!

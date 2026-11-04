@@ -112,7 +112,7 @@ public sealed partial class FlowRunner
         }
         catch (A2AAuthException e)
         {
-            return e.HttpStatus;
+            return e.HttpStatus ?? 0;
         }
         return 200;
     }

@@ -34,7 +34,7 @@ internal static class GrpcErrorMapper
     public static RpcException ToRpcException(A2AAuthException error)
     {
         ArgumentNullException.ThrowIfNull(error);
-        var code = error.HttpStatus == 401 ? StatusCode.Unauthenticated : StatusCode.PermissionDenied;
+        var code = error.Kind == A2AAuthFailureKind.Unauthenticated ? StatusCode.Unauthenticated : StatusCode.PermissionDenied;
         return new RpcException(new GrpcStatus(code, error.Message));
     }
 

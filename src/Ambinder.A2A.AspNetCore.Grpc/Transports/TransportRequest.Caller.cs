@@ -28,7 +28,7 @@ internal static partial class TransportRequest
         }
         catch (A2AAuthException ex)
         {
-            TagError(ex.HttpStatus.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            TagError((ex.HttpStatus ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture));
             throw;
         }
         var owners = http.RequestServices.GetService<IOwnerResolver>() ?? DefaultOwnerResolver.Instance;

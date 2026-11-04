@@ -29,7 +29,7 @@ public sealed class DiscoveryAndAuthTests(A2ATestHost host)
     }
 
     private async Task<int> AuthFailureAsync(string agent, string binding, TestAuth auth, IReadOnlyList<string>? extensions = null)
-        => (await Assert.ThrowsAsync<A2AAuthException>(() => SendAsync(agent, binding, auth, extensions))).HttpStatus;
+        => (await Assert.ThrowsAsync<A2AAuthException>(() => SendAsync(agent, binding, auth, extensions))).HttpStatus!.Value;
 
     [Fact]
     public async Task Root_card_is_report_agent()

@@ -1,7 +1,15 @@
 #nullable enable
 Ambinder.A2A.Protocol.A2AAuthException
 Ambinder.A2A.Protocol.A2AAuthException.A2AAuthException(int httpStatus, string! message) -> void
-Ambinder.A2A.Protocol.A2AAuthException.HttpStatus.get -> int
+Ambinder.A2A.Protocol.A2AAuthException.A2AAuthException(Ambinder.A2A.Protocol.A2AAuthFailureKind kind, string! message, int? httpStatus = null, string? grpcStatus = null, string? error = null, string? errorDescription = null) -> void
+Ambinder.A2A.Protocol.A2AAuthException.Error.get -> string?
+Ambinder.A2A.Protocol.A2AAuthException.ErrorDescription.get -> string?
+Ambinder.A2A.Protocol.A2AAuthException.GrpcStatus.get -> string?
+Ambinder.A2A.Protocol.A2AAuthException.HttpStatus.get -> int?
+Ambinder.A2A.Protocol.A2AAuthException.Kind.get -> Ambinder.A2A.Protocol.A2AAuthFailureKind
+Ambinder.A2A.Protocol.A2AAuthFailureKind
+Ambinder.A2A.Protocol.A2AAuthFailureKind.Forbidden = 1 -> Ambinder.A2A.Protocol.A2AAuthFailureKind
+Ambinder.A2A.Protocol.A2AAuthFailureKind.Unauthenticated = 0 -> Ambinder.A2A.Protocol.A2AAuthFailureKind
 Ambinder.A2A.Protocol.A2AConstants
 Ambinder.A2A.Protocol.A2AError
 Ambinder.A2A.Protocol.A2AErrorCode

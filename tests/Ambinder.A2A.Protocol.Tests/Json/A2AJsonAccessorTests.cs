@@ -9,7 +9,7 @@ public class A2AJsonAccessorTests
     // Error and constant types are not wire models, so they get no accessor.
     private static readonly HashSet<string> NotModels =
     [
-        nameof(A2AException), nameof(A2AAuthException), nameof(A2AErrorCode), nameof(A2AErrorInfo),
+        nameof(A2AException), nameof(A2AAuthException), nameof(A2AAuthFailureKind), nameof(A2AErrorCode), nameof(A2AErrorInfo),
         nameof(A2AError), nameof(A2AConstants), nameof(A2ATelemetryNames),
         // Public only so the source generator accepts [JsonConverter] on TaskState and Role (owner decision 2026-11-04).
         "ProtoEnumConverter`1",
