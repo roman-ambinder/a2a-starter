@@ -148,6 +148,7 @@ internal static class RestEndpoints
                 return;
             case Op.DeletePush:
                 await handler.DeleteTaskPushNotificationConfigAsync(call, (DeleteTaskPushNotificationConfigRequest)request, ct).ConfigureAwait(false);
+                TransportRequest.WriteResponseMetadata(http);
                 http.Response.StatusCode = StatusCodes.Status204NoContent;
                 return;
         }
@@ -165,6 +166,7 @@ internal static class RestEndpoints
             _ => throw new InvalidOperationException($"Unhandled operation {route.Op}."),
         };
 
+        TransportRequest.WriteResponseMetadata(http);
         http.Response.StatusCode = StatusCodes.Status200OK;
         http.Response.ContentType = A2AConstants.ContentType;
         await http.Response.Body.WriteAsync(JsonSerializer.SerializeToUtf8Bytes(result, A2AJson.Options.GetTypeInfo(type)), ct).ConfigureAwait(false);

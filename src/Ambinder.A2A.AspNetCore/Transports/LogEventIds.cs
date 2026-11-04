@@ -7,4 +7,5 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 internal static class LogEventIds
 {
     public const int UnhandledTransportError = 2001;
+    public const int DroppedResponseMetadata = 2002;
 }

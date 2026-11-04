@@ -40,6 +40,13 @@ public sealed class A2AServerOptions
     /// </summary>
     public PushOptions Push { get; } = new();
 
+    /// <summary>
+    /// Names of response headers (gRPC: response metadata) that middleware may set through <see cref="A2AResponseMetadata"/>, besides the names that
+    /// start with <c>A2A-</c>. Names are not case-sensitive. A name that is not allowed is dropped and logged once at debug level.
+    /// Default: empty (only <c>A2A-*</c> names are sent).
+    /// </summary>
+    public ISet<string> ResponseHeaderAllowList { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary><see cref="PublicBaseUrl"/> without a trailing slash.</summary>
     internal string BaseUrl => PublicBaseUrl.TrimEnd('/');
 }

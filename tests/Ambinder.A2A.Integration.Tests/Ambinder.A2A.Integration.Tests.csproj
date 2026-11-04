@@ -36,6 +36,7 @@
     <ProjectReference Include="../../src/Ambinder.A2A.Client/Ambinder.A2A.Client.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
     <ProjectReference Include="../../src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
+    <ProjectReference Include="../Ambinder.A2A.TestHarness/Ambinder.A2A.TestHarness.csproj" />
     <ProjectReference Include="../../samples/AgentServer/AgentServer.csproj" />
     <!-- Aliased: AgentServer also has a Program. -->
     <ProjectReference Include="../../samples/GettingStarted.Agent/GettingStarted.Agent.csproj" Aliases="GettingStartedAgent" />

@@ -163,6 +163,7 @@ internal static class JsonRpcEndpoint
 
     private static async Task WriteJsonAsync(HttpContext http, byte[] json)
     {
+        TransportRequest.WriteResponseMetadata(http);
         http.Response.StatusCode = StatusCodes.Status200OK;
         http.Response.ContentType = A2AConstants.JsonRpcContentType;
         await http.Response.Body.WriteAsync(json, http.RequestAborted).ConfigureAwait(false);

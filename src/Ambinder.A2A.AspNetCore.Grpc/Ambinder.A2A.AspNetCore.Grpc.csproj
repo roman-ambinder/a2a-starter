@@ -23,6 +23,7 @@
     <Compile Include="../Shared/RequestValidator.cs" Link="Shared/RequestValidator.cs" />
     <Compile Include="../Shared/TransportErrors.cs" Link="Shared/TransportErrors.cs" />
     <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
+    <Compile Include="../Shared/ResponseMetadataFilter.cs" Link="Shared/ResponseMetadataFilter.cs" />
     <Compile Include="../Shared/RequestValidation.cs" Link="Shared/RequestValidation.cs" />
     <Compile Include="../Shared/ServiceParameters.cs" Link="Shared/ServiceParameters.cs" />
     <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />

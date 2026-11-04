@@ -1,4 +1,5 @@
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 
@@ -10,10 +11,14 @@ internal static class SseWriter
     private static readonly byte[] Prefix = "data: "u8.ToArray();
     private static readonly byte[] Suffix = "\n\n"u8.ToArray();
 
-    /// <summary>Sets status 200, <c>Content-Type: text/event-stream</c>, <c>Cache-Control: no-cache</c>, turns off buffering and sends the headers.</summary>
-    public static async Task StartAsync(HttpResponse response, CancellationToken ct)
+    /// <summary>
+    /// Sets status 200, <c>Content-Type: text/event-stream</c>, <c>Cache-Control: no-cache</c>, adds the allowed response metadata as headers,
+    /// turns off buffering and sends the headers. Then the metadata is committed.
+    /// </summary>
+    public static async Task StartAsync(HttpResponse response, A2AResponseMetadata? metadata, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(response);
+        TransportRequest.WriteResponseMetadata(response.HttpContext, metadata);
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = A2AConstants.EventStream;
         response.Headers.CacheControl = "no-cache";

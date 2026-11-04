@@ -1,5 +1,6 @@
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,20 @@ internal static partial class TransportRequest
             TagError(ex.HttpStatus.ToString(System.Globalization.CultureInfo.InvariantCulture));
             throw;
         }
+    }
+
+    /// <summary>
+    /// Writes the allowed response metadata of this request as HTTP response headers and marks it committed. Call it before the first
+    /// byte of the response, on success and on error. It does nothing when the request has no metadata, or after the first call.
+    /// </summary>
+    public static void WriteResponseMetadata(HttpContext http, A2AResponseMetadata? metadata = null)
+    {
+        metadata ??= http.Items.ContainsKey(ResponseMetadataKey) ? GetResponseMetadata(http) : null;
+        if (metadata is null || metadata.IsCommitted) return;
+        if (!http.Response.HasStarted)
+            foreach (var entry in AllowedResponseMetadata(http, metadata))
+                http.Response.Headers[entry.Key] = entry.Value;
+        metadata.MarkCommitted();
     }
 
     /// <summary>

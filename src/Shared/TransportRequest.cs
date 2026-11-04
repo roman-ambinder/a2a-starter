@@ -81,7 +81,23 @@ internal static partial class TransportRequest
         => new(agent.Name, caller.User, caller.Owner,
             ResolveTenant(agent.Name, TenantOf(request), http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value),
             ServiceParameters.NormalizeVersion(version), extensions)
-        { Transport = transport };
+        { Transport = transport, Services = http.RequestServices, ResponseMetadata = GetResponseMetadata(http) };
+
+    private static readonly object ResponseMetadataKey = new();
+
+    /// <summary>The response metadata of this request: one instance per request, created on first use.</summary>
+    public static A2AResponseMetadata GetResponseMetadata(HttpContext http)
+    {
+        if (http.Items.TryGetValue(ResponseMetadataKey, out var existing)) return (A2AResponseMetadata)existing!;
+        var metadata = new A2AResponseMetadata();
+        http.Items[ResponseMetadataKey] = metadata;
+        return metadata;
+    }
+
+    /// <summary>The metadata entries the transport may send for this request (see <see cref="ResponseMetadataFilter"/>).</summary>
+    public static List<KeyValuePair<string, string>> AllowedResponseMetadata(HttpContext http, A2AResponseMetadata metadata)
+        => ResponseMetadataFilter.Allowed(metadata, http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value.ResponseHeaderAllowList,
+            http.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>().CreateLogger("Ambinder.A2A.Server.ResponseMetadata"));
 
     /// <summary>
     /// The tenant of a request to <paramref name="agentName"/> (spec 8.3.2): the interface's tenant from

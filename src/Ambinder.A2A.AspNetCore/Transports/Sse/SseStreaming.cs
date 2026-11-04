@@ -18,7 +18,7 @@ internal static class SseStreaming
         await using (e.ConfigureAwait(false))
         {
             var hasFirst = await e.MoveNextAsync().ConfigureAwait(false);
-            await SseWriter.StartAsync(http.Response, ct).ConfigureAwait(false);
+            await SseWriter.StartAsync(http.Response, TransportRequest.GetResponseMetadata(http), ct).ConfigureAwait(false);
             if (!hasFirst) return;
 
             try

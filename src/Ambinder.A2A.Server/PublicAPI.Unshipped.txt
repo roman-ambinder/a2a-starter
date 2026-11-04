@@ -240,3 +240,4 @@ static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Task
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 virtual Ambinder.A2A.Server.A2AOperationDelegate.Invoke(Ambinder.A2A.Server.A2AOperationContext! context) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.A2AOperationResult>
+Ambinder.A2A.Server.Hosting.A2AServerOptions.ResponseHeaderAllowList.get -> System.Collections.Generic.ISet<string!>!

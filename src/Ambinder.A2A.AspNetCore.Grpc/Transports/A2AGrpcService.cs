@@ -84,10 +84,13 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
         try
         {
             var (model, call) = await PrepareAsync<TModel>(request, context, isExtendedCard).ConfigureAwait(false);
-            return await run(model, call, ct).ConfigureAwait(false);
+            var response = await run(model, call, ct).ConfigureAwait(false);
+            await CommitMetadataAsync(context).ConfigureAwait(false);
+            return response;
         }
         catch (Exception ex)
         {
+            await TryCommitMetadataAsync(context).ConfigureAwait(false);
             throw GrpcErrorMapper.Map(ex, logger, ct);
         }
     }
@@ -99,11 +102,21 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
         try
         {
             var (model, call) = await PrepareAsync<TModel>(request, context, false).ConfigureAwait(false);
+            var first = true;
             await foreach (var evt in run(model, call, ct).WithCancellation(ct).ConfigureAwait(false))
+            {
+                if (first)
+                {
+                    first = false;
+                    await CommitMetadataAsync(context).ConfigureAwait(false);
+                }
                 await writer.WriteAsync(ProtoMapper.ToProto(evt), ct).ConfigureAwait(false);
+            }
+            if (first) await CommitMetadataAsync(context).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            await TryCommitMetadataAsync(context).ConfigureAwait(false);
             throw GrpcErrorMapper.Map(ex, logger, ct);
         }
     }
@@ -122,12 +135,41 @@ internal sealed class A2AGrpcService(IA2ARequestHandler handler, AgentCatalog ca
         if (isExtendedCard)
             TransportRequest.AuthorizeExtendedCard(agent, caller);
         var active = ServiceParameters.ActivateExtensions(agent.PublicCard, extensions);
+        // The echo goes through the response metadata, so it is sent with the other entries at the commit point.
         if (active.Count > 0)
-            await context.WriteResponseHeadersAsync(new Metadata { { A2AConstants.GrpcExtensionsKey, string.Join(',', active) } }).ConfigureAwait(false);
+            TransportRequest.GetResponseMetadata(http).Set(A2AConstants.GrpcExtensionsKey, string.Join(',', active));
 
         var model = (TModel)ProtoMapper.FromProtoObject(request);
         RequestValidation.Validate(model);
         return (model, TransportRequest.CreateCallContext(http, agent, caller, version, extensions, model, A2ATelemetryNames.TransportGrpc));
+    }
+
+    /// <summary>
+    /// Sends the allowed response metadata as gRPC response headers (lower-case keys) and marks it committed. Does nothing after the first call.
+    /// </summary>
+    private static async Task CommitMetadataAsync(ServerCallContext context)
+    {
+        var http = context.GetHttpContext();
+        var metadata = TransportRequest.GetResponseMetadata(http);
+        if (metadata.IsCommitted) return;
+        var headers = new Metadata();
+        foreach (var entry in TransportRequest.AllowedResponseMetadata(http, metadata))
+            headers.Add(entry.Key.ToLowerInvariant(), entry.Value);
+        metadata.MarkCommitted();
+        if (headers.Count > 0) await context.WriteResponseHeadersAsync(headers).ConfigureAwait(false);
+    }
+
+    /// <summary>On an error before the commit, the entries still go out as response headers. A failure here never replaces the original error.</summary>
+    private static async Task TryCommitMetadataAsync(ServerCallContext context)
+    {
+        try
+        {
+            await CommitMetadataAsync(context).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException)
+        {
+            // The response headers are already sent or the connection is gone.
+        }
     }
 
     private AgentRegistration ResolveAgent(HttpContext http)

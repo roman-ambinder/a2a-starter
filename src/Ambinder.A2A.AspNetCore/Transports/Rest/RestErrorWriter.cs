@@ -14,6 +14,7 @@ internal static class RestErrorWriter
         ArgumentNullException.ThrowIfNull(http);
         ArgumentNullException.ThrowIfNull(error);
         if (http.Response.HasStarted) return;
+        TransportRequest.WriteResponseMetadata(http);
         http.Response.StatusCode = A2AError.Get(error.Code).HttpStatus;
         http.Response.ContentType = A2AConstants.ContentType;
         await http.Response.Body.WriteAsync(ToJson(error), http.RequestAborted).ConfigureAwait(false);
