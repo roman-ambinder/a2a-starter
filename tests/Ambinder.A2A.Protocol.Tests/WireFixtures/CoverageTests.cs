@@ -40,14 +40,6 @@ public class CoverageTests
     /// </summary>
     static readonly HashSet<string> PendingCoverage =
     [
-        
-"SendMessageConfiguration",
-        "Task",
-        "Part",
-        "Message",
-        "Artifact",
-        "TaskStatusUpdateEvent",
-        "TaskArtifactUpdateEvent",
         "AuthenticationInfo",
         "AgentInterface",
         "AgentCard",
@@ -81,8 +73,6 @@ public class CoverageTests
         "SubscribeToTaskRequest",
         "ListTaskPushNotificationConfigsRequest",
         "GetExtendedAgentCardRequest",
-        "SendMessageResponse",
-        "StreamResponse",
         "ListTaskPushNotificationConfigsResponse",
         "TaskState",
         "Role"

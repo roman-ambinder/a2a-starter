@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.2", "expect": "roundtrip", "note": "First event of the section 6.2 stream; StreamResponse is defined in 3.2.3."}

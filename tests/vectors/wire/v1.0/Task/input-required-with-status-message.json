@@ -1,0 +1,1 @@
+{"id":"task-uuid","contextId":"c295ea44-7543-4f78-b524-7a38915ad6e4","status":{"state":"TASK_STATE_INPUT_REQUIRED","message":{"messageId":"msg-agent-1","role":"ROLE_AGENT","parts":[{"text":"I need more details. Where would you like to fly from and to?"}],"taskId":"task-uuid","contextId":"c295ea44-7543-4f78-b524-7a38915ad6e4"}}}

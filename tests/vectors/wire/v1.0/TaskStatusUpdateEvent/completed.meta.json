@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.6", "expect": "roundtrip", "note": "The statusUpdate payload of the section 6.6 webhook call; TaskStatusUpdateEvent is defined in 4.2.1."}

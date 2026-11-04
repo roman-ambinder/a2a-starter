@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.1", "expect": "roundtrip", "note": "The section 6.1 response body; SendMessageResponse is the output of 3.1.1."}

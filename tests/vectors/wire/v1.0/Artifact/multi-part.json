@@ -1,0 +1,1 @@
+{"artifactId":"9b6934dd-37e3-4eb1-8766-962efaab63a1","name":"report","description":"Report with a chart and its data","parts":[{"text":"Summary of Q1 sales."},{"url":"https://storage.example.com/chart.png","filename":"chart.png","mediaType":"image/png"},{"data":{"total":1250,"currency":"EUR"}}]}

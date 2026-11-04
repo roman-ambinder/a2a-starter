@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.6.1", "expect": "roundtrip", "note": "Fractional seconds omitted, allowed by 5.6.1."}

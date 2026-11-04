@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "6.6", "expect": "roundtrip", "note": "The configuration object of the section 6.6 request; SendMessageConfiguration is defined in 3.2.2."}
