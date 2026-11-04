@@ -1,0 +1,13 @@
+{
+  "_comment": "Per-package line/branch gates in percent (spec 12 section 6). Keys are package (assembly) names. A package that has no coverage data yet (not built, not in this run) is skipped with a notice, not failed.",
+  "packages": {
+    "Ambinder.A2A.Protocol": { "line": 90, "branch": 80 },
+    "Ambinder.A2A.Server": { "line": 90, "branch": 80 },
+    "Ambinder.A2A.Client": { "line": 85, "branch": 75 },
+    "Ambinder.A2A.Extensions.AI": { "line": 85, "branch": 75 },
+    "Ambinder.A2A.Testing": { "line": 85, "branch": 75 },
+    "Ambinder.A2A.Stores.EntityFrameworkCore": { "line": 80, "branch": 70 },
+    "Ambinder.A2A.Stores.Cosmos": { "line": 80, "branch": 70 },
+    "Ambinder.A2A.Cluster": { "line": 80, "branch": 70 }
+  }
+}
