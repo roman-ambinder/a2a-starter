@@ -41,3 +41,7 @@ dotnet_diagnostic.RS0037.severity = error
 # Exceptions. Each line says why.
 # CA1716: IA2ARequestHandler methods name a parameter "call" (a Visual Basic keyword). Public name, decided in the API review.
 dotnet_diagnostic.CA1716.severity = none
+
+# CA1707: the 0.3 compat package IDs, namespaces and V0_3JsonContext carry "V0_3" by design (spec 15 names them; the version belongs in the name).
+[src/{Compat.V0_3.Shared,Ambinder.A2A.Compat.V0_3,Ambinder.A2A.Compat.V0_3.AspNetCore}/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
