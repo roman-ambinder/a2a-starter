@@ -1,0 +1,11 @@
+{
+  "$comment": "Cells that run. Every skip has a reason; an SDK bug also has an upstream URL. Reviewed in PRs.",
+  "peers": {
+    "self":   { "kind": "in-process", "protocolVersions": ["1.0"], "transports": ["jsonrpc", "http_json", "grpc"] },
+    "python": { "kind": "container", "folder": "interop/peers/python", "sdk": "a2a-sdk", "version": "1.3.0",       "protocolVersions": ["1.0"], "transports": ["jsonrpc", "http_json", "grpc"] },
+    "js":     { "kind": "container", "folder": "interop/peers/js",     "sdk": "@a2a-js/sdk", "version": "1.3.0",   "protocolVersions": ["1.0"], "transports": ["jsonrpc", "http_json", "grpc"] },
+    "java":   { "kind": "container", "folder": "interop/peers/java",   "sdk": "a2a-java", "version": "1.5.0.Final", "protocolVersions": ["1.0"], "transports": ["jsonrpc", "http_json", "grpc"] }
+  },
+  "skips": [],
+  "smoke": { "transports": ["jsonrpc"], "scenarios": ["CARD-01", "SEND-02", "STREAM-01", "ERR-01"], "peers": ["python", "js", "java"] }
+}
