@@ -12,7 +12,7 @@ namespace Ambinder.A2A.Client.Transports;
 /// A2A client for the HTTP+JSON (REST) binding. A request with a tenant (its own, else the default tenant) uses the proto's
 /// <c>/{tenant}/...</c> paths for every operation.
 /// </summary>
-public sealed class RestA2AClient : IA2AClient
+internal sealed class RestA2AClient : IA2AClient
 {
 
     private readonly string _baseUrl;

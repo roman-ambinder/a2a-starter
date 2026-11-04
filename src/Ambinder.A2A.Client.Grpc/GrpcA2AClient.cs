@@ -13,7 +13,7 @@ namespace Ambinder.A2A.Client.Grpc;
 /// (<c>a2a-version</c>, <c>a2a-extensions</c>, lowercase credential header names). Failures come back as
 /// <see cref="A2AException"/> / <see cref="A2AAuthException"/>; caller cancellation as <see cref="OperationCanceledException"/>.
 /// </summary>
-public sealed class GrpcA2AClient : IA2AClient
+internal sealed class GrpcA2AClient : IA2AClient
 {
     private readonly AgentCard _card;
     private readonly A2AClientOptions _options;

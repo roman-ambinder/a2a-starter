@@ -4,7 +4,7 @@ using System.Text;
 namespace Ambinder.A2A.Client.Transports.Sse;
 
 /// <summary>Reads Server-Sent Events and yields the data payload of each event.</summary>
-public static class SseReader
+internal static class SseReader
 {
     /// <summary>
     /// Yields one string per event that has <c>data:</c> lines (multiple lines joined with <c>\n</c>).

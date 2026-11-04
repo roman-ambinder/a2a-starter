@@ -8,7 +8,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Client.Transports;
 
 /// <summary>A2A client for the JSON-RPC binding (<c>POST {endpoint}</c>, SSE for streaming methods).</summary>
-public sealed class JsonRpcA2AClient : IA2AClient
+internal sealed class JsonRpcA2AClient : IA2AClient
 {
     private readonly Uri _endpoint;
     private readonly AgentCard _card;

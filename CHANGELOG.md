@@ -45,6 +45,7 @@ Every preview section keeps a `### Breaking changes` heading.
 - **Server plumbing is now internal** (`Ambinder.A2A.Server`): `TaskManager`, `TaskEventBroker`, `TaskWriter.Releaser`, `PushNotificationSender`, `PushSigningKey`, `TracingRequestHandler`, `PageToken`, `TaskStateRules`, `WebhookUrlValidator`, `AgentCardInterfaces`, `InMemoryTaskStore` and `InMemoryPushConfigStore`. Use `IA2ARequestHandler`, `ITaskStore` and `IPushConfigStore`; `AddA2AServer` registers the defaults.
 - **ASP.NET Core plumbing is now internal** (`Ambinder.A2A.AspNetCore`): `RequestValidation`, `ServiceParameters`, `RestErrorWriter`, `SseWriter` and `AgentAuthorizer` (use `IAgentAuthorizer`).
 - **`GrpcErrorMapper` is now internal** (`Ambinder.A2A.AspNetCore.Grpc`).
+- **Transport clients are now internal**: `RestA2AClient`, `JsonRpcA2AClient`, `TracingA2AClient` and `SseReader` (`Ambinder.A2A.Client`), and `GrpcA2AClient` (`Ambinder.A2A.Client.Grpc`). Create clients with `A2AClientFactory.Create`; for gRPC add `GrpcClientTransport.Instance` to `A2AClientOptions.Transports`.
 
 ### Added
 

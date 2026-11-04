@@ -4,7 +4,7 @@ namespace Ambinder.A2A.Client.Grpc;
 
 /// <summary>
 /// The gRPC binding for <see cref="A2AClientFactory"/>. Add <see cref="Instance"/> to <see cref="A2AClientOptions.Transports"/>;
-/// a card interface with binding <c>GRPC</c> then yields a <see cref="GrpcA2AClient"/>.
+/// a card interface with binding <c>GRPC</c> then yields a gRPC client.
 /// </summary>
 public sealed class GrpcClientTransport : IA2AClientTransport
 {
@@ -20,7 +20,7 @@ public sealed class GrpcClientTransport : IA2AClientTransport
     public string TransportName => A2ATelemetryNames.TransportGrpc;
 
     /// <summary>
-    /// Creates a <see cref="GrpcA2AClient"/>. A card URL with <c>http://</c> or <c>https://</c> is used as is; a bare <c>host:port</c>
+    /// Creates a gRPC client. A card URL with <c>http://</c> or <c>https://</c> is used as is; a bare <c>host:port</c>
     /// gets <c>https://</c>, or <c>http://</c> when <see cref="A2AClientOptions.GrpcUseTls"/> is false or (when null) the host is loopback.
     /// </summary>
     /// <exception cref="NotSupportedException">The interface URL is not a valid http or https address.</exception>

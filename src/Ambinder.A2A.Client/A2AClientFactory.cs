@@ -20,7 +20,7 @@ public static class A2AClientFactory
     /// interface and no gRPC transport is registered, the message says to add the <c>Ambinder.A2A.Client.Grpc</c> package and
     /// <c>GrpcClientTransport.Instance</c> to <see cref="A2AClientOptions.Transports"/>. The chosen interface's
     /// <c>tenant</c> is sent on every request (spec 8.3.2); a request with a different tenant throws <see cref="ArgumentException"/>.
-    /// The result is a <see cref="TracingA2AClient"/> (one span per call); its <see cref="TracingA2AClient.Inner"/> is the transport client.
+    /// The result is an <see cref="IA2AClient"/> for the chosen interface; each call creates one client span.
     /// </summary>
     public static IA2AClient Create(AgentCard card, A2AClientOptions options)
     {

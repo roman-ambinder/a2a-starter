@@ -37,13 +37,14 @@ public sealed class TransportParityTests(MinimalServer server)
             Credentials = credentials,
             ProtocolVersion = version,
         });
-        Type expected = binding switch
+        // GrpcA2AClient is internal to Ambinder.A2A.Client.Grpc (no InternalsVisibleTo to this assembly): compare by name.
+        var expected = binding switch
         {
-            "JSONRPC" => typeof(JsonRpcA2AClient),
-            "HTTP+JSON" => typeof(RestA2AClient),
-            _ => typeof(GrpcA2AClient),
+            "JSONRPC" => nameof(JsonRpcA2AClient),
+            "HTTP+JSON" => nameof(RestA2AClient),
+            _ => "GrpcA2AClient",
         };
-        Assert.IsType(expected, ((TracingA2AClient)client).Inner);
+        Assert.Equal(expected, ((TracingA2AClient)client).Inner.GetType().Name);
         return client;
     }
 
@@ -267,10 +268,10 @@ public sealed class TransportParityTests(MinimalServer server)
 
         Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "HTTP+JSON" })).Inner);
         Assert.IsType<JsonRpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "jsonrpc" })).Inner);
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] })).Inner);
+        Assert.Equal("GrpcA2AClient", ((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] })).Inner.GetType().Name);
         // No preference, or a preference the card does not offer → first interface in card order.
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { Transports = [GrpcClientTransport.Instance] })).Inner);
-        Assert.IsType<GrpcA2AClient>(((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON", Transports = [GrpcClientTransport.Instance] })).Inner);
+        Assert.Equal("GrpcA2AClient", ((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { Transports = [GrpcClientTransport.Instance] })).Inner.GetType().Name);
+        Assert.Equal("GrpcA2AClient", ((TracingA2AClient)A2AClientFactory.Create(card, new A2AClientOptions { PreferredBinding = "CARRIER-PIGEON", Transports = [GrpcClientTransport.Instance] })).Inner.GetType().Name);
 
         var restOnly = card with { SupportedInterfaces = [card.SupportedInterfaces[1]] };
         Assert.IsType<RestA2AClient>(((TracingA2AClient)A2AClientFactory.Create(restOnly, new A2AClientOptions { PreferredBinding = "GRPC", Transports = [GrpcClientTransport.Instance] })).Inner);

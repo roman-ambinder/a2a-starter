@@ -19,3 +19,8 @@ A2A.Server.Transports.RestErrorWriter,,Ambinder.A2A.AspNetCore,internal
 A2A.Server.Transports.SseWriter,,Ambinder.A2A.AspNetCore,internal
 A2A.Server.Auth.AgentAuthorizer,,Ambinder.A2A.AspNetCore,internal; registered by AddA2AServer
 A2A.Server.Grpc.GrpcErrorMapper,,Ambinder.A2A.AspNetCore.Grpc,internal
+A2A.Client.Transports.RestA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.Transports.JsonRpcA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.TracingA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.Transports.Sse.SseReader,,Ambinder.A2A.Client,internal
+A2A.Protocol.Grpc.GrpcA2AClient,Ambinder.A2A.Client.Grpc.GrpcClientTransport.Instance,Ambinder.A2A.Client.Grpc,internal; create through GrpcClientTransport (replaced in package 10)

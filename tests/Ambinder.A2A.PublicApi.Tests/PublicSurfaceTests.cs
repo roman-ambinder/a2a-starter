@@ -65,7 +65,7 @@ public sealed class PublicSurfaceTests
         Assert.True(missing.Length == 0, $"Add a row to AllowedForeign for: {string.Join(", ", missing)}");
     }
 
-    [Theory(Skip = "Until SDK 02 Task 4 hides the internals"), MemberData(nameof(Assemblies))]
+    [Theory, MemberData(nameof(Assemblies))]
     public void No_forbidden_type_in_a_public_signature(string assemblyName)
     {
         var assembly = ShippedAssemblies.All.Single(a => a.GetName().Name == assemblyName);
@@ -78,7 +78,7 @@ public sealed class PublicSurfaceTests
         Assert.True(violations.Length == 0, "Forbidden types in public signatures:\n" + string.Join("\n", violations));
     }
 
-    [Theory(Skip = "Until SDK 02 Task 4 hides the internals"), MemberData(nameof(Assemblies))]
+    [Theory, MemberData(nameof(Assemblies))]
     public void Grpc_types_appear_only_on_extension_entry_points_and_options(string assemblyName)
     {
         if (!assemblyName.EndsWith(".Grpc", StringComparison.Ordinal))
@@ -111,7 +111,7 @@ public sealed class PublicSurfaceTests
         Assert.Empty(bad);
     }
 
-    [Theory(Skip = "Until SDK 02 Task 4 hides the internals"), MemberData(nameof(Assemblies))]
+    [Theory, MemberData(nameof(Assemblies))]
     public void Named_plumbing_types_are_not_public(string assemblyName)
     {
         var bad = PublicTypes(assemblyName).Where(t => MustBeInternal.Contains(t.Name)).Select(t => t.FullName);
