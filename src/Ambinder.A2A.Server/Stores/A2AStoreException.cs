@@ -37,6 +37,6 @@ public sealed class A2AStoreException : Exception
     /// <summary>What went wrong.</summary>
     public StoreErrorKind Kind { get; }
 
-    /// <summary>True for <see cref="StoreErrorKind.Unavailable"/> and throttling.</summary>
+    /// <summary>True when a retry may succeed. Defaults to true for <see cref="StoreErrorKind.Unavailable"/>; stores pass true for throttling.</summary>
     public bool IsTransient { get; }
 }
