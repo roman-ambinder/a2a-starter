@@ -66,6 +66,8 @@ Every preview section keeps a `### Breaking changes` heading.
   (`AddA2AServer`, `AddA2AServerCore`, `AddAgent`, `MapA2A`, `IAgentHandler`, `IA2AClient.SendMessageAsync`, `IA2AClient.SendStreamingMessageAsync`).
   A missing doc comment (CS1591) now fails the build.
 - API review checklist in `docs/policies/api-review-checklist.md`.
+- Versioning policy in `docs/policies/versioning.md`: version numbers, what counts as API (including log EventIds), evolution rules, deprecation, support, and the EventId block of each assembly. `CONTRIBUTING.md` has a new "Public API" section.
+- A `public-api-diff` job in CI that shows the diff of the `PublicAPI.*.txt` files in the job summary of each pull request.
 
 ### Changed
 
