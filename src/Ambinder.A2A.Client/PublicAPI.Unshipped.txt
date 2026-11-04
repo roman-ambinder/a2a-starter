@@ -202,3 +202,4 @@ Ambinder.A2A.Client.IA2ATransportFactory
 Ambinder.A2A.Client.IA2ATransportFactory.Bindings.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Ambinder.A2A.Client.IA2ATransportFactory.Create(Ambinder.A2A.Protocol.AgentInterface! selected, Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2ATransportContext! context) -> Ambinder.A2A.Client.IA2ATransport!
 Ambinder.A2A.Client.IA2ATransportFactory.ProtocolVersions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static readonly Ambinder.A2A.Client.A2ACallInfo.Key -> System.Net.Http.HttpRequestOptionsKey<Ambinder.A2A.Client.A2ACallInfo!>

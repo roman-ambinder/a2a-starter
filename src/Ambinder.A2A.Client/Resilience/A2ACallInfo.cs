@@ -4,6 +4,9 @@ namespace Ambinder.A2A.Client;
 /// <remarks>The client creates one instance per call and shares it between that call's attempts. Treat it as read-only.</remarks>
 public sealed class A2ACallInfo
 {
+    /// <summary>The <see cref="HttpRequestMessage.Options"/> key under which transports store the call's <see cref="A2ACallInfo"/>, so the HTTP handlers can read it.</summary>
+    public static readonly HttpRequestOptionsKey<A2ACallInfo> Key = new("Ambinder.A2A.Client.CallInfo");
+
     /// <summary>Gets the operation name, for example <c>SendMessage</c>.</summary>
     public required string Method { get; init; }
 
