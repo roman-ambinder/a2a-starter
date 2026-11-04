@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.7", "expect": "must-reject", "note": "parts is a repeated, required field (5.7: required arrays MUST hold at least one element), so it is a JSON array in ProtoJSON (5.5), not an object."}

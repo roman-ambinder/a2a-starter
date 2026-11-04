@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.7", "expect": "read-only", "note": "Unrecognized fields SHOULD be ignored (5.7), so output drops them and differs from the input."}

@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.5", "expect": "read-only", "note": "docs/spec-decisions.md, Unknown enum values (5.5, 5.7): an unknown enum name reads as the unspecified value instead of failing; output is TASK_STATE_UNSPECIFIED."}

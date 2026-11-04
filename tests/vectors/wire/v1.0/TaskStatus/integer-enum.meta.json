@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.5", "expect": "read-only", "note": "ProtoJSON parsers accept an enum number; docs/spec-decisions.md says a known integer is accepted. Output is always the string name (3 = TASK_STATE_COMPLETED)."}

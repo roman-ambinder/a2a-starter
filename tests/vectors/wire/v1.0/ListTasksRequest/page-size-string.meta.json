@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "pageSize is an int32 in the proto; ProtoJSON (5.5) writes it as a JSON number. A non-numeric string is not a valid int32."}
