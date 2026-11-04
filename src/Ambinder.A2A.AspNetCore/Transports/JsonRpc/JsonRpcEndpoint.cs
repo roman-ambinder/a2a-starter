@@ -176,7 +176,11 @@ internal static class JsonRpcEndpoint
     private static Method Streaming<TRequest>(string name, Func<IA2ARequestHandler, A2ACallContext, TRequest, CancellationToken, IAsyncEnumerable<StreamResponse>> stream)
         => new(name, typeof(TRequest), typeof(StreamResponse), Stream: (h, c, r, ct) => stream(h, c, (TRequest)r, ct));
 
+    /// <param name="Name">The JSON-RPC method name.</param>
+    /// <param name="ParamsType">The type of the request parameters.</param>
     /// <param name="ResultType">Serialized result type; null → <c>{}</c>.</param>
+    /// <param name="Invoke">Runs a unary method, or null for a streaming one.</param>
+    /// <param name="Stream">Runs a streaming method, or null for a unary one.</param>
     private sealed record Method(
         string Name,
         Type ParamsType,

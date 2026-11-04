@@ -8,12 +8,14 @@ using Microsoft.Extensions.Options;
 namespace Ambinder.A2A.Server.Hosting;
 
 /// <summary>Registers the hosted agents. Returned by <see cref="Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore"/>.</summary>
+/// <remarks>The builder is for startup only. Add all agents before the host starts; the catalog is built once, on first use.</remarks>
 public sealed partial class A2AServerBuilder
 {
     private readonly List<Definition> _agents = [];
 
     internal A2AServerBuilder(IServiceCollection services) => Services = services;
 
+    /// <summary>The service collection the builder adds to. Use it to register your own services for your agents.</summary>
     public IServiceCollection Services { get; }
 
     /// <summary>
@@ -25,6 +27,24 @@ public sealed partial class A2AServerBuilder
     /// <param name="publicCard">The anonymous card.</param>
     /// <param name="extendedCard">The extended card for authenticated callers. Also set <c>capabilities.extendedAgentCard</c> on the public card.</param>
     /// <param name="authorizationPolicy">ASP.NET Core policy every operation of this agent must pass (cards excepted). Null → open.</param>
+    /// <typeparam name="THandler">The handler type. The server creates a new instance for each execution with dependency injection, so the type may take registered services in its constructor.</typeparam>
+    /// <returns>This builder, so calls can be chained.</returns>
+    /// <exception cref="ArgumentException">The name is empty, has other characters than letters, digits, <c>-</c>, <c>_</c> or <c>.</c>, or is already registered.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="publicCard"/> is <see langword="null"/>.</exception>
+    /// <remarks>This method registers no services itself. The handler type is created through the container when the agent runs, and its dependencies must be registered by you.</remarks>
+    /// <example>
+    /// <code>
+    /// // requires: IServiceCollection services;
+    /// services.AddA2AServer(o => o.PublicBaseUrl = "https://agents.contoso.com")
+    ///     .AddAgent&lt;EchoAgent&gt;("echo", sp => new AgentCard
+    ///     {
+    ///         Name = "Echo",
+    ///         Description = "Repeats what you say.",
+    ///         Version = "1.0.0",
+    ///         Skills = [new AgentSkill { Id = "echo", Name = "Echo", Description = "Repeats text." }],
+    ///     });
+    /// </code>
+    /// </example>
     public A2AServerBuilder AddAgent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] THandler>(string name, Func<IServiceProvider, AgentCard> publicCard,
         Func<IServiceProvider, AgentCard>? extendedCard = null, string? authorizationPolicy = null)
         where THandler : class, IAgentHandler

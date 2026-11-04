@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
+/// <summary>Registers the A2A server for an ASP.NET Core app.</summary>
 public static class A2AServerServiceCollectionExtensions
 {
     /// <summary>
@@ -17,6 +18,25 @@ public static class A2AServerServiceCollectionExtensions
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
     /// gRPC is opt-in: add <c>Ambinder.A2A.AspNetCore.Grpc</c> and call <c>AddA2AGrpc()</c> on the returned builder.
     /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Sets the <see cref="A2AServerOptions"/>. At least <see cref="A2AServerOptions.PublicBaseUrl"/> is required.</param>
+    /// <returns>A builder to add agents to.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// Lifetimes: all singletons, except the startup check, which is a transient <c>IStartupFilter</c>. Registered with <c>TryAdd</c>
+    /// (a service you register first wins): <see cref="IAgentAuthorizer"/>, the card renderer and the caller resolver, plus everything
+    /// <c>AddA2AServerCore</c> registers with <c>TryAdd</c>. <c>AddAuthorization()</c> is called for you; add your own authentication.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // requires: WebApplicationBuilder builder;
+    /// builder.Services.AddA2AServer(o => o.PublicBaseUrl = "http://localhost:5200")
+    ///     .AddAgent&lt;EchoAgent&gt;("echo", sp => new AgentCard { Name = "Echo", Description = "Repeats text.", Version = "1.0.0" });
+    /// var app = builder.Build();
+    /// app.MapA2A();
+    /// app.Run();
+    /// </code>
+    /// </example>
     public static A2AServerBuilder AddA2AServer(this IServiceCollection services, Action<A2AServerOptions> configure)
     {
         var builder = services.AddA2AServerCore(configure);

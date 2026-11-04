@@ -4,6 +4,9 @@ using Ambinder.A2A.Shared;
 namespace Ambinder.A2A.Protocol;
 
 /// <summary>An exception that carries an A2A error code.</summary>
+/// <param name="code">The A2A error code.</param>
+/// <param name="message">The message that describes the error.</param>
+/// <param name="data">Optional extra data for the error, or <see langword="null"/>. For a JSON object, string values show up in <see cref="Details"/>.</param>
 public class A2AException(A2AErrorCode code, string message, JsonElement? data = null) : Exception(message)
 {
     /// <summary>The A2A error code.</summary>

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.Builder;
 
+/// <summary>Configures Kestrel for A2A.</summary>
 public static class A2AKestrelExtensions
 {
     /// <summary>
@@ -16,6 +17,16 @@ public static class A2AKestrelExtensions
     /// Options are read when the server starts, so <c>AddA2AServer</c> may be called before or after this. Throws
     /// <see cref="InvalidOperationException"/> at startup when two listeners would share a port.
     /// </summary>
+    /// <param name="builder">The web application builder.</param>
+    /// <returns>The same builder.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
+    /// <remarks>Needed only when you serve gRPC, because gRPC agents listen on their own HTTP/2 ports. Without gRPC you can configure Kestrel yourself.</remarks>
+    /// <example>
+    /// <code>
+    /// // requires: WebApplicationBuilder builder;
+    /// builder.ConfigureA2AKestrel();
+    /// </code>
+    /// </example>
     public static WebApplicationBuilder ConfigureA2AKestrel(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

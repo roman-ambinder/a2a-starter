@@ -16,6 +16,7 @@ namespace Ambinder.A2A.Protocol;
 /// <c>[JsonConverter]</c>. The System.Text.Json source generator needs an accessible converter, so an app's own
 /// <c>JsonSerializerContext</c> that lists A2A models compiles only if this class is public. Apps do not use it directly.
 /// </remarks>
+/// <typeparam name="T">The enum type to convert. Every member needs a <c>JsonStringEnumMemberName</c> attribute with its ProtoJSON name.</typeparam>
 public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     : JsonConverter<T> where T : struct, Enum
 {
@@ -36,6 +37,7 @@ public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAc
         }
     }
 
+    /// <inheritdoc/>
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         switch (reader.TokenType)
@@ -54,6 +56,7 @@ public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAc
         return default;
     }
 
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         => writer.WriteStringValue(ToName.TryGetValue(value, out var name) ? name : ToName[default]);
 }

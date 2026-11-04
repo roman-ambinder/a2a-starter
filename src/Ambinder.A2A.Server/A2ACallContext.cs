@@ -5,6 +5,7 @@ namespace Ambinder.A2A.Server;
 /// <summary>
 /// Per-call information the transport passes to <see cref="IA2ARequestHandler"/>.
 /// </summary>
+/// <remarks>Transports create this value. Create one yourself only to call an <see cref="IA2ARequestHandler"/> in process, for example in a test.</remarks>
 /// <param name="AgentName">The agent addressed by the call (from the URL or gRPC port). Must exist in the catalog.</param>
 /// <param name="User">The authenticated (or anonymous) caller.</param>
 /// <param name="Owner">Task owner key for the caller, from the registered <see cref="Auth.IOwnerResolver"/>.</param>

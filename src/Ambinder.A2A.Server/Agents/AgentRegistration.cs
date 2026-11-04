@@ -4,6 +4,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Agents;
 
 /// <summary>One hosted agent.</summary>
+/// <remarks>Hosting builds registrations from <see cref="Hosting.A2AServerBuilder.AddAgent{THandler}"/>. The values do not change after startup.</remarks>
 /// <param name="Name">Catalog name; used in URLs.</param>
 /// <param name="HandlerType">A type implementing <see cref="IAgentHandler"/>.</param>
 /// <param name="PublicCard">The card served to everyone.</param>

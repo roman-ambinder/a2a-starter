@@ -24,6 +24,7 @@ internal sealed class GrpcA2AClient : IA2AClient
 
     /// <param name="address">The gRPC address from the card's supportedInterfaces (<c>http://</c> uses h2c).</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
+    /// <param name="options">The client options.</param>
     /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
     /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>a2a-version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
     public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options, string? defaultTenant = null,

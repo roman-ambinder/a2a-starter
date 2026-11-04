@@ -4,9 +4,10 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server;
 
 /// <summary>What an agent gets for one execution.</summary>
+/// <remarks>The context is a snapshot. It does not change while the agent runs.</remarks>
 /// <param name="AgentName">The agent's catalog name.</param>
 /// <param name="TaskId">The task id (already chosen for a new message, even if the agent replies directly).</param>
-/// <param name="ContextId">The context id.</param>
+/// <param name="ContextId">The ID of the context (conversation) the task belongs to.</param>
 /// <param name="Message">The user message, with task and context ids filled in. For cancel: the last user message.</param>
 /// <param name="CurrentTask">The stored task for a continuation or cancel; null for a new message.</param>
 /// <param name="User">The caller.</param>

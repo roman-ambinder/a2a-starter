@@ -31,6 +31,11 @@ internal sealed class TaskManager : IA2ARequestHandler
     // while present, so no new execution can start between the cancel's state check and its CANCELED commit.
     private readonly ConcurrentDictionary<(string Agent, string TaskId), byte> _cancelling = new();
 
+    /// <param name="catalog">The hosted agents.</param>
+    /// <param name="store">Where tasks are stored.</param>
+    /// <param name="broker">Delivers task events to streams.</param>
+    /// <param name="services">Creates agent handlers.</param>
+    /// <param name="logger">The logger, or null for none.</param>
     /// <param name="observers">Called for every task event (seam for push delivery). See <see cref="ITaskEventObserver"/>.</param>
     /// <param name="pushConfigs">Where push configs live. Default: a new in-memory store (share it with the sender).</param>
     /// <param name="pushOptions">Webhook URL rules. Default <see cref="PushOptions"/>.</param>

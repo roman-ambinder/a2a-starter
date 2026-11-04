@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Microsoft.AspNetCore.Builder;
 
+/// <summary>Maps the A2A endpoints into an ASP.NET Core app.</summary>
 public static class A2AEndpointRouteBuilderExtensions
 {
     /// <summary>
@@ -13,6 +14,18 @@ public static class A2AEndpointRouteBuilderExtensions
     /// <c>GET /.well-known/a2a-push-jwks.json</c> <c>POST /agents/{agent}/jsonrpc</c> and the REST binding under <c>/agents/{agent}/rest</c>.
     /// Cards and the JWKS are anonymous and need no <c>A2A-Version</c>. Returns the group so callers can add conventions.
     /// </summary>
+    /// <param name="endpoints">The endpoint route builder, usually the <c>WebApplication</c>.</param>
+    /// <returns>The route group that holds the A2A endpoints.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="endpoints"/> is <see langword="null"/>.</exception>
+    /// <remarks>Call <c>AddA2AServer</c> first. The endpoints read the agents and options from the container when a request arrives.</remarks>
+    /// <example>
+    /// <code>
+    /// // requires: WebApplication app;
+    /// app.UseAuthentication();
+    /// app.UseAuthorization();
+    /// app.MapA2A();
+    /// </code>
+    /// </example>
     public static RouteGroupBuilder MapA2A(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
