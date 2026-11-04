@@ -48,7 +48,7 @@ public sealed class A2ARequestOptions
     /// <summary>Checks the headers again once the client's own credential provider is known.</summary>
     internal void ValidateHeaders(bool clientHasCredentialProvider)
     {
-        if (clientHasCredentialProvider && Credentials is null && _headers.HasAuthorization)
+        if (_headers.HasAuthorization && (Credentials is not null || clientHasCredentialProvider))
         {
             throw new ArgumentException(AuthorizationMessage);
         }

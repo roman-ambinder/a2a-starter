@@ -103,4 +103,78 @@ public sealed class RequestOptionsTests
         Assert.Null(i.GrpcStatus);
         Assert.Equal(2, i.Attempts);
     }
+
+    [Fact]
+    public void Validate_refuses_authorization_set_before_credentials_in_an_initializer()
+    {
+        var o = new A2ARequestOptions { Headers = { ["Authorization"] = "x" }, Credentials = new NoopProvider() };
+        var ex = Assert.Throws<ArgumentException>(() => o.ValidateHeaders(clientHasCredentialProvider: false));
+        Assert.Contains("A2ARequestOptions.Credentials", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("X Y")]
+    [InlineData("X:Y")]
+    [InlineData("X\r\nY")]
+    [InlineData("X\0Y")]
+    [InlineData("X(Y)")]
+    [InlineData("X/Y")]
+    [InlineData("Ünï")]
+    [InlineData("X\tY")]
+    public void Header_names_must_be_rfc9110_tokens(string name)
+    {
+        var h = new A2ARequestHeaders();
+        Assert.Throws<ArgumentException>(() => h[name] = "v");
+        Assert.Throws<ArgumentException>(() => h.Add(name, "v"));
+    }
+
+    [Fact]
+    public void Token_characters_are_accepted_in_names()
+    {
+        var h = new A2ARequestHeaders();
+        h["X-Trace_1.a!#$%&'*+^`|~"] = "v";
+        Assert.Single(h);
+    }
+
+    [Theory]
+    [InlineData("a\u0001b")]
+    [InlineData("a\u001Fb")]
+    [InlineData("a\u007Fb")]
+    [InlineData("a\vb")]
+    public void Header_values_with_control_characters_are_refused(string value)
+    {
+        var h = new A2ARequestHeaders();
+        Assert.Throws<ArgumentException>(() => h["X-Test"] = value);
+        Assert.Throws<ArgumentException>(() => h.SetAuthorization(value));
+    }
+
+    [Fact]
+    public void Header_values_may_contain_horizontal_tab()
+    {
+        var h = new A2ARequestHeaders();
+        h["X-Test"] = "a\tb";
+        Assert.Equal("a\tb", h["X-Test"]);
+    }
+
+    [Fact]
+    public void Remove_authorization_clears_the_hidden_slot()
+    {
+        var h = new A2ARequestHeaders();
+        h.SetAuthorization("Bearer secret");
+        Assert.True(h.Remove("authorization"));
+        Assert.False(h.HasAuthorization);
+        Assert.Null(h.AuthorizationForTransport);
+        Assert.False(h.Remove("Authorization"));
+    }
+
+    [Fact]
+    public void Clear_clears_the_hidden_authorization_slot()
+    {
+        var h = new A2ARequestHeaders();
+        h.SetAuthorization("Bearer secret");
+        h["X-A"] = "1";
+        h.Clear();
+        Assert.Empty(h);
+        Assert.False(h.HasAuthorization);
+    }
 }

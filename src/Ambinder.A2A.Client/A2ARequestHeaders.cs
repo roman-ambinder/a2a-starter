@@ -9,7 +9,10 @@ namespace Ambinder.A2A.Client;
 /// <remarks>
 /// The collection hides the <c>Authorization</c> value from readers and enumeration, so an interceptor cannot read a token.
 /// A credential provider sets it with <see cref="SetAuthorization"/>. Writing <c>Authorization</c> through the indexer or
-/// <c>Add</c> also stores it in that hidden slot. An instance belongs to one call and is not thread-safe.
+/// <c>Add</c> also stores it in that hidden slot, and <see cref="Remove(string)"/> and <see cref="Clear"/> clear it, so the
+/// collection otherwise behaves like a normal dictionary. Header names must be RFC 9110 tokens. Values must not contain control
+/// characters (0x00-0x1F except horizontal tab, or 0x7F). Setting an invalid name or value throws <see cref="ArgumentException"/>.
+/// An instance belongs to one call and is not thread-safe.
 /// </remarks>
 [SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix", Justification = "The name A2ARequestHeaders is fixed by spec 10.")]
 public sealed class A2ARequestHeaders : IDictionary<string, string>
@@ -51,8 +54,18 @@ public sealed class A2ARequestHeaders : IDictionary<string, string>
             {
                 throw new ArgumentException($"The value of header '{name}' contains a line break or null character.", nameof(value));
             }
+
+            if ((c < 0x20 && c != '\t') || c == 0x7F)
+            {
+                throw new ArgumentException($"The value of header '{name}' contains a control character.", nameof(value));
+            }
         }
     }
+
+    // RFC 9110 section 5.6.2: token = 1*tchar.
+    private static bool IsTokenChar(char c)
+        => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9')
+            or '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '.' or '^' or '_' or '`' or '|' or '~';
 
     private void Store(string key, string value)
     {
@@ -60,7 +73,7 @@ public sealed class A2ARequestHeaders : IDictionary<string, string>
         ArgumentNullException.ThrowIfNull(value);
         foreach (var c in key)
         {
-            if (c is '\r' or '\n' or '\0' or ':' or ' ')
+            if (!IsTokenChar(c))
             {
                 throw new ArgumentException($"'{key}' is not a valid header name.", nameof(key));
             }
@@ -117,7 +130,11 @@ public sealed class A2ARequestHeaders : IDictionary<string, string>
     public void Add(KeyValuePair<string, string> item) => Add(item.Key, item.Value);
 
     /// <inheritdoc />
-    public void Clear() => _items.Clear();
+    public void Clear()
+    {
+        _items.Clear();
+        AuthorizationForTransport = null;
+    }
 
     /// <inheritdoc />
     public bool Contains(KeyValuePair<string, string> item)
@@ -131,7 +148,18 @@ public sealed class A2ARequestHeaders : IDictionary<string, string>
         => ((ICollection<KeyValuePair<string, string>>)_items).CopyTo(array, arrayIndex);
 
     /// <inheritdoc />
-    public bool Remove(string key) => _items.Remove(key);
+    public bool Remove(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (IsAuthorization(key))
+        {
+            var had = AuthorizationForTransport is not null;
+            AuthorizationForTransport = null;
+            return had;
+        }
+
+        return _items.Remove(key);
+    }
 
     /// <inheritdoc />
     public bool Remove(KeyValuePair<string, string> item)
