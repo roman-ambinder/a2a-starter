@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.5.7", "expect": "roundtrip", "note": "Deprecated; no section of its own in the spec, defined in proto/a2a.proto and reachable through OAuthFlows (4.5.7). Must still round-trip."}

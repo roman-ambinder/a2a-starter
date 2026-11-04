@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "8.5", "expect": "roundtrip", "note": "The provider object of the section 8.5 sample card; AgentProvider is defined in 4.4.2."}

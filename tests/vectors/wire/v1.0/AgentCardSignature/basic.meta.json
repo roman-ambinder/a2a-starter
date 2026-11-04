@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "8.5", "expect": "roundtrip", "note": "The signature object of the section 8.5 sample card; AgentCardSignature is defined in 4.4.7."}

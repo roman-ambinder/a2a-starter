@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.4.1", "expect": "roundtrip", "note": "Only the fields the proto marks REQUIRED (nested required fields included)."}

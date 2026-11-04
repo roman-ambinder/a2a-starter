@@ -1,0 +1,1 @@
+{"source": "spec-example", "specSection": "8.5", "expect": "roundtrip", "note": "The capabilities object of the section 8.5 sample card; AgentCapabilities is defined in 4.4.3."}

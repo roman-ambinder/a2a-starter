@@ -1,0 +1,1 @@
+{"source": "hand-written", "specSection": "4.4.1", "expect": "roundtrip", "note": "No spec section of its own; defined in proto/a2a.proto as the value type of SecurityRequirement.schemes."}
