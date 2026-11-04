@@ -505,6 +505,9 @@ Ambinder.A2A.Protocol.SendMessageResponse.Message.init -> void
 Ambinder.A2A.Protocol.SendMessageResponse.SendMessageResponse() -> void
 Ambinder.A2A.Protocol.SendMessageResponse.Task.get -> Ambinder.A2A.Protocol.AgentTask?
 Ambinder.A2A.Protocol.SendMessageResponse.Task.init -> void
+Ambinder.A2A.Protocol.Signing.JsonCanonicalizationException
+Ambinder.A2A.Protocol.Signing.JsonCanonicalizationException.JsonCanonicalizationException(string! message) -> void
+Ambinder.A2A.Protocol.Signing.JsonCanonicalizer
 Ambinder.A2A.Protocol.StreamResponse
 Ambinder.A2A.Protocol.StreamResponse.<Clone>$() -> Ambinder.A2A.Protocol.StreamResponse!
 Ambinder.A2A.Protocol.StreamResponse.ArtifactUpdate.get -> Ambinder.A2A.Protocol.TaskArtifactUpdateEvent?
@@ -892,6 +895,8 @@ static Ambinder.A2A.Protocol.SendMessageRequest.operator !=(Ambinder.A2A.Protoco
 static Ambinder.A2A.Protocol.SendMessageRequest.operator ==(Ambinder.A2A.Protocol.SendMessageRequest? left, Ambinder.A2A.Protocol.SendMessageRequest? right) -> bool
 static Ambinder.A2A.Protocol.SendMessageResponse.operator !=(Ambinder.A2A.Protocol.SendMessageResponse? left, Ambinder.A2A.Protocol.SendMessageResponse? right) -> bool
 static Ambinder.A2A.Protocol.SendMessageResponse.operator ==(Ambinder.A2A.Protocol.SendMessageResponse? left, Ambinder.A2A.Protocol.SendMessageResponse? right) -> bool
+static Ambinder.A2A.Protocol.Signing.JsonCanonicalizer.Canonicalize(System.Text.Json.JsonElement value) -> byte[]!
+static Ambinder.A2A.Protocol.Signing.JsonCanonicalizer.Canonicalize(System.Text.Json.JsonElement value, System.Buffers.IBufferWriter<byte>! output) -> void
 static Ambinder.A2A.Protocol.StreamResponse.operator !=(Ambinder.A2A.Protocol.StreamResponse? left, Ambinder.A2A.Protocol.StreamResponse? right) -> bool
 static Ambinder.A2A.Protocol.StreamResponse.operator ==(Ambinder.A2A.Protocol.StreamResponse? left, Ambinder.A2A.Protocol.StreamResponse? right) -> bool
 static Ambinder.A2A.Protocol.StringList.operator !=(Ambinder.A2A.Protocol.StringList? left, Ambinder.A2A.Protocol.StringList? right) -> bool
