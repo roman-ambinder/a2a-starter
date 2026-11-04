@@ -64,3 +64,61 @@ Ambinder.A2A.Client.A2ATransportException.GrpcStatus.get -> string?
 Ambinder.A2A.Client.A2ATransportException.HttpStatus.get -> int?
 Ambinder.A2A.Client.A2ATransportException.IsTransient.get -> bool
 static Ambinder.A2A.Client.A2ATransportException.FromHttpStatus(int status, string! agent, string! method) -> Ambinder.A2A.Client.A2ATransportException!
+Ambinder.A2A.Client.A2ARequestHeaders
+Ambinder.A2A.Client.A2ARequestHeaders.A2ARequestHeaders() -> void
+Ambinder.A2A.Client.A2ARequestHeaders.Add(System.Collections.Generic.KeyValuePair<string!, string!> item) -> void
+Ambinder.A2A.Client.A2ARequestHeaders.Add(string! key, string! value) -> void
+Ambinder.A2A.Client.A2ARequestHeaders.Clear() -> void
+Ambinder.A2A.Client.A2ARequestHeaders.Contains(System.Collections.Generic.KeyValuePair<string!, string!> item) -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.ContainsKey(string! key) -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.CopyTo(System.Collections.Generic.KeyValuePair<string!, string!>[]! array, int arrayIndex) -> void
+Ambinder.A2A.Client.A2ARequestHeaders.Count.get -> int
+Ambinder.A2A.Client.A2ARequestHeaders.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string!, string!>>!
+Ambinder.A2A.Client.A2ARequestHeaders.IsReadOnly.get -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.Keys.get -> System.Collections.Generic.ICollection<string!>!
+Ambinder.A2A.Client.A2ARequestHeaders.Remove(System.Collections.Generic.KeyValuePair<string!, string!> item) -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.Remove(string! key) -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.SetAuthorization(string! value) -> void
+Ambinder.A2A.Client.A2ARequestHeaders.TryGetValue(string! key, out string! value) -> bool
+Ambinder.A2A.Client.A2ARequestHeaders.Values.get -> System.Collections.Generic.ICollection<string!>!
+Ambinder.A2A.Client.A2ARequestHeaders.this[string! key].get -> string!
+Ambinder.A2A.Client.A2ARequestHeaders.this[string! key].set -> void
+Ambinder.A2A.Client.A2ARequestOptions
+Ambinder.A2A.Client.A2ARequestOptions.A2ARequestOptions() -> void
+Ambinder.A2A.Client.A2ARequestOptions.AllowSendRetry.get -> bool?
+Ambinder.A2A.Client.A2ARequestOptions.AllowSendRetry.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.CredentialCacheKey.get -> string?
+Ambinder.A2A.Client.A2ARequestOptions.CredentialCacheKey.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.Credentials.get -> Ambinder.A2A.Client.Auth.IA2ACredentialProvider?
+Ambinder.A2A.Client.A2ARequestOptions.Credentials.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Ambinder.A2A.Client.A2ARequestOptions.Extensions.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.Headers.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Ambinder.A2A.Client.A2ARequestOptions.Items.get -> System.Collections.Generic.IDictionary<string!, object?>!
+Ambinder.A2A.Client.A2ARequestOptions.OnResponse.get -> System.Action<Ambinder.A2A.Client.A2AResponseInfo!>?
+Ambinder.A2A.Client.A2ARequestOptions.OnResponse.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.Timeout.get -> System.TimeSpan?
+Ambinder.A2A.Client.A2ARequestOptions.Timeout.init -> void
+Ambinder.A2A.Client.A2ARequestOptions.UserAssertion.get -> string?
+Ambinder.A2A.Client.A2ARequestOptions.UserAssertion.init -> void
+Ambinder.A2A.Client.A2AResponseInfo
+Ambinder.A2A.Client.A2AResponseInfo.<Clone>$() -> Ambinder.A2A.Client.A2AResponseInfo!
+Ambinder.A2A.Client.A2AResponseInfo.A2AResponseInfo() -> void
+Ambinder.A2A.Client.A2AResponseInfo.ActivatedExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Client.A2AResponseInfo.ActivatedExtensions.init -> void
+Ambinder.A2A.Client.A2AResponseInfo.Attempts.get -> int
+Ambinder.A2A.Client.A2AResponseInfo.Attempts.init -> void
+Ambinder.A2A.Client.A2AResponseInfo.Equals(Ambinder.A2A.Client.A2AResponseInfo? other) -> bool
+Ambinder.A2A.Client.A2AResponseInfo.GrpcStatus.get -> string?
+Ambinder.A2A.Client.A2AResponseInfo.GrpcStatus.init -> void
+Ambinder.A2A.Client.A2AResponseInfo.HttpStatus.get -> int?
+Ambinder.A2A.Client.A2AResponseInfo.HttpStatus.init -> void
+Ambinder.A2A.Client.A2AResponseInfo.ProtocolVersion.get -> string!
+Ambinder.A2A.Client.A2AResponseInfo.ProtocolVersion.init -> void
+Ambinder.A2A.Client.A2AResponseInfo.Transport.get -> string!
+Ambinder.A2A.Client.A2AResponseInfo.Transport.init -> void
+override Ambinder.A2A.Client.A2AResponseInfo.Equals(object? obj) -> bool
+override Ambinder.A2A.Client.A2AResponseInfo.GetHashCode() -> int
+override Ambinder.A2A.Client.A2AResponseInfo.ToString() -> string!
+static Ambinder.A2A.Client.A2AResponseInfo.operator !=(Ambinder.A2A.Client.A2AResponseInfo? left, Ambinder.A2A.Client.A2AResponseInfo? right) -> bool
+static Ambinder.A2A.Client.A2AResponseInfo.operator ==(Ambinder.A2A.Client.A2AResponseInfo? left, Ambinder.A2A.Client.A2AResponseInfo? right) -> bool
