@@ -38,7 +38,7 @@ public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timePro
         AgentCard? card;
         try
         {
-            card = JsonSerializer.Deserialize(bytes, A2AJsonContext.Default.AgentCard);
+            card = JsonSerializer.Deserialize(bytes, A2AJson.AgentCard);
         }
         catch (JsonException ex)
         {

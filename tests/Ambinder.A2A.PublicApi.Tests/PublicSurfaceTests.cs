@@ -45,7 +45,9 @@ public sealed class PublicSurfaceTests
         "PageToken", "TaskStateRules", "Releaser", "RequestValidation", "ServiceParameters", "RestErrorWriter",
         "GrpcErrorMapper", "SseWriter", "AgentCardInterfaces", "WebhookUrlValidator", "A2AGrpcService", "SseReader",
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
-        "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
+        "UtcTimestampConverter", "A2AJsonContext",
+        // ProtoEnumConverter<T> stays public: owner decision 2026-11-04 (Task 2 / Review focus 1). The source generator cannot
+        // use an internal converter named in [JsonConverter] on the public enums, so a consumer's own context would not compile.
         // Default implementations (spec 02 section 3, writer's call as a default):
         "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "AgentAuthorizer",
         // DefaultOwnerResolver stays public: spec 07 keeps it public so other-scheme resolvers can decorate it.

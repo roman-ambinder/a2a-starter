@@ -41,6 +41,7 @@ Every preview section keeps a `### Breaking changes` heading.
   depends on `Azure.Identity`.
 - **`A2A.Protocol.Grpc` is removed.** The generated protobuf types and `ProtoMapper` are internal in both gRPC packages, and
   the gRPC service class is internal.
+- **`A2AJsonContext` and `UtcTimestampConverter` are now internal** (`Ambinder.A2A.Protocol`). Use the `A2AJson` accessors or `A2AJson.TypeInfoResolver` instead. `ProtoEnumConverter<T>` stays public, only because the public enums `TaskState` and `Role` name it in `[JsonConverter]` and the source generator needs an accessible converter; do not use it directly.
 
 ### Added
 
@@ -52,6 +53,7 @@ Every preview section keeps a `### Breaking changes` heading.
   and `Ambinder.A2A.Client`.
 - Community files: `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.github/CODEOWNERS`, issue forms
   and a pull request template.
+- `A2AJson.TypeInfoResolver` and one typed `JsonTypeInfo<T>` accessor per protocol type (for example `A2AJson.AgentTask`, `A2AJson.Message`), so an app with its own source-generated JSON context can add the A2A types.
 
 <!-- No release tag exists yet. With the first tag, change this link to https://github.com/roman-ambinder/a2a-starter/compare/vX.Y.Z...HEAD and add a link per release. -->
 [Unreleased]: https://github.com/roman-ambinder/a2a-starter/commits/master

@@ -1,0 +1,3 @@
+old symbol,new symbol,package,change
+A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type> / A2AJson.TypeInfoResolver,Ambinder.A2A.Protocol,internal; replaced by A2AJson typed accessors
+A2A.Protocol.UtcTimestampConverter,,Ambinder.A2A.Protocol,internal

@@ -12,6 +12,11 @@ namespace Ambinder.A2A.Protocol;
 /// failing the whole payload, so a newer peer's enum values do not break older readers (spec 5: ignore what you do not know).
 /// Servers reject <c>Unspecified</c> where a value is required. The name tables are built once per enum type.
 /// </summary>
+/// <remarks>
+/// This type is public only because the public enums <see cref="TaskState"/> and <see cref="Role"/> name it in
+/// <c>[JsonConverter]</c>. The System.Text.Json source generator needs an accessible converter, so an app's own
+/// <c>JsonSerializerContext</c> that lists A2A models compiles only if this class is public. Apps do not use it directly.
+/// </remarks>
 public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     : JsonConverter<T> where T : struct, Enum
 {

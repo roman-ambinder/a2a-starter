@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Ambinder.A2A.Protocol;
 
 /// <summary>Writes timestamps as ISO 8601 UTC with a trailing Z (proto3 Timestamp JSON form).</summary>
-public sealed class UtcTimestampConverter : JsonConverter<DateTimeOffset>
+internal sealed class UtcTimestampConverter : JsonConverter<DateTimeOffset>
 {
     public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
