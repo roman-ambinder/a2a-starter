@@ -76,27 +76,30 @@ internal sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2ARequ
         try
         {
             // A manual loop: yield cannot sit inside a try block that has a catch.
-            await using var events = operation().GetAsyncEnumerator(ct);
-            while (true)
+            var events = operation().GetAsyncEnumerator(ct);
+            await using (events.ConfigureAwait(false))
             {
-                StreamResponse item;
-                try
+                while (true)
                 {
-                    if (!await events.MoveNextAsync().ConfigureAwait(false)) break;
-                    item = events.Current;
+                    StreamResponse item;
+                    try
+                    {
+                        if (!await events.MoveNextAsync().ConfigureAwait(false)) break;
+                        item = events.Current;
+                    }
+                    catch (Exception ex)
+                    {
+                        Fail(span, ex);
+                        throw;
+                    }
+                    if (span is not null)
+                    {
+                        var task = item.Task;
+                        SetIds(span, task?.Id ?? item.StatusUpdate?.TaskId ?? item.ArtifactUpdate?.TaskId ?? item.Message?.TaskId,
+                            task?.ContextId ?? item.StatusUpdate?.ContextId ?? item.ArtifactUpdate?.ContextId ?? item.Message?.ContextId);
+                    }
+                    yield return item;
                 }
-                catch (Exception ex)
-                {
-                    Fail(span, ex);
-                    throw;
-                }
-                if (span is not null)
-                {
-                    var task = item.Task;
-                    SetIds(span, task?.Id ?? item.StatusUpdate?.TaskId ?? item.ArtifactUpdate?.TaskId ?? item.Message?.TaskId,
-                        task?.ContextId ?? item.StatusUpdate?.ContextId ?? item.ArtifactUpdate?.ContextId ?? item.Message?.ContextId);
-                }
-                yield return item;
             }
         }
         finally

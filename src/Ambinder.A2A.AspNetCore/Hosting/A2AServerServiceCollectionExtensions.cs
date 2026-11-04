@@ -2,10 +2,7 @@ using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.AspNetCore.Auth;
 using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Hosting;
-using Ambinder.A2A.Server.Tasks;
-using Ambinder.A2A.Server.Telemetry;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;

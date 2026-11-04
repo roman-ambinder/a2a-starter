@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Ambinder.A2A.AspNetCore.Transports;
 
 /// <summary>Exception → A2A error translation and shared HTTP error bodies. Used by every transport.</summary>
-internal static class TransportErrors
+internal static partial class TransportErrors
 {
     /// <summary>
     /// <see cref="A2AException"/> as is; anything else → logged, <see cref="A2AErrorCode.InternalError"/> with a generic
@@ -50,7 +50,8 @@ internal static class TransportErrors
         http.Response.StatusCode = httpStatus;
         http.Response.ContentType = "application/json";
         using var buffer = new MemoryStream();
-        await using (var w = new Utf8JsonWriter(buffer))
+        var w = new Utf8JsonWriter(buffer);
+        await using (w.ConfigureAwait(false))
         {
             w.WriteStartObject();
             w.WriteStartObject("error");
@@ -60,7 +61,7 @@ internal static class TransportErrors
             w.WriteEndObject();
             w.WriteEndObject();
         }
-        await http.Response.Body.WriteAsync(buffer.ToArray(), http.RequestAborted);
+        await http.Response.Body.WriteAsync(buffer.ToArray(), http.RequestAborted).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -112,9 +113,13 @@ internal static class TransportErrors
     public static Task WriteUnknownAgentAsync(HttpContext http, string? agentName)
         => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'.");
 
+    [LoggerMessage(EventId = LogEventIds.UnhandledTransportError, EventName = nameof(UnhandledTransportError), Level = LogLevel.Error,
+        Message = "Unhandled error in A2A request.")]
+    private static partial void UnhandledTransportError(ILogger logger, Exception exception);
+
     private static A2AException Internal(Exception ex, ILogger logger)
     {
-        logger.LogError(ex, "Unhandled error in A2A request.");
+        UnhandledTransportError(logger, ex);
         return new A2AException(A2AErrorCode.InternalError, "Internal error.");
     }
 }

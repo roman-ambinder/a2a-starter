@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using Ambinder.A2A.Client.Auth;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Client.Transports;
@@ -89,9 +88,11 @@ internal static class ClientSupport
     {
         if (string.IsNullOrEmpty(interfaceTenant)) return string.IsNullOrEmpty(requestTenant) ? null : requestTenant;
         if (string.IsNullOrEmpty(requestTenant) || requestTenant == interfaceTenant) return interfaceTenant;
+#pragma warning disable CA2208 // "request" is the caller's argument; the parameter name is part of the message that callers see.
         throw new ArgumentException(
             $"This client talks to tenant '{interfaceTenant}' (from the agent card); the request asks for tenant '{requestTenant}'. " +
             "Leave the request tenant empty, or create a client for the other interface.", "request");
+#pragma warning restore CA2208
     }
 
     /// <summary>True for an SSE payload with content; blank payloads are heartbeats.</summary>

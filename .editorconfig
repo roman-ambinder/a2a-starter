@@ -17,3 +17,18 @@ trim_trailing_whitespace = false
 # Registration and mapping extensions live in the namespaces the web SDK imports implicitly (spec 02 section 5).
 [src/**/{*ServiceCollectionExtensions,*ServerBuilderExtensions,*EndpointRouteBuilderExtensions,A2AKestrelExtensions}.cs]
 dotnet_diagnostic.IDE0130.severity = none
+
+[src/**/*.cs]
+# Spec 02 section 7: errors in shipped code.
+dotnet_diagnostic.IDE0005.severity = error   # unused usings
+csharp_style_namespace_declarations = file_scoped:error
+dotnet_diagnostic.IDE0161.severity = error   # file-scoped namespaces
+dotnet_style_readonly_field = true:error
+dotnet_diagnostic.IDE0044.severity = error   # readonly fields
+dotnet_diagnostic.CA2007.severity = error    # ConfigureAwait(false) on every await
+dotnet_diagnostic.CA1848.severity = error    # use [LoggerMessage]
+dotnet_diagnostic.CA2254.severity = error    # constant log templates
+
+# Exceptions. Each line says why.
+# CA1716: IA2ARequestHandler methods name a parameter "call" (a Visual Basic keyword). Public name, decided in the API review.
+dotnet_diagnostic.CA1716.severity = none

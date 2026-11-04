@@ -135,7 +135,7 @@ internal sealed class TaskManager : IA2ARequestHandler
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Agent {Agent} CancelAsync failed for task {TaskId}; canceling anyway", call.AgentName, task.Id);
+                Log.AgentCancelFailed(_logger, ex, call.AgentName, task.Id);
             }
 
             // Whatever the agent did, a task that is not terminal now ends CANCELED.
@@ -316,13 +316,13 @@ internal sealed class TaskManager : IA2ARequestHandler
             await InvokeHandlerAsync(registration, h => h.ExecuteAsync(context, sink, ct)).ConfigureAwait(false);
             if (!sink.Done && !execution.CancelRequested)
             {
-                _logger.LogWarning("Agent {Agent} ended task {TaskId} without a final state; failing it", execution.AgentName, execution.TaskId);
+                Log.AgentEndedWithoutFinalState(_logger, execution.AgentName, execution.TaskId);
                 await sink.FailAsync("Agent ended without a final state").ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (execution.CancelRequested)
         {
-            _logger.LogDebug(ex, "Agent {Agent} stopped after task {TaskId} was canceled", execution.AgentName, execution.TaskId);
+            Log.AgentStoppedAfterCancel(_logger, ex, execution.AgentName, execution.TaskId);
         }
         catch (Exception ex)
         {
@@ -333,13 +333,13 @@ internal sealed class TaskManager : IA2ARequestHandler
             }
             if (sink.Done)
             {
-                _logger.LogWarning(ex, "Agent {Agent} threw after task {TaskId} reached a final state", execution.AgentName, execution.TaskId);
+                Log.AgentThrewAfterFinalState(_logger, ex, execution.AgentName, execution.TaskId);
             }
             else
             {
-                _logger.LogError(ex, "Agent {Agent} failed on task {TaskId}", execution.AgentName, execution.TaskId);
+                Log.AgentFailed(_logger, ex, execution.AgentName, execution.TaskId);
                 try { await sink.FailAsync("Agent error").ConfigureAwait(false); }
-                catch (Exception failEx) { _logger.LogError(failEx, "Could not fail task {TaskId}", execution.TaskId); }
+                catch (Exception failEx) { Log.CouldNotFailTask(_logger, failEx, execution.TaskId); }
             }
         }
         finally

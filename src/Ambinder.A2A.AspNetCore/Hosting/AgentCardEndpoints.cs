@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
-using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.AspNetCore.Transports;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,7 +28,7 @@ internal static class AgentCardEndpoints
     {
         var jwks = http.RequestServices.GetRequiredKeyedService<Func<System.Text.Json.Nodes.JsonObject>>(InternalServiceKeys.PushJwks)();
         http.Response.ContentType = "application/json";
-        await http.Response.WriteAsync(jwks.ToJsonString(), http.RequestAborted);
+        await http.Response.WriteAsync(jwks.ToJsonString(), http.RequestAborted).ConfigureAwait(false);
     }
 
     private static async Task WriteCardAsync(HttpContext http, string? agentName)
@@ -37,7 +36,7 @@ internal static class AgentCardEndpoints
         var catalog = http.RequestServices.GetRequiredService<AgentCatalog>();
         if (agentName is null || !catalog.TryGet(agentName, out var agent))
         {
-            await TransportErrors.WriteUnknownAgentAsync(http, agentName);
+            await TransportErrors.WriteUnknownAgentAsync(http, agentName).ConfigureAwait(false);
             return;
         }
         var options = http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value;
@@ -58,7 +57,7 @@ internal static class AgentCardEndpoints
         }
 
         http.Response.ContentType = "application/json";
-        await http.Response.Body.WriteAsync(bytes, http.RequestAborted);
+        await http.Response.Body.WriteAsync(bytes, http.RequestAborted).ConfigureAwait(false);
     }
 
     // Serialized once per card instance (cards are immutable records built at startup).

@@ -5,7 +5,6 @@ using Ambinder.A2A.Server.Auth;
 using Ambinder.A2A.Server.Push;
 using Ambinder.A2A.Server.Telemetry;
 using Ambinder.A2A.Server.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

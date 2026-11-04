@@ -31,7 +31,7 @@ public static class A2AError
         [A2AErrorCode.VersionNotSupported] = new(A2AErrorCode.VersionNotSupported, 400, "FailedPrecondition", "VERSION_NOT_SUPPORTED"),
     };
 
-    private static readonly IReadOnlyDictionary<string, A2AErrorCode> ByReason = Catalog.Values
+    private static readonly Dictionary<string, A2AErrorCode> ByReason = Catalog.Values
         .Where(info => info.Reason is not null)
         .ToDictionary(info => info.Reason!, info => info.Code, StringComparer.Ordinal);
 

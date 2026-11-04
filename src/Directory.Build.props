@@ -29,6 +29,13 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
+  <!-- Analyzer level (spec 02 section 7). Applies to src only. Rules that are turned down are listed in .editorconfig with a reason. -->
+  <PropertyGroup Label="Analyzers">
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
   <PropertyGroup Label="Documentation, symbols, SourceLink">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591 (missing doc) and CS1573 (some but not all parameters documented): XML doc completeness is enforced by package 02. -->

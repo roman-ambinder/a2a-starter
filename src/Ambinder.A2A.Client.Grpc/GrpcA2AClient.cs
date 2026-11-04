@@ -222,7 +222,9 @@ internal sealed class GrpcA2AClient : IA2AClient
                 catch (ArgumentException)
                 {
                     // Never echo the value: it is a credential.
+#pragma warning disable CA2208 // "name" is the header name from the credential provider, not a parameter; callers see it in the message.
                     throw new ArgumentException($"The header '{name}' cannot be sent as gRPC metadata.", nameof(name));
+#pragma warning restore CA2208
                 }
             }
         }
