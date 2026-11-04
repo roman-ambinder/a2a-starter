@@ -274,7 +274,8 @@ public sealed class PublicSurfaceTests
         "PageToken", "TaskStateRules", "Releaser", "RequestValidation", "ServiceParameters", "RestErrorWriter",
         "GrpcErrorMapper", "SseWriter", "AgentCardInterfaces", "WebhookUrlValidator", "A2AGrpcService", "SseReader",
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
-        "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
+        "UtcTimestampConverter", "A2AJsonContext",
+        // ProtoEnumConverter<T> stays public: owner decision 2026-11-04 (Task 2.3). This matches the shipped test.
         // Default implementations (spec 02 section 3, writer's call as a default):
         "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "AgentAuthorizer",
         // DefaultOwnerResolver stays public: spec 07 keeps it public so other-scheme resolvers can decorate it.
@@ -487,7 +488,7 @@ public sealed class ConsumerJsonContextTests
 Adjust property names and the enum wire string to the actual models and to what the golden JSON tests show. Check: if `ConsumerContext` does not compile, or the second test writes a number instead of the name, the internal converter broke consumers. **Stop and ask the owner** (Review focus 1). Do not make the converter public on your own.
 
 - [ ] **2.6** Build and test. Golden JSON tests unchanged. Commit: `feat(protocol): hide JSON plumbing, add A2AJson typed accessors`.
-- [ ] **2.7** Records: `CHANGELOG.md` "Breaking changes" lines for `A2AJsonContext`, `ProtoEnumConverter<T>`, `UtcTimestampConverter` now internal, and "Added" for `A2AJson.TypeInfoResolver` and the accessors. Rows in `docs/migration/phase1-map.csv`, for example `A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type>,Ambinder.A2A.Protocol,replaced by A2AJson typed accessors`.
+- [ ] **2.7** Records: `CHANGELOG.md` "Breaking changes" lines for `A2AJsonContext` and `UtcTimestampConverter` now internal (`ProtoEnumConverter<T>` stays public, 2.3), and "Added" for `A2AJson.TypeInfoResolver` and the accessors. Rows in `docs/migration/phase1-map.csv`, for example `A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type>,Ambinder.A2A.Protocol,replaced by A2AJson typed accessors`.
 
 ---
 
@@ -686,7 +687,7 @@ dotnet_diagnostic.CA2254.severity = error    # constant log templates
 IDE0005 in the build needs `GenerateDocumentationFile=true` (already on, A6). Do not add `var` rules (spec).
 - [ ] **7.3** Build. Fix every new diagnostic in `src/`:
   - CA2007: add `.ConfigureAwait(false)` (including `await foreach (... .ConfigureAwait(false))` and `await using (... .ConfigureAwait(false))`). The Facts line counts suggest only a few sites; the analyzer lists them all.
-  - CA1848 / CA2254: convert the 14 log calls (see Facts) to `[LoggerMessage]` partial methods in a `static partial class Log` per file or per area, `internal`. **EventIds are API** (spec 02 section 1, item 7). First check spec 14 and `docs/` for an EventId scheme; if none exists, use one block of 1,000 per assembly, with event names equal to the method names. The blocks are fixed here for every row of 01's package map, so packages that run in parallel cannot pick the same one *(cross-plan review; this was a known review note)*:
+  - CA1848 / CA2254: convert the 14 log calls (see Facts) to `[LoggerMessage]` partial methods in one `internal static partial class Log` per assembly, in one file. *(As shipped, `Ambinder.A2A.Server` first had one per area, `Push/Log.cs` and `Tasks/Log.cs`. The logging source generator writes separate declarations in an order that changes between builds, so the `reproducibility` job failed now and then. They are now merged into `src/Ambinder.A2A.Server/Log.cs`, and `LoggerMessageTests` allows at most one file with `[LoggerMessage]` per assembly.)* **EventIds are API** (spec 02 section 1, item 7). First check spec 14 and `docs/` for an EventId scheme; if none exists, use one block of 1,000 per assembly, with event names equal to the method names. The blocks are fixed here for every row of 01's package map, so packages that run in parallel cannot pick the same one *(cross-plan review; this was a known review note)*:
     - `Server` 1000, `AspNetCore` 2000, `AspNetCore.Grpc` 3000, `Client` 4000, `Client.Grpc` 5000, `Client.Entra` 6000, `AspNetCore.Entra` 7000, `Azure.KeyVault` 8000
     - `Stores.EntityFrameworkCore` 9000, `Stores.EntityFrameworkCore.PostgreSql` 10000, `Stores.EntityFrameworkCore.Sqlite` 11000, `Stores.EntityFrameworkCore.SqlServer` 12000, `Stores.Cosmos` 13000
     - `Push.Receiver` 14000, `Cluster` 15000, `Cluster.Entra` 16000, `Extensions.AI` 17000, `Extensions.AI.AgentFramework` 18000, `Compat.V0_3` 19000, `Compat.V0_3.AspNetCore` 20000
