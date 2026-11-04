@@ -53,10 +53,12 @@ public sealed class TaskEventLog : ITaskEventObserver
     /// <summary>Waits for the first event that matches. Events already seen are checked first.</summary>
     /// <param name="match">The condition.</param>
     /// <param name="timeout">How long to wait before giving up. It guards against a hang; keep it at or under 10 seconds.</param>
+    /// <param name="description">Text for the timeout message. Defaults to the predicate's method name.</param>
     /// <returns>The first matching event.</returns>
+    /// <remarks>The predicate runs while the log holds its lock. It must be quick and must not call back into the log.</remarks>
     /// <exception cref="TimeoutException">No event matched in time. The message lists the last 10 events.</exception>
-    public Task<TaskEvent> WaitForAsync(Func<TaskEvent, bool> match, TimeSpan timeout)
-        => WaitForAsync(match, timeout, match.Method.Name);
+    public Task<TaskEvent> WaitForAsync(Func<TaskEvent, bool> match, TimeSpan timeout, string? description = null)
+        => WaitCoreAsync(match, timeout, description ?? match.Method.Name);
 
     /// <summary>Waits until a task reaches a state.</summary>
     /// <param name="taskId">The task id.</param>
@@ -65,9 +67,9 @@ public sealed class TaskEventLog : ITaskEventObserver
     /// <returns>The first event that left the task in <paramref name="state"/>.</returns>
     /// <exception cref="TimeoutException">The task did not reach the state in time.</exception>
     public Task<TaskEvent> WaitForTaskStateAsync(string taskId, TaskState state, TimeSpan timeout)
-        => WaitForAsync(e => e.TaskId == taskId && e.State == state, timeout, $"task '{taskId}' reaches state {state}");
+        => WaitCoreAsync(e => e.TaskId == taskId && e.State == state, timeout, $"task '{taskId}' reaches state {state}");
 
-    private async Task<TaskEvent> WaitForAsync(Func<TaskEvent, bool> match, TimeSpan timeout, string description)
+    private async Task<TaskEvent> WaitCoreAsync(Func<TaskEvent, bool> match, TimeSpan timeout, string description)
     {
         ArgumentNullException.ThrowIfNull(match);
         Waiter waiter;
