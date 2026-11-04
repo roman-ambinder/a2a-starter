@@ -4,6 +4,12 @@
 
 **Milestone:** M1.
 
+**Status:** executed and merged by PR #86 (`0605398`, 2026-11-04) on the Phase 1 names, then ported to the `Ambinder.A2A.*` layout when package 01 merged (`02781b9`). What shipped differs from the text below in four places. Each is marked in its task. *(Plan review, 2026-11-04.)*
+- **Task 8:** the dispatcher seam is `internal`, with a stand-in `DispatchCaller`, by owner decision. Package 07's Task 3 makes it public.
+- **Task 8 Step 3:** gRPC keeps its own copy of the caller rules until then.
+- **Task 9:** `ProtoEnumConverter<T>` stays public (owner decision 2026-11-04).
+- **Task 16:** the OAuth `[Obsolete]` attributes carry no `DiagnosticId`.
+
 **Goal:** Finish package 03 as approved in `docs/superpowers/specs/2026-11-03-sdk-03-spec-conformance-design.md`. Cover only what PR #6 (`feat/spec-conformance`, merged as `4dca419`) did not do, and the places where PR #6 differs from the final spec.
 
 **Architecture:** Most of the protocol rules are already in the library (PR #6). This plan adds four things. (1) The TCK runs in CI on every PR, per transport, with a report checker, a known-issues list and a claimed-behaviours file. (2) The two seams other packages need: `IA2AVersionDispatcher` and `IAgentCardContributor`. (3) The server-side rules PR #6 left open: tenant match, cancel and state-transition table (D13), trace id on internal errors, and the B13 card ETag. (4) Transport-matrix tests for every acceptance criterion that only has a single-transport or unit test today.
@@ -109,7 +115,7 @@ Package 02 (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`) runs along
 6. **Code rules in `src/`.** `.ConfigureAwait(false)` on every `await`; `TimeProvider` instead of `DateTime.UtcNow` / `DateTimeOffset.UtcNow`; no blocking on tasks; no `new HttpClient` (02 plan Tasks 7 and 8).
 7. **JSON metadata.** Code outside `Ambinder.A2A.Protocol` never uses `A2AJsonContext` (02 makes it internal). Use the `A2AJson` typed accessor (for example `A2AJson.AgentCard`) when 02's Task 2 has landed. Before that, use `(JsonTypeInfo<AgentCard>)A2AJson.Options.GetTypeInfo(typeof(AgentCard))`. Do not use `A2AJsonContext.Default.AgentCard`: it lacks the "omit empty lists" modifier on `A2AJson.Options`, so it would change the card bytes and the ETag.
 8. **No `InternalsVisibleTo` between shipped assemblies** (spec 01 rule 6, spec 02). `ServiceParameters`, `TransportRequest`, `TransportErrors` and `RequestValidation` are used by both `Ambinder.A2A.AspNetCore` and `Ambinder.A2A.AspNetCore.Grpc` (Phase 1 `A2AGrpcService` and `GrpcErrorMapper` call them). Use them the way package 01 shares them, normally as linked files in `src/Shared/` compiled `internal` (spec 01 rule 10). A new helper that two shipped assemblies need goes to `src/Shared/` the same way (Task 10). Never solve it by making a helper public or by adding `InternalsVisibleTo`.
-9. **Deprecations** (spec 02 section 4). `[Obsolete]` carries a `DiagnosticId` (`A2AOBS001`, `A2AOBS002`, ...) and a pointer to the docs (Task 16).
+9. **Deprecations** (spec 02 section 4). `[Obsolete]` carries a `DiagnosticId` (`A2AOBS001`, `A2AOBS002`, ...) and a pointer to the docs (Task 16). *As shipped (PR #86): the OAuth flow attributes have no `DiagnosticId`, "because one breaks System.Text.Json generated code". Users see CS0618. See Task 16.*
 10. **Names.** Spec 03 says package 02 sets the final names of `A2AAgentRoute` and `A2AException.Details`. With the owner's approval of the 15 plan's D1 (2026-11-03), `A2AVersionDispatchContext` replaces `A2AAgentRoute`. This plan uses `A2AVersionDispatchContext`, `IA2ACallerResolver` and `A2AException.Details`; the 02 plan's API review checklist lists them for the review before `rc.1`.
 
 ---
@@ -542,7 +548,10 @@ The owner approved decisions D1 and D2 of the package 15 plan (`docs/superpowers
 
 *(Owner decision 2026-11-03.)* `A2ACaller` does not exist yet. Build the whole seam now with today's data and wire all transports through it. Keep `IA2AVersionDispatcher`, `A2AVersionDispatchContext` and `IA2ACallerResolver` **internal**, and use an internal record `DispatchCaller(ClaimsPrincipal User, string Owner)` in place of `A2ACaller`. Remove `A2AAgentRoute`. `src/A2A.Server` gets `InternalsVisibleTo A2A.Integration.Tests`. Package 07 Phase A swaps the record for `A2ACaller` and makes the three types public.
 
-**Gate: package 07 Phase A (replaced by the note above for now).** The context carries 07's `A2ACaller`. Check: `git grep -nE "class A2ACaller\b|record A2ACaller\b" -- src`. If it is missing, do the rest of this plan first and come back to this task after 07's Tasks 1–6 land (they need only package 01). Do not add a stand-in caller type: a later change to it would break the public API.
+~~**Gate: package 07 Phase A.**~~ *Superseded by the owner decision above.* The task ran without `A2ACaller`, and the stand-in `DispatchCaller` is deliberate: it is internal, so replacing it later breaks no public API.
+- **As shipped (plan review 2026-11-04):** the three types and `DefaultA2ACallerResolver` are in `src/Ambinder.A2A.AspNetCore/Hosting/`, and `DispatchCaller` is in `src/Shared/TransportRequest.cs`.
+- After package 01, the `InternalsVisibleTo` to `Ambinder.A2A.Integration.Tests` is on `Ambinder.A2A.AspNetCore`, not `src/A2A.Server`.
+- Package 07's plan, Task 3, swaps in `A2ACaller` and makes the seam public.
 
 **Files:**
 - Create: `src/Ambinder.A2A.AspNetCore/Hosting/IA2AVersionDispatcher.cs`, `.../Hosting/A2AVersionDispatchContext.cs`, `.../Hosting/IA2ACallerResolver.cs`
@@ -625,6 +634,7 @@ public interface IA2ACallerResolver
 There is no `A2AAgentRoute` type: the context replaces it. The names and shapes are the ones in the 15 plan's D1. Package 02's API review checks them before `rc.1`.
 
 - [ ] **Step 3: The default caller resolver.** 07's Task 3 writes the caller logic as a separate internal class with this signature. Make that class `DefaultA2ACallerResolver : IA2ACallerResolver`, registered with `TryAddSingleton`. This task owns the public interface; 07 does not add it. If the logic is still on `TransportRequest`, move it. Change the JSON-RPC, REST and gRPC transports to call the interface, so there is one implementation. If package 07's tenant resolver (its Task 9) has not landed yet, the tenant is the one Task 14 resolves (or the raw request tenant, until Task 14 lands).
+  - *As shipped:* the JSON-RPC and REST endpoints call `IA2ACallerResolver`. The gRPC service cannot, because the interface is internal to `Ambinder.A2A.AspNetCore` and shipped assemblies do not share internals. So `src/Ambinder.A2A.AspNetCore.Grpc/Transports/TransportRequest.Caller.cs` applies the same default rules itself. Package 07's Task 3 removes that copy when it makes the interface public.
 
 - [ ] **Step 4: Wire the dispatcher (D2).** In one helper shared by the JSON-RPC and REST endpoints, in this order:
   1. Resolve the agent (as today).
@@ -648,7 +658,7 @@ git commit -am "feat(aspnetcore): version dispatcher seam with resolved caller a
 - Modify: `src/Ambinder.A2A.Protocol/Json/ProtoEnumConverter.cs`
 - Test: `tests/Ambinder.A2A.Protocol.Tests/Json/ModelJsonTests.cs`, `tests/Ambinder.A2A.Integration.Tests/Client/...`, `tests/Ambinder.A2A.Integration.Tests/Conformance/EnumWireTests.cs`
 
-- [ ] **Step 1: Make `ProtoEnumConverter<T>` `internal`.** The spec says "an internal ... ProtoEnumConverter<T>". The 02 plan (Task 2.3) does the same change. If it is already `internal`, skip this step. Otherwise make it internal here, and also add the consumer-context test from the 02 plan, Task 2.5 (`ConsumerJsonContextTests`: a consumer's own source-generated context that lists our models still compiles and writes enum names). If 02's test project does not exist yet, put the test in a test assembly that has no `InternalsVisibleTo` to `Ambinder.A2A.Protocol`. If that test fails, stop and ask the owner; do not make the converter public. Update the API file and the breaking-change records (section 0.4, items 3 and 4).
+- [ ] ~~**Step 1: Make `ProtoEnumConverter<T>` `internal`.**~~ **Owner decision (2026-11-04): it stays `public`.** The System.Text.Json source generator needs an accessible converter in `[JsonConverter]` on the public enums, so an internal one breaks a consumer's own `JsonSerializerContext` (`SYSLIB1220`, `SYSLIB1030`; PR #86). Its XML remarks say apps do not use it directly, and the 02 plan (Task 2.3) records the same decision. The original step was: The spec says "an internal ... ProtoEnumConverter<T>". The 02 plan (Task 2.3) does the same change. If it is already `internal`, skip this step. Otherwise make it internal here, and also add the consumer-context test from the 02 plan, Task 2.5 (`ConsumerJsonContextTests`: a consumer's own source-generated context that lists our models still compiles and writes enum names). If 02's test project does not exist yet, put the test in a test assembly that has no `InternalsVisibleTo` to `Ambinder.A2A.Protocol`. If that test fails, stop and ask the owner; do not make the converter public. Update the API file and the breaking-change records (section 0.4, items 3 and 4).
 - [ ] **Step 2: Use the meter-name constant.** `new Meter("A2A.Protocol")` becomes `new Meter(A2ATelemetryNames.ProtocolMeter)`. After package 01 the constant's value is `Ambinder.A2A.Protocol`; check that it is.
 - [ ] **Step 3: Client tests.** For each binding, a test agent (or a stub server for JSON-RPC and REST) returns a task whose state is a value this version does not know (`"TASK_STATE_FUTURE"` in JSON; number `99` in proto). Assert `GetTaskAsync` returns the task with `Status.State == TaskState.Unspecified` and does not throw. Assert `TaskStateRules.IsTerminal` and `IsInterrupted` are false for `Unspecified` (unit test).
 - [ ] **Step 3a: Transport matrix for the acceptance bullet (spec section Acceptance, Tests).** In `EnumWireTests`, a theory over the three bindings, against the running server:
@@ -839,6 +849,8 @@ git commit -am "test: task and context id rules on all transports"
 ```
 
 ### Task 16: `[Obsolete]` on deprecated OAuth flows (D10)
+
+*As shipped (PR #86):* the four attributes (on `ImplicitOAuthFlow`, `OAuthFlows.Implicit`, `PasswordOAuthFlow` and `OAuthFlows.Password`) have the message below but no `DiagnosticId`, "because one breaks System.Text.Json generated code". Users see CS0618, and `docs/policies/versioning.md` records this exception. Steps 1–2 below are the original text. *(Plan review, 2026-11-04.)*
 
 **Files:**
 - Modify: `src/Ambinder.A2A.Protocol/Models/Security.cs`, the proto mapper, `A2AJson.cs`, `tests/Ambinder.A2A.Protocol.Tests/Samples.cs`
@@ -1042,7 +1054,7 @@ These are the places where PR #6, or the spec itself, differs from what spec 03 
 5. **`IAgentCardContributor` and the extended card.** Contributors edit card JSON, but the extended card is returned as a model by `GetExtendedAgentCard` on all three transports (proto on gRPC). JSON edits cannot reach it the same way on every transport. [Plan: contributors run on the public card endpoints only; `AgentCardContext.IsExtended` is always false for now. Packages 07 and 15 must not expect contributors to change the extended card.]
 6. **ETag input.** PR #6 hashes the whole serialized card, signatures included. B13 says: the unsigned canonical payload plus sorted key ids. [Plan: Task 13, with the exact bytes of the package 04 plan's P6 and its `AgentCardETag` helper. JCS waits for package 04.]
 7. **Error metadata name.** PR #6 keeps ErrorInfo metadata in `A2AException.Data` (a `JsonElement`). The spec names it `A2AException.Details` (read-only string map). [Plan: add `Details`, keep `Data`; package 02 picks the final names.]
-8. **`ProtoEnumConverter<T>` is public** in PR #6. The spec says internal. [Plan: Task 9 makes it internal.]
+8. **`ProtoEnumConverter<T>` is public** in PR #6. The spec says internal. [Plan: Task 9 makes it internal.] *Settled 2026-11-04: it stays public (owner decision, Task 9).*
 9. **The client still sends a fixed version.** PR #6 kept `A2AClientOptions.ProtocolVersion`. The spec removes it and sends the selected interface's version. [Plan: Task 7.]
 10. **State transitions are looser than D13.** PR #6's `CanAgentTransition` lets an agent move `INPUT_REQUIRED` to `COMPLETED` (and others) in the same run, and a cancel of a `CANCELED` task throws `TaskNotCancelable`. D13 forbids the first and returns the task for the second. [Plan: Task 17. Existing agents that finish after `INPUT_REQUIRED` in the same run will now end `FAILED`.]
 11. **Extension rules live in each transport**, not in one shared place. The spec puts them in package 09's middleware, which does not exist yet. [Plan: keep PR #6's code; move it when 09 lands (section 0.3).]
