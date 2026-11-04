@@ -261,6 +261,28 @@ jobs:
           actual=$(sha256sum proto/a2a.proto | cut -d' ' -f1)
           test "$expected" = "$actual" || { echo "proto/README.md hash $expected does not match $actual"; exit 1; }
 
+  v03-spec-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Vendored A2A v0.3.0 files equal the tag
+        run: |
+          set -euo pipefail
+          tag=v0.3.0
+          dir=src/Compat.V0_3.Shared/spec/v0.3.0
+          check() { # <name in dir> <path at tag>
+            curl -sSfL "https://raw.githubusercontent.com/a2aproject/A2A/${tag}/$2" -o "$RUNNER_TEMP/$1"
+            diff -u "$RUNNER_TEMP/$1" "$dir/$1"
+            expected=$(grep -F "| \`$1\` |" "$dir/README.md" | awk -F'|' '{gsub(/ /,"",$4); print $4}')
+            actual=$(sha256sum "$dir/$1" | cut -d' ' -f1)
+            test "$expected" = "$actual" || { echo "$dir/README.md hash for $1 ($expected) does not match $actual"; exit 1; }
+          }
+          check a2a.proto specification/grpc/a2a.proto
+          check a2a.json specification/json/a2a.json
+          check specification.md docs/specification.md
+
   # Hooks: each file is a placeholder that the owning package replaces. release.yml requires them through this workflow.
   tck:
     uses: ./.github/workflows/tck.yml
