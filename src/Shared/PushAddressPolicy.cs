@@ -8,6 +8,7 @@ namespace Ambinder.A2A.Server.Push;
 /// (<see cref="PushOptions.AllowPrivateNetworks"/>, <see cref="PushOptions.AllowedNetworks"/>) and which webhook hosts
 /// may be named (<see cref="PushOptions.AllowedHosts"/>). Read-only after construction, so it is safe to share.
 /// </summary>
+// Linked as one source file into Ambinder.A2A.Server and Ambinder.A2A.AspNetCore (spec 01 rule 10). Warning: a project that sees both copies through InternalsVisibleTo gets CS0433 if it names this type; test it from Ambinder.A2A.Server.Tests only.
 internal sealed class PushAddressPolicy
 {
     private readonly IPNetwork[] _networks;

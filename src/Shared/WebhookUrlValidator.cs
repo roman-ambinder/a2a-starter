@@ -11,6 +11,7 @@ namespace Ambinder.A2A.Server.Push;
 /// <see cref="PushOptions.AllowedNetworks"/>. <see cref="PushOptions.AllowedHosts"/> limits the host names.
 /// Throws <see cref="A2AException"/> with <see cref="A2AErrorCode.InvalidParams"/>.
 /// </summary>
+// Linked as one source file into Ambinder.A2A.Server and Ambinder.A2A.AspNetCore (spec 01 rule 10). Warning: a project that sees both copies through InternalsVisibleTo gets CS0433 if it names this type; test it from Ambinder.A2A.Server.Tests only.
 internal static class WebhookUrlValidator
 {
     public static async ValueTask ValidateAsync(Uri url, PushAddressPolicy policy, CancellationToken ct)
