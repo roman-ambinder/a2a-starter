@@ -115,6 +115,25 @@ Log messages use `[LoggerMessage]` with a fixed `EventId`. An EventId never chan
 | `Ambinder.A2A.Client` | 4000 to 4999 | Reserved. The package does not log yet. |
 | `Ambinder.A2A.Client.Grpc` | 5000 to 5999 | Reserved. The package does not log yet. |
 | `Ambinder.A2A.Client.Entra` | 6000 to 6999 | Reserved. The package does not log yet. |
+| `Ambinder.A2A.AspNetCore.Entra` | 7000 to 7999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Azure.KeyVault` | 8000 to 8999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Stores.EntityFrameworkCore` | 9000 to 9999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Stores.EntityFrameworkCore.PostgreSql` | 10000 to 10999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Stores.EntityFrameworkCore.Sqlite` | 11000 to 11999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Stores.EntityFrameworkCore.SqlServer` | 12000 to 12999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Stores.Cosmos` | 13000 to 13999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Push.Receiver` | 14000 to 14999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Cluster` | 15000 to 15999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Cluster.Entra` | 16000 to 16999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Extensions.AI` | 17000 to 17999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Extensions.AI.AgentFramework` | 18000 to 18999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Compat.V0_3` | 19000 to 19999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Compat.V0_3.AspNetCore` | 20000 to 20999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Testing` | 21000 to 21999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Testing.AI` | 22000 to 22999 | Reserved. The package does not exist yet. |
+| `Ambinder.A2A.Testing.Conformance` | 23000 to 23999 | Reserved. The package does not exist yet. |
+
+A package added later than these takes the next block after 23000 and adds its row here and in `LogEventIdTests`.
 
 ## 9. Timeline to 1.0
 
