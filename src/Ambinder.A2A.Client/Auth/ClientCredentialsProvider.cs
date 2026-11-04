@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Client.Transports;
 
 namespace Ambinder.A2A.Client.Auth;
 
@@ -50,7 +51,7 @@ public sealed class ClientCredentialsProvider : IA2ACredentialProvider, IDisposa
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
         _scope = scope ?? throw new ArgumentNullException(nameof(scope));
         _tokenUrlOverride = tokenUrlOverride;
-        _http = httpClient ?? new HttpClient();
+        _http = httpClient ?? ClientSupport.CreateOwnedHttpClient();
         _ownsHttp = httpClient is null;
         _time = timeProvider ?? TimeProvider.System;
         AllowedTokenHosts = new HashSet<string>(

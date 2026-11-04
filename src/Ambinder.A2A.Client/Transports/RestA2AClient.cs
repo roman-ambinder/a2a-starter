@@ -38,7 +38,7 @@ internal sealed class RestA2AClient : IA2AClient
         }
         else
         {
-            _http = new HttpClient(ClientSupport.CreateHandler(options));
+            _http = ClientSupport.CreateOwnedHttpClient(ClientSupport.CreateHandler(options));
             _ownsHttp = true;
         }
     }

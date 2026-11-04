@@ -58,6 +58,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" />
+    <!-- Banned APIs (spec 02 section 7). Build-only: PrivateAssets=all keeps it out of the nuspec. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(A2ARepoRoot)eng/BannedSymbols.txt" Link="BannedSymbols.txt" />
   </ItemGroup>
 
   <ItemGroup Label="Package contents">

@@ -35,7 +35,11 @@ internal sealed class A2AStartupValidation : IStartupFilter
         foreach (var agent in catalog.All)
         {
             if (agent.AuthorizationPolicy is not { } name) continue;
-            if (policies.GetPolicyAsync(name).GetAwaiter().GetResult() is null)
+            // Synchronous startup check; the default policy provider completes synchronously. Package 09 moves startup checks.
+#pragma warning disable RS0030
+            var policy = policies.GetPolicyAsync(name).GetAwaiter().GetResult();
+#pragma warning restore RS0030
+            if (policy is null)
                 throw new InvalidOperationException(
                     $"Agent '{agent.Name}' uses authorization policy '{name}', which is not registered. Add it with AddAuthorization/AddAuthorizationBuilder.");
         }

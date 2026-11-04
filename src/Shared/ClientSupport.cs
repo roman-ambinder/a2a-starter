@@ -7,6 +7,19 @@ namespace Ambinder.A2A.Client.Transports;
 /// <summary>Request headers, HTTP error mapping and response-shape validation shared by the HTTP-based client transports.</summary>
 internal static class ClientSupport
 {
+    /// <summary>
+    /// Creates the <see cref="HttpClient"/> the client owns when the caller passes none. The only place in <c>src</c> that calls a
+    /// <see cref="HttpClient"/> constructor.
+    /// </summary>
+    /// <param name="handler">The handler to use, or <see langword="null"/> for the default handler.</param>
+    public static HttpClient CreateOwnedHttpClient(HttpMessageHandler? handler = null)
+    {
+        // Single documented exception to the HttpClient ban (spec 02 section 7). Package 10 replaces it with IHttpClientFactory.
+#pragma warning disable RS0030
+        return handler is null ? new HttpClient() : new HttpClient(handler);
+#pragma warning restore RS0030
+    }
+
     /// <summary>Adds A2A-Version, Accept, A2A-Extensions and the credential headers.</summary>
     public static async ValueTask ApplyHeadersAsync(HttpRequestMessage request, A2AClientOptions options, AgentCard card,
         string accept, CancellationToken ct)
