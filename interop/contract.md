@@ -66,8 +66,8 @@ These are facts of the implemented .NET agent. The spec only says "until a `rele
 
 ## 2. What each peer server exposes
 
-- The main agent (name `interop`; card at `/.well-known/agent-card.json`) on every transport the peer supports, with streaming and push on, an extended card, and one interface with the tenant `interop-tenant`. Our own host serves the tenant interface from a third agent, `tenant-agent`, whose interfaces all carry the tenant (Task 10).
-- A second agent (name `required-ext`) whose card declares the extension `urn:a2a:interop:required` as required.
+- The main agent (agent id `interop`; card at `/.well-known/agent-card.json`) on every transport the peer supports, with streaming and push on, an extended card, and one interface with the tenant `interop-tenant` (a peer may put it on the main agent; our own host does not: the main agent has no tenant). Our own host serves the tenant interface from a third agent, `tenant-agent`, whose interfaces all carry the tenant (Task 10).
+- A second agent (agent id `required-ext`) whose card declares the extension `urn:a2a:interop:required` as required.
 - A signed card variant (Python and JS only, where the SDK signs).
 
 ## 3. Auth
@@ -80,7 +80,7 @@ These are facts of the implemented .NET agent. The spec only says "until a `rele
 ## 4. Card URL layout per peer
 
 - Main agent card: `<base>/.well-known/agent-card.json`.
-- Second agent card (`required-ext`) and tenant agent card: each peer's README states its paths. Our own host: see `tests/Ambinder.A2A.Interop.Tests/Agent/InteropServerHost.cs`.
+- Second agent card (`required-ext`) and tenant agent card: each peer's README states its paths. Our own host serves them at `<base>/agents/<agent id>/.well-known/agent-card.json` (JSON-RPC and REST endpoints at `/agents/<agent id>/{jsonrpc,rest}`), see `tests/Ambinder.A2A.Interop.Tests/Agent/InteropServerHost.cs`. A peer may use another base or port per agent.
 - Each peer's README (`interop/peers/<peer>/README.md`) must state its paths.
 
 ## 5. Scenarios
