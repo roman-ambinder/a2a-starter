@@ -62,13 +62,16 @@ public sealed record OAuthFlows
     public AuthorizationCodeOAuthFlow? AuthorizationCode { get; init; }
     public ClientCredentialsOAuthFlow? ClientCredentials { get; init; }
     /// <summary>Deprecated: use authorization code with PKCE, or device code.</summary>
+    [Obsolete("Removed from OAuth 2.1; kept so cards round-trip. See docs/spec-decisions.md.")]
     public ImplicitOAuthFlow? Implicit { get; init; }
     /// <summary>Deprecated: use authorization code with PKCE, or device code.</summary>
+    [Obsolete("Removed from OAuth 2.1; kept so cards round-trip. See docs/spec-decisions.md.")]
     public PasswordOAuthFlow? Password { get; init; }
     public DeviceCodeOAuthFlow? DeviceCode { get; init; }
 }
 
 /// <summary>Deprecated OAuth implicit flow (proto <c>ImplicitOAuthFlow</c>). Kept so cards round-trip.</summary>
+[Obsolete("Removed from OAuth 2.1; kept so cards round-trip. See docs/spec-decisions.md.")]
 public sealed record ImplicitOAuthFlow
 {
     public string AuthorizationUrl { get => field ?? ""; init; }
@@ -77,6 +80,7 @@ public sealed record ImplicitOAuthFlow
 }
 
 /// <summary>Deprecated OAuth resource owner password flow (proto <c>PasswordOAuthFlow</c>). Kept so cards round-trip.</summary>
+[Obsolete("Removed from OAuth 2.1; kept so cards round-trip. See docs/spec-decisions.md.")]
 public sealed record PasswordOAuthFlow
 {
     public string TokenUrl { get => field ?? ""; init; }

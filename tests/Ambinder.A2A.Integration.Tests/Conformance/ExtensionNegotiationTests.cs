@@ -98,4 +98,56 @@ public sealed class ExtensionNegotiationTests(A2ATestHost host)
 
         Assert.Equal(TimestampExtension, echoed);
     }
+
+    private const string SendBody = """{"message":{"messageId":"m1","role":"ROLE_USER","parts":[{"text":"hi"}]}}""";
+
+    [Theory]
+    [InlineData("jsonrpc")]
+    [InlineData("rest")]
+    public async Task Activated_extensions_are_echoed_before_the_first_sse_event(string transport)
+    {
+        using var request = transport == "jsonrpc"
+            ? new HttpRequestMessage(HttpMethod.Post, $"{A2ATestHost.BaseUrl}/agents/echo/jsonrpc")
+            {
+                Content = new StringContent($$"""{"jsonrpc":"2.0","id":1,"method":"SendStreamingMessage","params":{{SendBody}}}""", Encoding.UTF8, A2AConstants.ContentType),
+            }
+            : new HttpRequestMessage(HttpMethod.Post, $"{A2ATestHost.BaseUrl}/agents/echo/rest/message:stream")
+            {
+                Content = new StringContent(SendBody, Encoding.UTF8, A2AConstants.ContentType),
+            };
+        request.Headers.Add(A2AConstants.VersionHeader, "1.0");
+        request.Headers.Add(A2AConstants.ExtensionsHeader, $"{TimestampExtension}, urn:unknown");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await host.GetTokenAsync(TestAuth.Client, Ct));
+
+        // Headers only: the body is not read, so no SSE event has been consumed yet.
+        using var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Ct);
+
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal([TimestampExtension], response.Headers.GetValues(A2AConstants.ExtensionsHeader));
+    }
+
+    [Fact]
+    public async Task Activated_extensions_are_echoed_in_grpc_streaming_response_metadata()
+    {
+        var port = A2ATestHost.PortBase + A2ATestHost.GrpcOffsets["echo"];
+        using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{port}");
+        var client = new Proto.A2AService.A2AServiceClient(channel);
+        var headers = new Metadata
+        {
+            { A2AConstants.GrpcVersionKey, "1.0" },
+            { A2AConstants.GrpcExtensionsKey, $"{TimestampExtension},urn:unknown" },
+            { "authorization", $"Bearer {await host.GetTokenAsync(TestAuth.Client, Ct)}" },
+        };
+        var send = new Proto.SendMessageRequest
+        {
+            Message = new Proto.Message { MessageId = "m1", Role = Proto.Role.User, Parts = { new Proto.Part { Text = "hi" } } },
+        };
+
+        using var call = client.SendStreamingMessage(send, headers, cancellationToken: Ct);
+        var echoed = (await call.ResponseHeadersAsync).GetValue(A2AConstants.GrpcExtensionsKey);
+        await foreach (var _ in call.ResponseStream.ReadAllAsync(Ct)) { }
+
+        Assert.Equal(TimestampExtension, echoed);
+    }
 }

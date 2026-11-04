@@ -25,6 +25,7 @@
     <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
     <Compile Include="../Shared/RequestValidation.cs" Link="Shared/RequestValidation.cs" />
     <Compile Include="../Shared/ServiceParameters.cs" Link="Shared/ServiceParameters.cs" />
+    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Server" Access="Internal" />

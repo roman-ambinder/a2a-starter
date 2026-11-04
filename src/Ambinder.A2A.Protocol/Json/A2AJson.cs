@@ -44,8 +44,10 @@ namespace Ambinder.A2A.Protocol;
 [JsonSerializable(typeof(SecurityRequirement))]
 [JsonSerializable(typeof(StringList))]
 [JsonSerializable(typeof(OAuthFlows))]
+#pragma warning disable CS0618 // deprecated OAuth flows stay in the context so cards that use them round-trip
 [JsonSerializable(typeof(ImplicitOAuthFlow))]
 [JsonSerializable(typeof(PasswordOAuthFlow))]
+#pragma warning restore CS0618
 [JsonSerializable(typeof(ApiKeySecurityScheme))]
 [JsonSerializable(typeof(HttpAuthSecurityScheme))]
 [JsonSerializable(typeof(MutualTlsSecurityScheme))]
@@ -189,11 +191,13 @@ public static class A2AJson
     /// <summary>Source-generated metadata for <see cref="OAuthFlows"/>, using <see cref="Options"/>.</summary>
     public static JsonTypeInfo<OAuthFlows> OAuthFlows { get; } = (JsonTypeInfo<OAuthFlows>)Options.GetTypeInfo(typeof(OAuthFlows));
 
+#pragma warning disable CS0618 // deprecated OAuth flows keep their accessors so cards that use them round-trip
     /// <summary>Source-generated metadata for <see cref="ImplicitOAuthFlow"/>, using <see cref="Options"/>.</summary>
     public static JsonTypeInfo<ImplicitOAuthFlow> ImplicitOAuthFlow { get; } = (JsonTypeInfo<ImplicitOAuthFlow>)Options.GetTypeInfo(typeof(ImplicitOAuthFlow));
 
     /// <summary>Source-generated metadata for <see cref="PasswordOAuthFlow"/>, using <see cref="Options"/>.</summary>
     public static JsonTypeInfo<PasswordOAuthFlow> PasswordOAuthFlow { get; } = (JsonTypeInfo<PasswordOAuthFlow>)Options.GetTypeInfo(typeof(PasswordOAuthFlow));
+#pragma warning restore CS0618
 
     /// <summary>Source-generated metadata for <see cref="ApiKeySecurityScheme"/>, using <see cref="Options"/>.</summary>
     public static JsonTypeInfo<ApiKeySecurityScheme> ApiKeySecurityScheme { get; } = (JsonTypeInfo<ApiKeySecurityScheme>)Options.GetTypeInfo(typeof(ApiKeySecurityScheme));

@@ -21,12 +21,16 @@ internal sealed class RestA2AClient : IA2AClient
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly string? _defaultTenant;
+    private readonly string _protocolVersion;
 
     /// <param name="baseUrl">The REST base URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
     /// <param name="defaultTenant">Tenant used when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
-    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
+    /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>A2A-Version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
+    public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
+        string? protocolVersion = null)
     {
+        _protocolVersion = string.IsNullOrWhiteSpace(protocolVersion) ? A2AConstants.ProtocolVersion : protocolVersion;
         _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         ArgumentNullException.ThrowIfNull(baseUrl);
         _baseUrl = baseUrl.AbsoluteUri.TrimEnd('/');
@@ -211,7 +215,7 @@ internal sealed class RestA2AClient : IA2AClient
             message.Content = new ByteArrayContent([]);
             message.Content.Headers.ContentType = new MediaTypeHeaderValue(A2AConstants.ContentType);
         }
-        await ClientSupport.ApplyHeadersAsync(message, _options, _card, accept, ct).ConfigureAwait(false);
+        await ClientSupport.ApplyHeadersAsync(message, _options, _card, _protocolVersion, accept, ct).ConfigureAwait(false);
 
         var response = await _http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         try
@@ -262,8 +266,9 @@ internal sealed class RestA2AClient : IA2AClient
         int? status = response is not null ? (int)response.StatusCode
             : error.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.Number && c.TryGetInt32(out var n) ? n : null;
         var fallback = ClientSupport.CodeForStatusWithoutReason(status);
+        var metadata = error.TryGetProperty("details", out var d) ? ClientSupport.FindMetadata(d) : null;
         if (response is null)
-            return new A2AException(fallback, string.IsNullOrEmpty(message) ? "The agent reported an error." : message);
-        return new A2AException(fallback, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})");
+            return new A2AException(fallback, string.IsNullOrEmpty(message) ? "The agent reported an error." : message, metadata);
+        return new A2AException(fallback, string.IsNullOrEmpty(message) ? $"The agent answered HTTP {status}." : $"{message} (HTTP {status})", metadata);
     }
 }

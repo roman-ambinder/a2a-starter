@@ -43,10 +43,10 @@ internal sealed class InMemoryPushConfigStore : IPushConfigStore
     {
         var size = pageSize ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
-            throw new A2AException(A2AErrorCode.InvalidParams, $"pageSize must be between 1 and {MaxPageSize}.");
+            throw new A2AException(A2AErrorCode.InvalidParams, $"pageSize must be between 1 and {MaxPageSize}. Send a value in that range, or omit it.");
         var after = 0L;
         if (!string.IsNullOrEmpty(pageToken) && !TryDecode(pageToken, out after))
-            throw new A2AException(A2AErrorCode.InvalidParams, "pageToken is not valid.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "pageToken is not valid. Send the nextPageToken from the previous page, or omit it.");
 
         List<(long Seq, TaskPushNotificationConfig Config)> page;
         bool more;

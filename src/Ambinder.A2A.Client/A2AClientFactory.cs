@@ -44,6 +44,8 @@ public static class A2AClientFactory
                           $"this client supports {string.Join(", ", supported)} at A2A version {A2AConstants.ProtocolVersion}.";
             if (interfaces.Any(i => Is(i, A2AConstants.BindingGrpc)) && !supported.Any(b => string.Equals(b, A2AConstants.BindingGrpc, StringComparison.OrdinalIgnoreCase)))
                 message += " The card lists a GRPC interface: add the Ambinder.A2A.Client.Grpc package and GrpcClientTransport.Instance to A2AClientOptions.Transports.";
+            if (interfaces.Any(i => IsMinor(i.ProtocolVersion, "0.3")))
+                message += " This card offers A2A 0.3 only for some interfaces; add the Ambinder.A2A.Compat.V0_3 package to call them.";
             throw new NotSupportedException(message);
         }
 
@@ -60,12 +62,21 @@ public static class A2AClientFactory
 
         if (!Uri.TryCreate(chosen.Url, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https"))
             throw new NotSupportedException($"The agent card's {chosen.ProtocolBinding} interface has an invalid URL: '{chosen.Url}'.");
+        // The version header is the selected interface's Major.Minor; an empty interface version means the current one.
+        var version = ClientSupport.MajorMinor(chosen.ProtocolVersion) ?? A2AConstants.ProtocolVersion;
         if (Is(chosen, A2AConstants.BindingRest))
-            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportRest, tenant);
-        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant), card.Name, A2ATelemetryNames.TransportJsonRpc, tenant);
+            return new TracingA2AClient(new RestA2AClient(url, card, options, tenant, version), card.Name, A2ATelemetryNames.TransportRest, tenant);
+        return new TracingA2AClient(new JsonRpcA2AClient(url, card, options, tenant, version), card.Name, A2ATelemetryNames.TransportJsonRpc, tenant);
     }
 
     private static bool Is(AgentInterface i, string binding) => string.Equals(i.ProtocolBinding, binding, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when <paramref name="version"/> has the given <c>Major.Minor</c> (a patch part is ignored).</summary>
+    private static bool IsMinor(string? version, string majorMinor)
+    {
+        var parts = version?.Trim().Split('.');
+        return parts is { Length: 2 or 3 } && $"{parts[0]}.{parts[1]}" == majorMinor;
+    }
 
     /// <summary>True for an empty version or one whose <c>Major.Minor</c> equals <see cref="A2AConstants.ProtocolVersion"/>.</summary>
     internal static bool IsSupportedVersion(string? version)

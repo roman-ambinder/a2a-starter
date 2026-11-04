@@ -18,6 +18,8 @@
     <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
     <Compile Include="../Shared/RequestValidation.cs" Link="Shared/RequestValidation.cs" />
     <Compile Include="../Shared/ServiceParameters.cs" Link="Shared/ServiceParameters.cs" />
+    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
+    <Compile Include="../Shared/AgentCardETag.cs" Link="Shared/AgentCardETag.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.AspNetCore.Tests" />

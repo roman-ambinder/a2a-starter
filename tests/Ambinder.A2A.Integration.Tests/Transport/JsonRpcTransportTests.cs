@@ -151,12 +151,32 @@ public sealed class JsonRpcTransportTests(MinimalServer server)
         Assert.Equal("TASK_STATE_COMPLETED", final["result"]!["status"]!["state"]!.GetValue<string>());
     }
 
-    [Fact]
-    public async Task Unary_response_uses_a2a_json_content_type()
+    // Spec 9.1 (TCK JSONRPC-FMT-002): JSON-RPC requests and responses use application/json, results and errors alike.
+    [Theory]
+    [InlineData("""{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{}}""")]
+    [InlineData("""{"jsonrpc":"2.0","id":1,"method":"GetTask","params":{"id":"missing"}}""")]
+    [InlineData("""{"jsonrpc":"2.0","id":1,"method":"NoSuchMethod","params":{}}""")]
+    public async Task Unary_response_uses_application_json_content_type(string body)
     {
         using var client = server.CreateClient();
-        using var response = await client.SendAsync(RpcRequest(Echo, Request(1, "GetTask", new JsonObject { ["id"] = "x" }).ToJsonString()), Ct);
-        Assert.Equal("application/a2a+json", response.Content.Headers.ContentType?.MediaType);
+        using var response = await client.SendAsync(RpcRequest(Echo, body), Ct);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    // Other SDKs post JSON-RPC bodies as application/a2a+json; the server accepts both types.
+    [Fact]
+    public async Task Request_posted_as_a2a_json_is_accepted()
+    {
+        using var client = server.CreateClient();
+        using var request = RpcRequest(Echo, """{"jsonrpc":"2.0","id":1,"method":"ListTasks","params":{}}""");
+        request.Content!.Headers.ContentType = new("application/a2a+json");
+
+        using var response = await client.SendAsync(request, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync(Ct))!;
+        Assert.NotNull(body["result"]);
+        Assert.Null(body["error"]);
     }
 
     [Fact]

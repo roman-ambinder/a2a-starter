@@ -35,7 +35,8 @@ public sealed class TransportParityTests(MinimalServer server)
             PreferredBinding = binding,
             Transports = [GrpcClientTransport.Instance],
             Credentials = credentials,
-            ProtocolVersion = version,
+            // The client sends the interface version; a test that needs another one rewrites the header.
+            HttpClient = version == "1.0" ? null : VersionRewriteHandler.CreateClient(version),
         });
         // GrpcA2AClient is internal to Ambinder.A2A.Client.Grpc (no InternalsVisibleTo to this assembly): compare by name.
         var expected = binding switch

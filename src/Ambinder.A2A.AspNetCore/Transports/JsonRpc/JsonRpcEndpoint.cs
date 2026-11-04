@@ -1,3 +1,4 @@
+using Ambinder.A2A.AspNetCore.Hosting;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
@@ -13,7 +14,8 @@ namespace Ambinder.A2A.AspNetCore.Transports.JsonRpc;
 
 /// <summary>
 /// <c>POST /agents/{agent}/jsonrpc</c>: a thin JSON-RPC 2.0 adapter over <see cref="IA2ARequestHandler"/>.
-/// Order of checks: unknown agent (HTTP 404) → agent policy (HTTP 401/403) → body size (HTTP 413) → JSON (-32700) →
+/// Order of checks: unknown agent (HTTP 404) → agent policy and caller (HTTP 401/403) → an <see cref="IA2AVersionDispatcher"/> that claims an
+/// unsupported version takes the whole request → body size (HTTP 413) → JSON (-32700) →
 /// envelope (-32600) → version (-32009) → method (-32601) → extended card needs an authenticated caller (HTTP 401) →
 /// params (-32602) → handler. Every JSON-RPC error is sent with HTTP 200.
 /// A request without <c>id</c> is processed and answered with <c>"id": null</c>; batches are rejected (-32600).
@@ -45,7 +47,7 @@ internal static class JsonRpcEndpoint
                 return null;
             }),
         Unary<GetExtendedAgentCardRequest, AgentCard>("GetExtendedAgentCard", (h, c, r, ct) => h.GetExtendedAgentCardAsync(c, r, ct))
-            with { RequiresAuthentication = true },
+            with { IsExtendedCard = true },
     }.ToDictionary(m => m.Name, StringComparer.Ordinal);
 
     public static async Task HandleAsync(HttpContext http)
@@ -64,7 +66,9 @@ internal static class JsonRpcEndpoint
 
         try
         {
-            var owner = await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: false).ConfigureAwait(false);
+            var (handled, caller) = await TransportRequest.TryDispatchVersionAsync(http, agent, A2AConstants.BindingJsonRpc, default)
+                .ConfigureAwait(false);
+            if (handled) return;
 
             var body = await RequestBody.ReadAsync(http, options.MaxRequestBodyBytes).ConfigureAwait(false);
             if (body is null)
@@ -80,7 +84,7 @@ internal static class JsonRpcEndpoint
             }
             catch (JsonException)
             {
-                await WriteJsonAsync(http, JsonRpcMessages.Error(default, new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON."))).ConfigureAwait(false);
+                await WriteJsonAsync(http, JsonRpcMessages.Error(default, new A2AException(A2AErrorCode.ParseError, "The body is not valid JSON. Send one JSON-RPC request object."))).ConfigureAwait(false);
                 return;
             }
 
@@ -94,7 +98,7 @@ internal static class JsonRpcEndpoint
                 }
             }
 
-            await DispatchAsync(http, agent, owner, request, logger, ct).ConfigureAwait(false);
+            await DispatchAsync(http, agent, caller, request, logger, ct).ConfigureAwait(false);
         }
         catch (A2AAuthException ex)
         {
@@ -106,7 +110,7 @@ internal static class JsonRpcEndpoint
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, string owner, JsonRpcRequest request,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, JsonRpcRequest request,
         ILogger logger, CancellationToken ct)
     {
         Method method;
@@ -114,17 +118,20 @@ internal static class JsonRpcEndpoint
         try
         {
             var (version, extensions) = ServiceParameters.Read(http);
-            ServiceParameters.EnsureSupportedVersion(version);
+            TransportRequest.EnsureVersion(version);
             if (!Methods.TryGetValue(request.Method, out method!))
-                throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist.");
-            if (method.RequiresAuthentication)
-                await TransportRequest.AuthorizeAsync(http, agent, requireAuthenticated: true).ConfigureAwait(false);
+                throw new A2AException(A2AErrorCode.MethodNotFound, $"Method '{request.Method}' does not exist. Use a method from the A2A specification.");
+            if (method.IsExtendedCard)
+            {
+                TransportRequest.AuthorizeExtendedCard(agent, caller);
+                http.Response.Headers.CacheControl = "private, no-store";
+            }
             ServiceParameters.ActivateExtensions(http, agent.PublicCard, extensions);
 
             var p = request.Params.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? EmptyObject : request.Params;
             parameters = TransportErrors.Deserialize(p, method.ParamsType);
             RequestValidation.Validate(parameters);
-            var call = TransportRequest.CreateCallContext(http, agent, owner, version, extensions, parameters, A2ATelemetryNames.TransportJsonRpc);
+            var call = TransportRequest.CreateCallContext(http, agent, caller, version, extensions, parameters, A2ATelemetryNames.TransportJsonRpc);
             var handler = http.RequestServices.GetRequiredService<IA2ARequestHandler>();
 
             if (method.Stream is { } stream)
@@ -157,7 +164,7 @@ internal static class JsonRpcEndpoint
     private static async Task WriteJsonAsync(HttpContext http, byte[] json)
     {
         http.Response.StatusCode = StatusCodes.Status200OK;
-        http.Response.ContentType = A2AConstants.ContentType;
+        http.Response.ContentType = A2AConstants.JsonRpcContentType;
         await http.Response.Body.WriteAsync(json, http.RequestAborted).ConfigureAwait(false);
     }
 
@@ -177,6 +184,6 @@ internal static class JsonRpcEndpoint
         Func<IA2ARequestHandler, A2ACallContext, object, CancellationToken, Task<object?>>? Invoke = null,
         Func<IA2ARequestHandler, A2ACallContext, object, CancellationToken, IAsyncEnumerable<StreamResponse>>? Stream = null)
     {
-        public bool RequiresAuthentication { get; init; }
+        public bool IsExtendedCard { get; init; }
     }
 }

@@ -109,6 +109,13 @@ This plan was checked against the plans merged after it (03, 04, 05, 06, 07, 08,
 - **No fixed ports** outside `Samples.Tests`. `Kestrel` mode binds port 0.
 - **Real pipeline** (anti-goal "helpers that hide real behavior"): hosts run the real auth, validation, serialization and stores. The test auth scheme only builds a principal; the real owner resolver and policies run.
 - **Gates fail for real reasons only** (anti-goal): new analyzer findings are fixed in the PR that turns the rule on; coverage is never reached by excluding code.
+- **Package 02 rules for the three new shipped packages** (`docs/superpowers/plans/2026-11-03-sdk-02-public-api.md`): `Ambinder.A2A.Testing`, `Ambinder.A2A.Testing.AI` and `Ambinder.A2A.Testing.Conformance` are shipped, so every 02 rule applies to the promoted types:
+  - **API files:** each package gets `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt` (02's `src/Directory.Build.targets` creates them). Fill `Unshipped` with the analyzer fix (02 plan Task 9.4) and read every line once.
+  - **No positional public types.** The only positional public types in the SDK are the six package 05 key structs (owner rule, 2026-11-03). The slice types already follow this (09's `TaskEvent`, 05's `ConformanceCase`); new public records here (for example `TaskRun`) use `required` / `init` properties too. "Promotion keeps the slice's shapes" (Task 1) still holds: the members do not change.
+  - **XML docs:** full docs; 02's `XmlDocQualityTests` covers these packages once they are under `src/`. Public enums (for example `A2ABinding`) get the "More values can be added in later versions; handle unknown values." remark.
+  - **Public surface test:** 02's `PublicSurfaceTests` allow-list already has rows for the three packages (`Testing`: `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`; `Testing.AI`: `Microsoft.Extensions.*`; `Testing.Conformance`: also `xunit.*`). Add each package's project to `tests/Ambinder.A2A.PublicApi.Tests` references (its `All_shipped_projects_are_referenced` test fails otherwise).
+  - **`InternalsVisibleTo`:** shipped assemblies give it only to their matching `*.Tests` project, `Ambinder.A2A.Integration.Tests` (owner decision 2026-11-03) and `Ambinder.A2A.Benchmarks`. The `Stress.Tests` rule in Task 26 stays as written.
+  - **Logging:** if a package logs, it uses `[LoggerMessage]` with fixed `EventId`s in the next free block of 1000, recorded in `docs/policies/versioning.md`.
 - **TDD per task:** failing test → see it fail → implement → see it pass → commit.
 
 Commands from the repo root:

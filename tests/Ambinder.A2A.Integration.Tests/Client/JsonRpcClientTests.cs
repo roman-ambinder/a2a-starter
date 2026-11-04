@@ -36,7 +36,8 @@ public sealed class JsonRpcClientTests(MinimalServer server)
         {
             Credentials = credentials,
             Extensions = extensions ?? [],
-            ProtocolVersion = version,
+            // The client sends the interface version; a test that needs another one rewrites the header.
+            HttpClient = version == "1.0" ? null : VersionRewriteHandler.CreateClient(version),
         });
     }
 
@@ -261,8 +262,8 @@ public sealed class JsonRpcClientTests(MinimalServer server)
         var r = handler.Requests[0];
         Assert.Equal("1.0", r.Headers.GetValues("A2A-Version").Single());
         Assert.Equal("urn:a,urn:b", r.Headers.GetValues("A2A-Extensions").Single());
-        Assert.Equal("application/a2a+json", r.Headers.Accept.ToString());
-        Assert.Equal("application/a2a+json", r.Content!.Headers.ContentType!.MediaType);
+        Assert.Equal("application/json", r.Headers.Accept.ToString());
+        Assert.Equal("application/json", r.Content!.Headers.ContentType!.MediaType);
         Assert.Equal("carol", r.Headers.GetValues(MinimalServer.UserHeader).Single());
 
         using var first = JsonDocument.Parse(handler.Bodies[0]);

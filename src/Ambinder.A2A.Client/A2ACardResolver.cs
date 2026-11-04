@@ -32,7 +32,7 @@ public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timePro
         if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             throw new A2AAuthException((int)response.StatusCode, $"Fetching the agent card from {url} was refused (HTTP {(int)response.StatusCode}).");
         if (!response.IsSuccessStatusCode)
-            throw new A2AException(A2AErrorCode.InternalError, $"Fetching the agent card from {url} failed with HTTP {(int)response.StatusCode}.");
+            throw new A2AException(A2AErrorCode.InternalError, $"Fetching the agent card from {url} failed with HTTP {(int)response.StatusCode}. Check the URL and that the agent is running.");
 
         var bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
         AgentCard? card;
@@ -42,10 +42,10 @@ public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timePro
         }
         catch (JsonException ex)
         {
-            throw new A2AException(A2AErrorCode.InvalidAgentResponse, $"The agent card at {url} is not valid: {ex.Message}");
+            throw new A2AException(A2AErrorCode.InvalidAgentResponse, $"The agent card at {url} is not valid: {ex.Message} Check that the URL serves an A2A agent card.");
         }
         if (card is null)
-            throw new A2AException(A2AErrorCode.InvalidAgentResponse, $"The agent card at {url} is empty.");
+            throw new A2AException(A2AErrorCode.InvalidAgentResponse, $"The agent card at {url} is empty. Check that the URL serves an A2A agent card.");
 
         _cache[url] = (card, _time.GetUtcNow() + CacheDuration);
         return card;

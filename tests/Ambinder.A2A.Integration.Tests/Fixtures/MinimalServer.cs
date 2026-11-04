@@ -26,6 +26,7 @@ public sealed class MinimalServer : IAsyncLifetime
 {
     public const string EchoAgentName = "echo";
     public const string ProtectedAgentName = "protected";
+    public const string StatesAgentName = "states";
     public const string InvokerPolicy = "RequireInvoker";
     public const string InvokerRole = "A2A.Invoke";
     public const string UserHeader = TestAuthHandler.UserHeader;
@@ -42,6 +43,7 @@ public sealed class MinimalServer : IAsyncLifetime
     public static int HttpPort => PortBase + 200;
     public static int EchoGrpcPort => PortBase + 201;
     public static int ProtectedGrpcPort => PortBase + 202;
+    public static int StatesGrpcPort => PortBase + 204;
 
     /// <summary>HTTP/2 listener that no agent owns (gRPC call there → NOT_FOUND).</summary>
     public static int UnmappedGrpcPort => PortBase + 203;
@@ -53,6 +55,9 @@ public sealed class MinimalServer : IAsyncLifetime
 
     /// <summary>Every call the transports made into the request handler: operation name and <see cref="A2ACallContext.Tenant"/>.</summary>
     public ConcurrentQueue<(string Operation, string? Tenant)> HandlerCalls { get; } = new();
+
+    /// <summary>The server's clock. Follows the system clock until a test calls <see cref="TestClock.Freeze"/>.</summary>
+    public TestClock Clock { get; } = new();
 
     public WebApplication App => _app ?? throw new InvalidOperationException("Server not started.");
 
@@ -71,6 +76,8 @@ public sealed class MinimalServer : IAsyncLifetime
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(InvokerPolicy, p => p.RequireAuthenticatedUser().RequireRole(InvokerRole));
 
+        builder.Services.AddSingleton<TimeProvider>(Clock);
+
         // Registered before AddA2AServer (which uses TryAdd), so the transports call the recorder, which calls TaskManager.
         builder.Services.AddSingleton<IA2ARequestHandler>(sp => new RecordingHandler(sp.GetRequiredService<TaskManager>(), HandlerCalls));
         builder.Services
@@ -80,6 +87,7 @@ public sealed class MinimalServer : IAsyncLifetime
                 o.DefaultAgent = EchoAgentName;
                 o.GrpcPorts[EchoAgentName] = EchoGrpcPort;
                 o.GrpcPorts[ProtectedAgentName] = ProtectedGrpcPort;
+                o.GrpcPorts[StatesAgentName] = StatesGrpcPort;
                 o.Push.AllowPrivateNetworks = true;
             })
             .AddA2AGrpc()
@@ -87,6 +95,7 @@ public sealed class MinimalServer : IAsyncLifetime
             {
                 Description = "Extended echo card",
             })
+            .AddAgent<StatesAgent>(StatesAgentName, _ => Card(StatesAgentName, extended: false))
             .AddAgent<EchoAgent>(ProtectedAgentName, _ => Card(ProtectedAgentName, extended: false), authorizationPolicy: InvokerPolicy);
 
         _app = builder.Build();
@@ -125,6 +134,24 @@ public sealed class MinimalServer : IAsyncLifetime
         DefaultOutputModes = ["text/plain"],
         Skills = [new AgentSkill { Id = "echo", Name = "Echo", Description = "Echoes the text back." }],
     };
+}
+
+/// <summary>A clock that reads the system time until a test freezes it at an instant of its choice.</summary>
+public sealed class TestClock : TimeProvider
+{
+    private readonly object _gate = new();
+    private DateTimeOffset? _frozen;
+
+    /// <summary>Makes <see cref="GetUtcNow"/> return <paramref name="instant"/> until <see cref="Release"/>.</summary>
+    public void Freeze(DateTimeOffset instant) { lock (_gate) _frozen = instant; }
+
+    /// <summary>Back to the system clock.</summary>
+    public void Release() { lock (_gate) _frozen = null; }
+
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (_gate) return _frozen ?? base.GetUtcNow();
+    }
 }
 
 [CollectionDefinition(Name)]
@@ -177,6 +204,60 @@ public sealed class EchoAgent : IAgentHandler
             await Task.Delay(ms, ct);
         await sink.AddArtifactAsync(new Artifact { ArtifactId = "echo", Parts = [Part.FromText($"echo: {text}")] }, append: false, lastChunk: true, ct);
         await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+    }
+}
+
+/// <summary>
+/// Drives task state moves by <c>messageId</c> prefix (spec D13 tests). A continuation (<c>CurrentTask</c> set) always
+/// goes WORKING then COMPLETED. Prefixes: <c>complete-</c>; <c>pause-</c> (INPUT_REQUIRED); <c>pause-auth-</c> (AUTH_REQUIRED);
+/// <c>pause-then-complete-</c> (INPUT_REQUIRED, then an illegal COMPLETED in the same run); <c>set-submitted-</c> (WORKING, then an
+/// illegal SUBMITTED); <c>pause-bad-cancel-</c> / <c>pause-auth-bad-cancel-</c> (pause; the cancel handler sets WORKING);
+/// <c>work-bad-cancel-</c> (WORKING until canceled; the cancel handler sets COMPLETED).
+/// </summary>
+public sealed class StatesAgent : IAgentHandler
+{
+    public async ValueTask ExecuteAsync(AgentRequestContext context, IAgentEventSink sink, CancellationToken ct)
+    {
+        if (context.CurrentTask is not null)
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+            return;
+        }
+        var id = context.Message.MessageId;
+        if (id.StartsWith("pause-then-complete-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+            try { await sink.UpdateStatusAsync(TaskState.Completed, null, ct); }
+            catch (A2AException) { /* D13: rejected, the task ends FAILED */ }
+        }
+        else if (id.StartsWith("set-submitted-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            try { await sink.UpdateStatusAsync(TaskState.Submitted, null, ct); }
+            catch (A2AException) { }
+        }
+        else if (id.StartsWith("pause-auth-", StringComparison.Ordinal))
+            await sink.UpdateStatusAsync(TaskState.AuthRequired, null, ct);
+        else if (id.StartsWith("pause-", StringComparison.Ordinal))
+            await sink.UpdateStatusAsync(TaskState.InputRequired, null, ct);
+        else if (id.StartsWith("work-bad-cancel-", StringComparison.Ordinal))
+        {
+            await sink.UpdateStatusAsync(TaskState.Working, null, ct);
+            await Task.Delay(Timeout.Infinite, ct);
+        }
+        else
+            await sink.UpdateStatusAsync(TaskState.Completed, null, ct);
+    }
+
+    public async ValueTask CancelAsync(AgentRequestContext context, IAgentEventSink sink, CancellationToken ct)
+    {
+        var id = context.Message.MessageId;
+        var illegal = id.Contains("-bad-cancel-", StringComparison.Ordinal)
+            ? id.StartsWith("work-", StringComparison.Ordinal) ? TaskState.Completed : TaskState.Working
+            : (TaskState?)null;
+        try { await sink.UpdateStatusAsync(illegal ?? TaskState.Canceled, null, ct); }
+        catch (A2AException) when (illegal is not null) { }
     }
 }
 

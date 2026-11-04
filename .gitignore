@@ -15,3 +15,7 @@ TestResults/
 *.snupkg
 artifacts/
 BenchmarkDotNet.Artifacts/
+
+# TCK run output
+__pycache__/
+/tck-reports/
