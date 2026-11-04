@@ -90,7 +90,7 @@ It stays at least one full minor release with a warning, and is removed only in 
 | Id | Obsolete API | Replacement | Since | Removal |
 |---|---|---|---|---|
 
-The table has no rows yet. `ImplicitOAuthFlow`, `OAuthFlows.Implicit`, `PasswordOAuthFlow` and `OAuthFlows.Password` are already `[Obsolete]` but carry no diagnostic id; package 03 assigns `A2AOBS001` and `A2AOBS002` and adds the rows (replacement: none, they are protocol fields kept while the A2A spec has them).
+The table has no rows yet. `ImplicitOAuthFlow`, `OAuthFlows.Implicit`, `PasswordOAuthFlow` and `OAuthFlows.Password` are `[Obsolete]` without a diagnostic id, so callers see CS0618. This is a deliberate exception to the rule above: a custom id breaks the System.Text.Json source-generated code for these models. They have no replacement. They are protocol fields, kept while the A2A spec has them.
 
 ## 6. Relation to the A2A spec
 

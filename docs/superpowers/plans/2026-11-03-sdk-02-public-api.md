@@ -274,7 +274,8 @@ public sealed class PublicSurfaceTests
         "PageToken", "TaskStateRules", "Releaser", "RequestValidation", "ServiceParameters", "RestErrorWriter",
         "GrpcErrorMapper", "SseWriter", "AgentCardInterfaces", "WebhookUrlValidator", "A2AGrpcService", "SseReader",
         "RestA2AClient", "GrpcA2AClient", "JsonRpcA2AClient", "TracingA2AClient", "ProtoMapper",
-        "ProtoEnumConverter`1", "UtcTimestampConverter", "A2AJsonContext",
+        "UtcTimestampConverter", "A2AJsonContext",
+        // ProtoEnumConverter<T> stays public: owner decision 2026-11-04 (Task 2.3). This matches the shipped test.
         // Default implementations (spec 02 section 3, writer's call as a default):
         "InMemoryTaskStore", "InMemoryPushConfigStore", "InMemoryOutboxStore", "InMemoryInstanceStore", "AgentAuthorizer",
         // DefaultOwnerResolver stays public: spec 07 keeps it public so other-scheme resolvers can decorate it.
@@ -487,7 +488,7 @@ public sealed class ConsumerJsonContextTests
 Adjust property names and the enum wire string to the actual models and to what the golden JSON tests show. Check: if `ConsumerContext` does not compile, or the second test writes a number instead of the name, the internal converter broke consumers. **Stop and ask the owner** (Review focus 1). Do not make the converter public on your own.
 
 - [ ] **2.6** Build and test. Golden JSON tests unchanged. Commit: `feat(protocol): hide JSON plumbing, add A2AJson typed accessors`.
-- [ ] **2.7** Records: `CHANGELOG.md` "Breaking changes" lines for `A2AJsonContext`, `ProtoEnumConverter<T>`, `UtcTimestampConverter` now internal, and "Added" for `A2AJson.TypeInfoResolver` and the accessors. Rows in `docs/migration/phase1-map.csv`, for example `A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type>,Ambinder.A2A.Protocol,replaced by A2AJson typed accessors`.
+- [ ] **2.7** Records: `CHANGELOG.md` "Breaking changes" lines for `A2AJsonContext` and `UtcTimestampConverter` now internal (`ProtoEnumConverter<T>` stays public, 2.3), and "Added" for `A2AJson.TypeInfoResolver` and the accessors. Rows in `docs/migration/phase1-map.csv`, for example `A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type>,Ambinder.A2A.Protocol,replaced by A2AJson typed accessors`.
 
 ---
 
