@@ -131,7 +131,7 @@
           <line class="ln" x1="715" y1="230" x2="715" y2="248" marker-end="url(#a1)"/>
 
           <rect class="bx" x="350" y="250" width="430" height="36" rx="4"/>
-          <text class="t" x="565" y="273" text-anchor="middle">TracingRequestHandler → TaskManager · event broker · auth</text>
+          <text class="t" x="565" y="273" text-anchor="middle">Pipeline handler → TaskManager · event broker · auth</text>
 
           <line class="ln" x1="565" y1="286" x2="565" y2="308" marker-end="url(#a1)"/>
           <text class="t-mono" x="573" y="301">IAgentHandler</text>
@@ -176,7 +176,7 @@
           <text class="t-label" x="113" y="338">⑤ register, read</text>
         </svg>
       </div>
-      <figcaption>The client gets a token from MockEntra (①) and reads the agent card (②). It then makes the A2A call (③) over whichever of the three transports it picks. All three transports go into one request handler, so every agent behaves the same on every transport. Long tasks push signed updates to the webhook receiver (④). The receiver checks the signature against the server's published keys, and the client reads what arrived (⑤). The request handler is a <code>TracingRequestHandler</code> around the task manager; see the telemetry figure below.</figcaption>
+      <figcaption>The client gets a token from MockEntra (①) and reads the agent card (②). It then makes the A2A call (③) over whichever of the three transports it picks. All three transports go into one request handler, so every agent behaves the same on every transport. Long tasks push signed updates to the webhook receiver (④). The receiver checks the signature against the server's published keys, and the client reads what arrived (⑤). The request handler is the pipeline handler around the task manager, with tracing as built-in middleware (slot 100); see the telemetry figure below.</figcaption>
     </figure>
   </section>
 
@@ -253,7 +253,7 @@
     <h2>Telemetry: where spans and metrics come from</h2>
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 820 340" role="img" aria-label="Telemetry. The client wraps each call in an a2a.client span under a per-flow root span. The trace context goes to the server, where the TracingRequestHandler records an a2a.server span, with the agent run and push delivery spans below it. The push request carries the trace context to the webhook receiver. The sample hosts export everything over OTLP, only when OTEL_EXPORTER_OTLP_ENDPOINT is set.">
+        <svg viewBox="0 0 820 340" role="img" aria-label="Telemetry. The client wraps each call in an a2a.client span under a per-flow root span. The trace context goes to the server, where the tracing middleware (slot 100 of the pipeline handler) records an a2a.server span, with the agent run and push delivery spans below it. The push request carries the trace context to the webhook receiver. The sample hosts export everything over OTLP, only when OTEL_EXPORTER_OTLP_ENDPOINT is set.">
           <defs>
             <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
             <marker id="a4x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-accent"/></marker>
@@ -275,7 +275,7 @@
           <text class="t-mono" x="440" y="86" text-anchor="middle">ASP.NET Core request span</text>
           <rect class="bx-accent" x="316" y="104" width="248" height="44" rx="4"/>
           <text class="t-mono" x="440" y="124" text-anchor="middle">a2a.server &lt;Method&gt;</text>
-          <text class="t-sub" x="440" y="140" text-anchor="middle">TracingRequestHandler</text>
+          <text class="t-sub" x="440" y="140" text-anchor="middle">Tracing middleware</text>
           <rect class="bx" x="316" y="156" width="248" height="30" rx="4"/>
           <text class="t-mono" x="440" y="176" text-anchor="middle">a2a.agent.run · event a2a.task.state</text>
           <rect class="bx" x="316" y="194" width="248" height="44" rx="4"/>

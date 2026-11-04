@@ -31,9 +31,14 @@ internal sealed class TracingMiddleware : IA2AMiddleware
                 span?.Dispose();
                 throw;
             }
-            return streaming.Events is { } events
-                ? A2AOperationResult.FromEvents(WrapAsync(span, call.AgentName, events))
-                : streaming;
+            if (streaming.Events is not { } events)
+            {
+                // A streaming operation must return events. Nothing will enumerate a stream, so end the span here.
+                Fail(span, new InvalidOperationException($"{method} returned no event stream."));
+                span?.Dispose();
+                return streaming;
+            }
+            return A2AOperationResult.FromEvents(WrapAsync(span, call.AgentName, events));
         }
 
         using (span)
