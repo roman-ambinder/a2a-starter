@@ -45,6 +45,7 @@ public sealed class FaultInjectingHandler(params Func<HttpRequestMessage, Task<H
         {
             step = _steps.Count > 0 ? _last = _steps.Dequeue() : _last ?? throw new InvalidOperationException("No steps scripted.");
         }
+        ct.ThrowIfCancellationRequested();
         var response = await step(request);
         response.RequestMessage ??= request;
         return response;

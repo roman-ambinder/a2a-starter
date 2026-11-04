@@ -5,6 +5,7 @@ using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -62,13 +63,35 @@ public sealed class LoopbackAgentHost : IAsyncDisposable
     /// Starts the host. <paramref name="agents"/> registers the test agents (<c>AddAgent</c>). The first agent is the default agent.
     /// <paramref name="listen"/> runs on the HTTP/1.1 listener. <c>AddA2AGrpc</c> is registered for you.
     /// </summary>
+    /// <remarks>
+    /// The <paramref name="agents"/> callback runs twice (once to learn the agent names, once on the real server), and so it
+    /// must be free of side effects. If Kestrel cannot bind a reserved port because another process took it, the start is retried once.
+    /// </remarks>
     public static async Task<LoopbackAgentHost> StartAsync(Action<A2AServerBuilder> agents, Action<ListenOptions>? listen = null)
+    {
+        try
+        {
+            return await StartOnceAsync(agents, listen);
+        }
+        catch (Exception ex) when (IsAddressInUse(ex))
+        {
+            return await StartOnceAsync(agents, listen);
+        }
+    }
+
+    private static bool IsAddressInUse(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            if (e is AddressInUseException) return true;
+        return false;
+    }
+
+    private static async Task<LoopbackAgentHost> StartOnceAsync(Action<A2AServerBuilder> agents, Action<ListenOptions>? listen)
     {
         ArgumentNullException.ThrowIfNull(agents);
         // The server freezes the card URLs when it builds its agent catalog, which happens before Kestrel binds. So the ports must
         // be known first: reserve free ephemeral ports (never a fixed number), then release them just before Kestrel binds.
         string[] names;
-        using (var probe = new ServiceCollection().AddLogging().BuildServiceProvider())
         {
             var probeServices = new ServiceCollection().AddLogging();
             agents(probeServices.AddA2AServer(o => o.PublicBaseUrl = "http://127.0.0.1:1"));
