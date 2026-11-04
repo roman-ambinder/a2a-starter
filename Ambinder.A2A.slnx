@@ -28,6 +28,8 @@
     <Project Path="tests/Ambinder.A2A.Integration.Tests/Ambinder.A2A.Integration.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Server.Tests/Ambinder.A2A.Server.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.AspNetCore.Tests/Ambinder.A2A.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Ambinder.A2A.TestHarness/Ambinder.A2A.TestHarness.csproj" />
+    <Project Path="tests/Ambinder.A2A.TestHarness.Tests/Ambinder.A2A.TestHarness.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Tck.Sut/Ambinder.A2A.Tck.Sut.csproj" />
   </Folder>
 </Solution>
