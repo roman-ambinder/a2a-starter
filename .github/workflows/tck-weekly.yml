@@ -1,0 +1,82 @@
+name: TCK weekly
+
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Monday 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tck:
+    uses: ./.github/workflows/tck.yml
+    with:
+      tck-ref: main
+
+  report:
+    needs: tck
+    permissions:
+      contents: read
+      issues: write
+    if: always() && needs.tck.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: tck-reports
+          path: tck-reports
+
+      - name: Open an issue, or comment on the open one
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          prefix="TCK main: new failures"
+          {
+            echo "The weekly TCK run against a2a-tck main failed."
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo '```'
+            if [ -f tck-reports/checker-output.txt ]; then tail -n 80 tck-reports/checker-output.txt; else echo "No checker output. See the run."; fi
+            echo '```'
+          } > "$RUNNER_TEMP/issue-body.md"
+          number=$(gh issue list --state open --search "\"$prefix\" in:title" --json number,title \
+            --jq "[.[] | select(.title | startswith(\"$prefix\"))][0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file "$RUNNER_TEMP/issue-body.md"
+          else
+            gh issue create --title "$prefix ($(date -u +%F))" --body-file "$RUNNER_TEMP/issue-body.md"
+          fi
+
+  spec-release:
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check for an A2A release newer than v1.0.1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          current=v1.0.1
+          newest=$( { echo "$current"; gh api repos/a2aproject/A2A/releases --jq '.[].tag_name'; } \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ "$newest" = "$current" ]; then
+            echo "No A2A release newer than $current."
+            exit 0
+          fi
+          title="A2A $newest released"
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json title --jq "[.[] | select(.title == \"$title\")] | length")
+          if [ "$existing" != "0" ]; then
+            echo "An open issue already exists; not opening another."
+            exit 0
+          fi
+          gh issue create --title "$title" --body "The newest A2A release is $newest. This repo targets $current. Review the changes and plan an upgrade."

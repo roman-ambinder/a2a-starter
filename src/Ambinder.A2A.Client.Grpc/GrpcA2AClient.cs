@@ -20,12 +20,16 @@ public sealed class GrpcA2AClient : IA2AClient
     private readonly GrpcChannel _channel;
     private readonly Proto.A2AService.A2AServiceClient _client;
     private readonly string? _defaultTenant;
+    private readonly string _protocolVersion;
 
     /// <param name="address">The gRPC address from the card's supportedInterfaces (<c>http://</c> uses h2c).</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
     /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
-    public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options, string? defaultTenant = null)
+    /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>a2a-version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
+    public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
+        string? protocolVersion = null)
     {
+        _protocolVersion = string.IsNullOrWhiteSpace(protocolVersion) ? A2AConstants.ProtocolVersion : protocolVersion;
         _defaultTenant = string.IsNullOrEmpty(defaultTenant) ? null : defaultTenant;
         ArgumentNullException.ThrowIfNull(address);
         _card = card ?? throw new ArgumentNullException(nameof(card));
@@ -206,7 +210,7 @@ public sealed class GrpcA2AClient : IA2AClient
 
     private async Task<Metadata> BuildMetadataAsync(CancellationToken ct)
     {
-        var metadata = new Metadata { { A2AConstants.GrpcVersionKey, _options.ProtocolVersion } };
+        var metadata = new Metadata { { A2AConstants.GrpcVersionKey, _protocolVersion } };
         if (_options.Extensions.Count > 0)
             metadata.Add(A2AConstants.GrpcExtensionsKey, string.Join(',', _options.Extensions));
 

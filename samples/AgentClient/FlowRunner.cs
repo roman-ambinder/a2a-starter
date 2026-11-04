@@ -28,6 +28,7 @@ public sealed partial class FlowRunner : IDisposable
     private readonly FlowOptions _options;
     private readonly TextWriter _output;
     private readonly HttpClient _http;
+    private readonly HttpMessageHandler _pipeline;
     private readonly A2ACardResolver _cards;
     private readonly List<IDisposable> _disposables = [];
 
@@ -36,7 +37,8 @@ public sealed partial class FlowRunner : IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _output = TextWriter.Synchronized(options.Output);
         var handler = new SocketsHttpHandler();
-        _http = new HttpClient(options.Verbose ? new WireLogHandler(_output, handler) : handler) { Timeout = TimeSpan.FromSeconds(60) };
+        _pipeline = options.Verbose ? new WireLogHandler(_output, handler) : handler;
+        _http = new HttpClient(_pipeline) { Timeout = TimeSpan.FromSeconds(60) };
         _cards = new A2ACardResolver(_http);
     }
 
@@ -188,14 +190,18 @@ public sealed partial class FlowRunner : IDisposable
         bool anonymous = false, bool forceMock = false, string? protocolVersion = null, CancellationToken ct = default)
     {
         var card = await CardAsync(agent, ct).ConfigureAwait(false);
+        // The client sends its card interface's version. The errors flow overrides it to show a rejected version.
+        var http = protocolVersion is null
+            ? _http
+            : new HttpClient(new VersionOverrideHandler(protocolVersion, _pipeline), disposeHandler: false) { Timeout = _http.Timeout };
+        if (protocolVersion is not null) _disposables.Add(http);
         return A2AClientFactory.Create(card, new A2AClientOptions
         {
-            HttpClient = _http,
+            HttpClient = http,
             Credentials = Credentials(who, anonymous, forceMock),
             PreferredBinding = _options.Binding,
             Transports = [GrpcClientTransport.Instance],
             Extensions = extensions ?? [],
-            ProtocolVersion = protocolVersion ?? A2AConstants.ProtocolVersion,
             // The sample's gRPC listeners use TLS exactly when its HTTP server URL does.
             GrpcUseTls = new Uri(_options.ServerUrl).Scheme == Uri.UriSchemeHttps,
         });

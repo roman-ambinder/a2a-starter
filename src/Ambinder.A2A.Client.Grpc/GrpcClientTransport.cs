@@ -1,3 +1,4 @@
+using Ambinder.A2A.Client.Transports;
 using Ambinder.A2A.Protocol;
 
 namespace Ambinder.A2A.Client.Grpc;
@@ -30,7 +31,8 @@ public sealed class GrpcClientTransport : IA2AClientTransport
         var address = GrpcAddress(agentInterface.Url, options.GrpcUseTls);
         if (!Uri.TryCreate(address, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https"))
             throw new NotSupportedException($"The agent card's {agentInterface.ProtocolBinding} interface has an invalid URL: '{agentInterface.Url}'.");
-        return new GrpcA2AClient(url, card, options, tenant);
+        // The a2a-version metadata is the selected interface's Major.Minor; an empty interface version means the current one.
+        return new GrpcA2AClient(url, card, options, tenant, ClientSupport.MajorMinor(agentInterface.ProtocolVersion) ?? A2AConstants.ProtocolVersion);
     }
 
     /// <summary>

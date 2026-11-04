@@ -24,15 +24,15 @@ public sealed class InMemoryTaskStore : ITaskStore
     {
         var pageSize = request.PageSize ?? DefaultPageSize;
         if (pageSize is < 1 or > MaxPageSize)
-            throw new A2AException(A2AErrorCode.InvalidParams, $"pageSize must be between 1 and {MaxPageSize}.");
+            throw new A2AException(A2AErrorCode.InvalidParams, $"pageSize must be between 1 and {MaxPageSize}. Send a value in that range, or omit it.");
         if (request.HistoryLength is < 0)
-            throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative.");
+            throw new A2AException(A2AErrorCode.InvalidParams, "historyLength must not be negative. Send 0 or more, or omit it.");
 
         (DateTimeOffset Ts, string Id)? cursor = null;
         if (!string.IsNullOrEmpty(request.PageToken))
         {
             if (!PageToken.TryDecode(request.PageToken, out var ts, out var id))
-                throw new A2AException(A2AErrorCode.InvalidParams, "Invalid pageToken.");
+                throw new A2AException(A2AErrorCode.InvalidParams, "Invalid pageToken. Send the nextPageToken from the previous page, or omit it.");
             cursor = (ts, id);
         }
 

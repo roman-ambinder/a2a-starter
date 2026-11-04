@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/*.cs" />
+    <Compile Include="../Ambinder.A2A.Tck.Sut/TckAgent.cs" Link="TckSut/TckAgent.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- The tests use the generated types (raw gRPC client, fake gRPC server) from their own internal copy of the proto, so no

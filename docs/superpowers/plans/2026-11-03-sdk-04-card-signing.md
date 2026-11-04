@@ -95,6 +95,8 @@ Package 04 depends on 03, 07, 10 and 16 (spec "Dependencies"). They may or may n
 
 ## Decisions this plan makes (planner's calls, flagged for owner review in the PR)
 
+**Owner review, 2026-11-03:** P1–P9 and P11–P17 are accepted as written. P10 is changed (see P10). P18 was already an owner decision.
+
 The spec leaves these points open, or the plan needed one exact rule to be testable. Each one is also recorded in code comments, and in `docs/spec-decisions.md` where it touches the wire (Task 19).
 
 - **P1 `KeyExpired` source.** `JsonWebKeyPublic` gets an extra init property `NotAfter` (`DateTimeOffset?`, `[JsonIgnore]`, never written to a JWKS). Only pinned `TrustedKeys` can carry it. `KeyExpired` means "the matching pinned key has `NotAfter` < now". JWKS documents have no expiry; the server removes keys from them instead.
@@ -106,7 +108,10 @@ The spec leaves these points open, or the plan needed one exact rule to be testa
 - **P7 JSON `null` on a known field** counts as absent: it is removed. Unknown fields and values inside `Struct` are kept as received, `null` included.
 - **P8 header checks on verify.** `typ` is not checked (other SDKs differ). A `crit` member gives `Malformed` (RFC 7515 4.1.11). A key whose `use` is set and is not `sig` cannot be used (`AlgorithmNotAllowed`, with a message). A key whose `alg` is set and differs from the header `alg` gives `AlgorithmNotAllowed`.
 - **P9 a key source that throws.** On the first load, treat it as "no usable key": log an error with the exception, and fail if `FailWhenNoKey` is set. On a later refresh, keep the last known keys and log a warning. This is the same rule as the spec's Key Vault rule.
-- **P10 `jku` value.** If `JwksUrl` is relative, `jku` = `A2AServerOptions.PublicBaseUrl` + `JwksUrl`. A relative `JwksUrl` with no `PublicBaseUrl` fails startup: "CardSigningOptions.JwksUrl is relative, so A2A:PublicBaseUrl must be set to build the jku URL. Set A2A:PublicBaseUrl or use an absolute JwksUrl."
+- **P10 `jku` value (changed by the owner, 2026-11-03).** If `JwksUrl` is absolute, `jku` is that URL. If it is relative, `jku` = public base URL + `JwksUrl`, where the public base URL is:
+  - `A2AServerOptions.PublicBaseUrl` when it is set;
+  - otherwise, in package 09's `FromRequest` mode, the public base URL of the request the card is built for. 09's card pipeline builds one card per host in that mode and passes it in (`IAgentCardSigner.SignAsync(cardJson, publicBaseUrl, ct)`, 09 plan Task 10).
+  Only a relative `JwksUrl` with neither a `PublicBaseUrl` nor `FromRequest` mode fails startup: "CardSigningOptions.JwksUrl is relative, so A2A:PublicBaseUrl must be set to build the jku URL. Set A2A:PublicBaseUrl, set A2A:PublicUrlMode to FromRequest, or use an absolute JwksUrl." The ETag does not change with `jku` (it hashes the payload and key ids, P6); 09 adds `Host` to `Vary` in `FromRequest` mode. Same reasoning as the push issuer decision (09 plan, owner note 6).
 - **P11 `FailWhenNoKey = true`** is checked at startup, by loading the keys once in a hosted service. It is not checked per request.
 - **P12 Key Vault algorithms.** EC P-256 signs ES256, EC P-384 signs ES384, RSA signs RS256. Other key types are rejected at first load, with a message naming the key type.
 - **P13 JWKS fetch failures.** A failed fetch, a non-2xx response, a body over 64 KB or invalid JSON counts as "key not found" (`UnknownKey`). The message gives the reason, for example "The JWKS at X is larger than 64 KB." A 1-hour cache applies to successful fetches only. Failures are retried at most once per minute per URL.
@@ -1175,7 +1180,7 @@ internal static class AgentCardETag
     - A source that throws on the first load gives "no keys" and logs an error.
     - A source that throws on a later refresh keeps the last keys and logs a warning (P9).
     - A key that disappears or expires stays in `GetPublishedKeys()` for `RetiredKeyGracePeriod` (default 1 day), then drops out.
-  - `AgentCardSigner.SignAsync(JsonObject card)`:
+  - `AgentCardSigner.SignAsync(JsonObject card, Uri? publicBaseUrl, CancellationToken ct)`:
     - With one ES256 key: the result has one `AgentCardSignature`. Its protected header decodes to `alg=ES256`, `kid`, `typ=JOSE`, and `jku` only when `JwksUrl` is set. `CardJws.Verify` over `CreateSigningInput(protected, GetSigningPayload(card))` is `Valid`.
     - With two keys (rotation): two signatures, and both verify.
     - The returned JSON bytes parse, contain `signatures`, and their signing payload equals the payload of the input.
@@ -1190,7 +1195,8 @@ internal static class AgentCardETag
     - `AddLocalCardSigningKey(ecdsa)` registers a `StaticSigningKeySource` (the last registration wins, `Replace`).
     - `AddDevelopmentCardSigningKey()` with environment `Production` fails host start, with this message: "AddDevelopmentCardSigningKey() is only allowed in the Development environment (current: Production). Use AddLocalCardSigningKey(...) or AddAzureKeyVaultCardSigningKey(...) (package Ambinder.A2A.Azure.KeyVault)."
     - `FailWhenNoKey = true` with an empty source fails host start (P11).
-    - A relative `JwksUrl` with an empty `PublicBaseUrl` fails host start with the P10 message.
+    - A relative `JwksUrl` with an empty `PublicBaseUrl` and `PublicUrlMode` not `FromRequest` fails host start with the P10 message.
+    - A relative `JwksUrl`, no `PublicBaseUrl`, `FromRequest` mode: host start succeeds; `SignAsync(card, new Uri("http://a.test"), ct)` gives `jku = http://a.test/<path>`, and the same card for `http://b.test` gives `jku = http://b.test/<path>`, with the same ETag (P10, P6). `SignAsync(card, null, ct)` in that mode throws `InvalidOperationException` naming the fix.
     - Without `AddCardSigning`, no signer is registered and nothing changes.
 
 - [ ] **Step 2: Run, see it fail.**
@@ -1202,7 +1208,7 @@ public sealed class CardSigningOptions
 {
     /// <summary>The key source. Set it here, or call AddLocalCardSigningKey / AddDevelopmentCardSigningKey / AddAzureKeyVaultCardSigningKey.</summary>
     public IAgentCardSigningKeySource? KeySource { get; set; }
-    /// <summary>When set, the card JWKS is served here and its absolute URL is put in the JWS "jku" header. Relative paths need A2A:PublicBaseUrl.</summary>
+    /// <summary>When set, the card JWKS is served here and its absolute URL is put in the JWS "jku" header. A relative path is resolved against A2A:PublicBaseUrl, or in FromRequest mode against the request's public base URL.</summary>
     public string? JwksUrl { get; set; }
     /// <summary>When true, startup fails if no usable signing key is available. Default false: the card is served unsigned and an error is logged.</summary>
     public bool FailWhenNoKey { get; set; }
@@ -1233,10 +1239,11 @@ public interface IAgentCardSigner
 {
     /// <summary>Signs a card. Any <c>signatures</c> member in the input is replaced.</summary>
     /// <param name="cardJson">The card JSON after the card contributors ran. It is changed: <c>signatures</c> is set.</param>
+    /// <param name="publicBaseUrl">The public base URL of the request the card is built for. Used for a relative <c>JwksUrl</c> when <c>A2A:PublicBaseUrl</c> is not set (P10). <see langword="null"/> uses <c>A2A:PublicBaseUrl</c>.</param>
     /// <param name="ct">Cancels the call.</param>
     /// <returns>The JSON to serve, its signatures and its B13 ETag. Unsigned when no usable key exists and <c>FailWhenNoKey</c> is false.</returns>
-    /// <exception cref="InvalidOperationException">No usable key exists and <c>CardSigningOptions.FailWhenNoKey</c> is true.</exception>
-    ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, CancellationToken ct);
+    /// <exception cref="InvalidOperationException">No usable key exists and <c>CardSigningOptions.FailWhenNoKey</c> is true, or a relative <c>JwksUrl</c> has no base URL to resolve against.</exception>
+    ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, Uri? publicBaseUrl, CancellationToken ct);
 
     /// <summary>Gets the id of the current signing key set. A cached card is stale when its <see cref="SignedAgentCard.KeySetId"/> differs.</summary>
     /// <param name="ct">Cancels the call.</param>
@@ -1271,8 +1278,8 @@ public sealed record SignedAgentCard
 ```csharp
 internal sealed class AgentCardSigner(SigningKeyCache keys, IOptions<CardSigningOptions> options, IOptions<A2AServerOptions> server, ILogger<AgentCardSigner> log) : IAgentCardSigner
 {
-    // Cache per card variant: key = SHA-256 of the canonical payload (bytes as base64) + "|" + key set id.
-    public async ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, CancellationToken ct)
+    // Cache per card variant: key = SHA-256 of the canonical payload (bytes as base64) + "|" + key set id + "|" + jku (P10: jku can differ per host).
+    public async ValueTask<SignedAgentCard> SignAsync(JsonObject cardJson, Uri? publicBaseUrl, CancellationToken ct)
     {
         cardJson.Remove("signatures");
         // AOT-safe, no A2AJsonContext: write cardJson with cardJson.WriteTo(Utf8JsonWriter) into a pooled buffer, then parse it.
@@ -1284,7 +1291,7 @@ internal sealed class AgentCardSigner(SigningKeyCache keys, IOptions<CardSigning
         var signatures = new List<AgentCardSignature>(set.Keys.Count);
         foreach (var key in set.Keys)
         {
-            var header = CardJws.CreateProtectedHeader(key.Algorithm, key.KeyId, JkuUri());
+            var header = CardJws.CreateProtectedHeader(key.Algorithm, key.KeyId, JkuUri(publicBaseUrl));   // P10: absolute JwksUrl, else PublicBaseUrl, else publicBaseUrl
             var sig = await key.SignAsync(CardJws.CreateSigningInput(header, payload), ct).ConfigureAwait(false);
             signatures.Add(new AgentCardSignature { Protected = header, Signature = Base64Url.EncodeToString(sig) });
         }
@@ -1316,13 +1323,13 @@ Signing happens once per card variant and key set. The payload is computed on ea
 
 **Branch A: package 03's card pipeline exists.**
 - Find where 03 builds the per-version card bytes, after the contributors run (`git grep -n "IAgentCardContributor" -- src`).
-- Right after the contributors run, call `IAgentCardSigner.SignAsync(cardJson)` if one is registered (`RequestServices.GetService<IAgentCardSigner>()`). Cache `SignedAgentCard.Json` and `SignedAgentCard.ETag` in place of 03's bytes and ETag, and rebuild the entry when `GetKeySetIdAsync` no longer equals `SignedAgentCard.KeySetId`.
+- Right after the contributors run, call `IAgentCardSigner.SignAsync(cardJson, publicBaseUrl, ct)` if one is registered (`publicBaseUrl`: the request's public base URL from 09's `PublicUrlResolver` when that exists, else null; P10) (`RequestServices.GetService<IAgentCardSigner>()`). Cache `SignedAgentCard.Json` and `SignedAgentCard.ETag` in place of 03's bytes and ETag, and rebuild the entry when `GetKeySetIdAsync` no longer equals `SignedAgentCard.KeySetId`.
 - 03's ETag code must use `AgentCardETag.Compute(payload, kids)` (the linked `src/Shared` helper from Task 7), which is the B13 rule 03 defines. If 03 computed its own hash, replace it with `AgentCardETag`, so there is one implementation.
 - Use `AgentCardCanonicalizer.GetSigningPayload(cardJson)` as 03's `payload` on the unsigned path too (no signer registered). 03 hands this swap to 04 (03 plan, Task 13 step 4). Without it the unsigned ETag stays over serializer output and breaks B13.
 - 03's pipeline runs on the public card endpoints only, so there is no shared extended path to sign. Apply Branch B's `TaskManager.GetExtendedAgentCardAsync` step here too: `card with { Signatures = signed.Signatures }`.
 
 **Branch C: package 09's `AgentCardBuilderPipeline` exists** (09 plan Task 10). It replaces the endpoint's card cache with a variant cache that does not rebuild on a key-set change, so A and B do not apply.
-- Call `IAgentCardSigner.SignAsync(cardJson)` at the pipeline's step 6, once per variant, when a signer is registered.
+- Call `IAgentCardSigner.SignAsync(cardJson, publicBaseUrl, ct)` at the pipeline's step 6, once per variant, with that variant's public base URL (P10), when a signer is registered.
 - Store `SignedAgentCard.Json`, `ETag` and `KeySetId` in the variant entry. Without a signer, store the serializer bytes and `AgentCardETag.Compute(GetSigningPayload(cardJson), [])`.
 - On each hit, compare `GetKeySetIdAsync` with the entry's `KeySetId`. If they differ, drop the entry and rebuild. `GetKeySetIdAsync` is cached (Task 8), so this adds no key-source call per request.
 - Sign the `Extended` path too. It skips step 5 (contributors), not step 6. The transports return it as a model, so apply `card with { Signatures = signed.Signatures }` as in Branch B.

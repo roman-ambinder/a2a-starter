@@ -1,0 +1,125 @@
+{
+  "entries": [
+    {
+      "suite": "tck",
+      "requirement": "CORE-CANCEL-002",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): TaskNotCancelableError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said 409 Conflict",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/231",
+      "reason": "TCK expects HTTP 409 for TaskNotCancelableError; v1.0.1 says 400.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "STREAM-SUB-003",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): UnsupportedOperationError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said UNIMPLEMENTED",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/231",
+      "reason": "TCK expects UNIMPLEMENTED for UnsupportedOperationError; v1.0.1 says FAILED_PRECONDITION.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "GRPC-ERR-002",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.4 (changed by A2A PR #1627): VersionNotSupportedError is FAILED_PRECONDITION / 400 Bad Request; v1.0.0 said UNIMPLEMENTED",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/231",
+      "reason": "TCK expects UNIMPLEMENTED for VersionNotSupportedError; v1.0.1 says FAILED_PRECONDITION.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/202",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/202",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-SEND-003",
+      "transport": "grpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 sections 3.1.1 and 3.3.2: SendMessage lists ContentTypeNotSupportedError for a message part whose media type the agent does not support; section 5.4 maps it to -32005 / INVALID_ARGUMENT / 400",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/202",
+      "reason": "CORE-SEND-003 has no expected_error, so the generic test fails a server that correctly returns ContentTypeNotSupportedError.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "PUSH-CREATE-001",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/264",
+      "reason": "TCK JSON-RPC client sends task_id in params; the spec requires taskId. The same client bug makes the TCK skip the other JSON-RPC push CRUD tests (PUSH-CREATE-002, PUSH-GET-001, PUSH-LIST-001, PUSH-DEL-001, PUSH-DEL-002), so JSON-RPC push CRUD is covered only by this repo's tests (JsonRpcTransportTests.Push_config_roundtrip_and_delete_returns_empty_object).",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-HIST-002",
+      "transport": "jsonrpc",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/242",
+      "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "CORE-HIST-001",
+      "transport": "jsonrpc",
+      "level": "SHOULD",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 5.5: all JSON serializations of the data model MUST use camelCase field names, not snake_case (protocol_version is protocolVersion)",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/242",
+      "reason": "TCK JSON-RPC client sends history_length in params; the spec requires historyLength.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "HTTP_JSON-SVC-001",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 11.1 (changed by A2A PR #1753): application/a2a+json SHOULD be used for HTTP+JSON requests and responses; v1.0.0 said application/json",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/240",
+      "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
+      "expires": "2027-02-02"
+    },
+    {
+      "suite": "tck",
+      "requirement": "HTTP_JSON-ERR-001",
+      "transport": "http_json",
+      "level": "MUST",
+      "kind": "tck-bug",
+      "spec": "A2A v1.0.1 section 11.1 (changed by A2A PR #1753): application/a2a+json SHOULD be used for HTTP+JSON requests and responses; v1.0.0 said application/json",
+      "issue": "https://github.com/a2aproject/a2a-tck/issues/240",
+      "reason": "TCK requires Content-Type application/json; v1.0.1 allows application/a2a+json.",
+      "expires": "2027-02-02"
+    }
+  ]
+}

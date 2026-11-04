@@ -242,4 +242,6 @@ Everything to change for Phase 2 is in [docs/production.md](docs/production.md).
 
 ## Conformance
 
-The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). That page also shows how to run the official A2A TCK against `tests/Ambinder.A2A.Tck.Sut`, a small server that serves all three transports. CI checks that `proto/a2a.proto` equals the `v1.0.1` release file; it does not run the TCK yet.
+The SDK follows A2A v1.0.1. Where the spec leaves a choice open, the choice is written down in [docs/spec-decisions.md](docs/spec-decisions.md). CI checks that `proto/a2a.proto` equals the `v1.0.1` release file.
+
+CI runs the official A2A TCK on every PR, over JSON-RPC, HTTP+JSON and gRPC (job `tck`, in [.github/workflows/tck.yml](.github/workflows/tck.yml)). It runs against `tests/Ambinder.A2A.Tck.Sut`, and the TCK version is pinned in `tck/TCK_VERSION`. See [tck/README.md](tck/README.md) for the files, the checker rules and how to run it locally, and [docs/spec-decisions.md](docs/spec-decisions.md) for the choices. Known TCK bugs are listed in [tck/known-issues.json](tck/known-issues.json) with links to their upstream issues. A weekly run against TCK `main` and a check for new A2A releases are in `.github/workflows/tck-weekly.yml`.

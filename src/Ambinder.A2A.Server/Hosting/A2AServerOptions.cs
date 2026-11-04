@@ -18,6 +18,13 @@ public sealed class A2AServerOptions
     public IDictionary<string, int> GrpcPorts { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
     /// <summary>
+    /// Tenant per agent name. When an agent has an entry, every interface on its card carries that <c>tenant</c>, and the server
+    /// rejects a request that names a different tenant with <c>InvalidParams</c>. A request with no tenant is treated as this one.
+    /// Default: empty (no interface declares a tenant).
+    /// </summary>
+    public IDictionary<string, string> InterfaceTenants { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    /// <summary>
     /// <c>max-age</c> of the <c>Cache-Control</c> header on public agent card responses (spec 8.6.1). Default 5 minutes.
     /// <see cref="TimeSpan.Zero"/> sends <c>no-cache</c> (clients revalidate with the ETag every time).
     /// </summary>

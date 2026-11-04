@@ -24,6 +24,8 @@ public static class A2AAspNetCoreServiceCollectionExtensions
         var builder = services.AddA2AServerCore(configure);
         services.AddAuthorization();
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
+        services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
+        services.TryAddSingleton<AgentCardRenderer>();
         services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, A2AStartupValidation>());
         return builder;
     }

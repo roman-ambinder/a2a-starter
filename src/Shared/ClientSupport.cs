@@ -10,9 +10,9 @@ internal static class ClientSupport
 {
     /// <summary>Adds A2A-Version, Accept, A2A-Extensions and the credential headers.</summary>
     public static async ValueTask ApplyHeadersAsync(HttpRequestMessage request, A2AClientOptions options, AgentCard card,
-        string accept, CancellationToken ct)
+        string protocolVersion, string accept, CancellationToken ct)
     {
-        AddHeader(request, A2AConstants.VersionHeader, options.ProtocolVersion);
+        AddHeader(request, A2AConstants.VersionHeader, protocolVersion);
         AddHeader(request, "Accept", accept);
         if (options.Extensions.Count > 0)
             AddHeader(request, A2AConstants.ExtensionsHeader, string.Join(',', options.Extensions));
@@ -30,6 +30,18 @@ internal static class ClientSupport
     {
         if (!request.Headers.TryAddWithoutValidation(name, value))
             throw new ArgumentException($"The header '{name}' cannot be added to the request.", nameof(name));
+    }
+
+    /// <summary><c>Major.Minor</c> of a protocol version (a patch part is dropped), or null for an empty or unparseable value.</summary>
+    public static string? MajorMinor(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+        var parts = version.Trim().Split('.');
+        return parts.Length is 2 or 3
+               && int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var major)
+               && int.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var minor)
+            ? $"{major}.{minor}"
+            : null;
     }
 
     /// <summary>Handler for a client that creates its own HttpClient (mutual TLS certificate applied).</summary>
@@ -137,7 +149,7 @@ internal static class ClientSupport
         message ??= "";
         if (data is { } d && FindErrorInfo(d) is { } found)
             return new A2AException(found.Code, message, found.Metadata);
-        var raw = data is { ValueKind: JsonValueKind.Array } ? null : data;
+        var raw = data is { ValueKind: JsonValueKind.Array } arr ? FindMetadata(arr) : data;
         if (Enum.IsDefined(typeof(A2AErrorCode), code))
             return new A2AException((A2AErrorCode)code, message, raw);
         return new A2AException(A2AErrorCode.InternalError, $"{message} (server error code {code})", raw);
@@ -163,6 +175,26 @@ internal static class ClientSupport
                     .Where(p => p.Value.ValueKind == JsonValueKind.String)
                     .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
             return (code, metadata);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The string metadata of the first google.rpc.ErrorInfo in a detail array, whatever its reason (null when empty or none).
+    /// For errors without a catalog reason, such as the trace id on an internal error.
+    /// </summary>
+    public static JsonElement? FindMetadata(JsonElement details)
+    {
+        if (details.ValueKind != JsonValueKind.Array) return null;
+        foreach (var detail in details.EnumerateArray())
+        {
+            if (detail.ValueKind != JsonValueKind.Object) continue;
+            if (!detail.TryGetProperty("@type", out var type) || type.ValueKind != JsonValueKind.String || type.GetString() != ErrorInfoType) continue;
+            if (detail.TryGetProperty("metadata", out var md) && md.ValueKind == JsonValueKind.Object)
+                return MetadataToData(md.EnumerateObject()
+                    .Where(p => p.Value.ValueKind == JsonValueKind.String)
+                    .Select(p => KeyValuePair.Create(p.Name, p.Value.GetString()!)));
+            return null;
         }
         return null;
     }

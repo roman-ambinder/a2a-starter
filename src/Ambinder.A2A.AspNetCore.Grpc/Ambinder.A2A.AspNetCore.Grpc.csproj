@@ -22,6 +22,7 @@
     <!-- Internal helpers compiled into each package that needs them (spec 01 rule 10), not shared through InternalsVisibleTo. -->
     <Compile Include="../Shared/TransportErrors.cs" Link="Shared/TransportErrors.cs" />
     <Compile Include="../Shared/TransportRequest.cs" Link="Shared/TransportRequest.cs" />
+    <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="../../proto/a2a.proto" ProtoRoot="../../proto" GrpcServices="Server" Access="Internal" />
