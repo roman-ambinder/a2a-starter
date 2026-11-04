@@ -1,1 +1,1 @@
-{"source": "hand-written", "specSection": "5.7", "expect": "read-only", "note": "Empty repeated fields are accepted; our serializer omits them (ProtoJSON omits empty repeated fields), so output differs from the input. Empty metadata is kept."}
+{"source": "hand-written", "specSection": "5.7", "expect": "read-only", "note": "Empty repeated fields are accepted; our serializer omits them (ProtoJSON omits empty repeated fields), so output differs from the input. Empty metadata is kept by our serializer, which is one more reason this fixture is read-only."}

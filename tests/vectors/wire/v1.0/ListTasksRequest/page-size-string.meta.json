@@ -1,1 +1,1 @@
-{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "pageSize is an int32 in the proto; ProtoJSON (5.5) writes it as a JSON number. A non-numeric string is not a valid int32."}
+{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "pageSize is an int32 in proto/a2a.proto; ProtoJSON (5.5 says the wire format is ProtoJSON) carries int32 as a JSON number. A non-numeric string is not a valid int32. 5.5 itself does not spell out number types."}

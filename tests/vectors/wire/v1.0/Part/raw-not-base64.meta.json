@@ -1,1 +1,1 @@
-{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "raw is a bytes field; ProtoJSON (required by 5.5) encodes bytes as base64, and the proto comment on Part.raw says the same. The value has characters outside the base64 alphabet."}
+{"source": "hand-written", "specSection": "5.5", "expect": "must-reject", "note": "Primary support is the proto comment on Part.raw (bytes, encoded as a base64 string); 5.5 only says the wire format is ProtoJSON. The value has characters outside the base64 alphabet."}
