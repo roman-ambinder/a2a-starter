@@ -22,4 +22,16 @@ public sealed record A2ACallContext(
 {
     /// <summary>The transport that carried the call: <c>jsonrpc</c>, <c>rest</c> or <c>grpc</c>. Null when called in process.</summary>
     public string? Transport { get; init; }
+
+    /// <summary>
+    /// <see langword="true"/> when another server instance already ran the pipeline for this call and forwarded it here. The pipeline then runs
+    /// only tracing and the operation. Set by the cluster layer; leave it <see langword="false"/> otherwise.
+    /// </summary>
+    public bool IsForwarded { get; init; }
+
+    /// <summary>The request scope. Transports pass the scope of the HTTP request. When null (in-process calls) the pipeline creates a scope for the call.</summary>
+    public IServiceProvider? Services { get; init; }
+
+    /// <summary>Where middleware writes response headers. Transports pass one and send it before the body. Null in-process, where the pipeline uses a private instance.</summary>
+    public A2AResponseMetadata? ResponseMetadata { get; init; }
 }

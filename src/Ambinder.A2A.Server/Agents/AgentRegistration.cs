@@ -17,4 +17,8 @@ public sealed record AgentRegistration(
     Type HandlerType,
     AgentCard PublicCard,
     AgentCard? ExtendedCard,
-    string? AuthorizationPolicy);
+    string? AuthorizationPolicy)
+{
+    /// <summary>The middleware types for this agent only, in registration order. They run after the global middleware.</summary>
+    public IReadOnlyList<Type> MiddlewareTypes { get; init; } = [];
+}

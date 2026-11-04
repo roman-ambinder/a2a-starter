@@ -16,7 +16,7 @@ public static class A2AServerCoreServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the host-neutral A2A server core: options, agent catalog, in-memory task store, event broker,
-    /// the traced <see cref="IA2ARequestHandler"/> (one span per call),
+    /// the traced <see cref="IA2ARequestHandler"/> (one span per call) that runs the middleware pipeline,
     /// the <see cref="TimeProvider"/> (default <see cref="TimeProvider.System"/>; register your own first to replace it),
     /// push delivery (config store, signing key, sender) and <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>).
     /// Use this in a host without ASP.NET Core; web apps call <c>AddA2AServer</c> from <c>Ambinder.A2A.AspNetCore</c>, which calls this
@@ -76,7 +76,10 @@ public static class A2AServerCoreServiceCollectionExtensions
             sp.GetRequiredService<IPushConfigStore>(),
             sp.GetRequiredService<IOptions<PushOptions>>().Value,
             sp.GetRequiredService<IOwnerResolver>()));
-        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<TaskManager>()));
+        services.TryAddSingleton(builder.Middleware);
+        services.TryAddSingleton<A2APipelineRequestHandler>();
+        // Tracing still wraps the pipeline here; it becomes the first built-in middleware in the next step (no change in spans).
+        services.TryAddSingleton<IA2ARequestHandler>(sp => new TracingRequestHandler(sp.GetRequiredService<A2APipelineRequestHandler>()));
 
         services.TryAddSingleton<IOwnerResolver>(DefaultOwnerResolver.Instance);
         return builder;

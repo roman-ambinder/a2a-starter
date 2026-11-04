@@ -6,18 +6,58 @@ Ambinder.A2A.Server.A2ACallContext.AgentName.get -> string!
 Ambinder.A2A.Server.A2ACallContext.AgentName.init -> void
 Ambinder.A2A.Server.A2ACallContext.Deconstruct(out string! AgentName, out System.Security.Claims.ClaimsPrincipal! User, out string! Owner, out string? Tenant, out string? ProtocolVersion, out System.Collections.Generic.IReadOnlyList<string!>! RequestedExtensions) -> void
 Ambinder.A2A.Server.A2ACallContext.Equals(Ambinder.A2A.Server.A2ACallContext? other) -> bool
+Ambinder.A2A.Server.A2ACallContext.IsForwarded.get -> bool
+Ambinder.A2A.Server.A2ACallContext.IsForwarded.init -> void
 Ambinder.A2A.Server.A2ACallContext.Owner.get -> string!
 Ambinder.A2A.Server.A2ACallContext.Owner.init -> void
 Ambinder.A2A.Server.A2ACallContext.ProtocolVersion.get -> string?
 Ambinder.A2A.Server.A2ACallContext.ProtocolVersion.init -> void
 Ambinder.A2A.Server.A2ACallContext.RequestedExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Ambinder.A2A.Server.A2ACallContext.RequestedExtensions.init -> void
+Ambinder.A2A.Server.A2ACallContext.ResponseMetadata.get -> Ambinder.A2A.Server.A2AResponseMetadata?
+Ambinder.A2A.Server.A2ACallContext.ResponseMetadata.init -> void
+Ambinder.A2A.Server.A2ACallContext.Services.get -> System.IServiceProvider?
+Ambinder.A2A.Server.A2ACallContext.Services.init -> void
 Ambinder.A2A.Server.A2ACallContext.Tenant.get -> string?
 Ambinder.A2A.Server.A2ACallContext.Tenant.init -> void
 Ambinder.A2A.Server.A2ACallContext.Transport.get -> string?
 Ambinder.A2A.Server.A2ACallContext.Transport.init -> void
 Ambinder.A2A.Server.A2ACallContext.User.get -> System.Security.Claims.ClaimsPrincipal!
 Ambinder.A2A.Server.A2ACallContext.User.init -> void
+Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.CancelTask = 4 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.CreateTaskPushNotificationConfig = 6 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.DeleteTaskPushNotificationConfig = 9 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.GetExtendedAgentCard = 10 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.GetTask = 2 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.GetTaskPushNotificationConfig = 7 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.ListTaskPushNotificationConfigs = 8 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.ListTasks = 3 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.SendMessage = 0 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.SendStreamingMessage = 1 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperation.SubscribeToTask = 5 -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperationContext
+Ambinder.A2A.Server.A2AOperationContext.Call.get -> Ambinder.A2A.Server.A2ACallContext!
+Ambinder.A2A.Server.A2AOperationContext.IsStreaming.get -> bool
+Ambinder.A2A.Server.A2AOperationContext.Items.get -> System.Collections.Generic.IDictionary<object!, object?>!
+Ambinder.A2A.Server.A2AOperationContext.Operation.get -> Ambinder.A2A.Server.A2AOperation
+Ambinder.A2A.Server.A2AOperationContext.Request.get -> object!
+Ambinder.A2A.Server.A2AOperationContext.Request.set -> void
+Ambinder.A2A.Server.A2AOperationContext.RequestAborted.get -> System.Threading.CancellationToken
+Ambinder.A2A.Server.A2AOperationContext.ResponseMetadata.get -> Ambinder.A2A.Server.A2AResponseMetadata!
+Ambinder.A2A.Server.A2AOperationContext.Services.get -> System.IServiceProvider!
+Ambinder.A2A.Server.A2AOperationDelegate
+Ambinder.A2A.Server.A2AOperationResult
+Ambinder.A2A.Server.A2AOperationResult.A2AOperationResult() -> void
+Ambinder.A2A.Server.A2AOperationResult.Events.get -> System.Collections.Generic.IAsyncEnumerable<Ambinder.A2A.Protocol.StreamResponse!>?
+Ambinder.A2A.Server.A2AOperationResult.Value.get -> object?
+Ambinder.A2A.Server.A2AResponseMetadata
+Ambinder.A2A.Server.A2AResponseMetadata.A2AResponseMetadata() -> void
+Ambinder.A2A.Server.A2AResponseMetadata.Entries.get -> System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>!
+Ambinder.A2A.Server.A2AResponseMetadata.IsCommitted.get -> bool
+Ambinder.A2A.Server.A2AResponseMetadata.MarkCommitted() -> void
+Ambinder.A2A.Server.A2AResponseMetadata.Set(string! name, string! value) -> void
+Ambinder.A2A.Server.A2AResponseMetadata.TryGet(string! name, out string? value) -> bool
 Ambinder.A2A.Server.AgentRequestContext
 Ambinder.A2A.Server.AgentRequestContext.<Clone>$() -> Ambinder.A2A.Server.AgentRequestContext!
 Ambinder.A2A.Server.AgentRequestContext.ActiveExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -44,6 +84,8 @@ Ambinder.A2A.Server.Agents.AgentCatalog.AgentCatalog(System.Collections.Generic.
 Ambinder.A2A.Server.Agents.AgentCatalog.All.get -> System.Collections.Generic.IReadOnlyCollection<Ambinder.A2A.Server.Agents.AgentRegistration!>!
 Ambinder.A2A.Server.Agents.AgentCatalog.Get(string! name) -> Ambinder.A2A.Server.Agents.AgentRegistration!
 Ambinder.A2A.Server.Agents.AgentCatalog.TryGet(string! name, out Ambinder.A2A.Server.Agents.AgentRegistration! registration) -> bool
+Ambinder.A2A.Server.Agents.AgentOptions
+Ambinder.A2A.Server.Agents.AgentOptions.UseMiddleware<T>() -> Ambinder.A2A.Server.Agents.AgentOptions!
 Ambinder.A2A.Server.Agents.AgentRegistration
 Ambinder.A2A.Server.Agents.AgentRegistration.<Clone>$() -> Ambinder.A2A.Server.Agents.AgentRegistration!
 Ambinder.A2A.Server.Agents.AgentRegistration.AgentRegistration(string! Name, System.Type! HandlerType, Ambinder.A2A.Protocol.AgentCard! PublicCard, Ambinder.A2A.Protocol.AgentCard? ExtendedCard, string? AuthorizationPolicy) -> void
@@ -55,6 +97,8 @@ Ambinder.A2A.Server.Agents.AgentRegistration.ExtendedCard.get -> Ambinder.A2A.Pr
 Ambinder.A2A.Server.Agents.AgentRegistration.ExtendedCard.init -> void
 Ambinder.A2A.Server.Agents.AgentRegistration.HandlerType.get -> System.Type!
 Ambinder.A2A.Server.Agents.AgentRegistration.HandlerType.init -> void
+Ambinder.A2A.Server.Agents.AgentRegistration.MiddlewareTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+Ambinder.A2A.Server.Agents.AgentRegistration.MiddlewareTypes.init -> void
 Ambinder.A2A.Server.Agents.AgentRegistration.Name.get -> string!
 Ambinder.A2A.Server.Agents.AgentRegistration.Name.init -> void
 Ambinder.A2A.Server.Agents.AgentRegistration.PublicCard.get -> Ambinder.A2A.Protocol.AgentCard!
@@ -71,8 +115,10 @@ Ambinder.A2A.Server.Auth.IOwnerResolver
 Ambinder.A2A.Server.Auth.IOwnerResolver.CanContinueInterrupted(string! taskOwner, string! callerOwner, Ambinder.A2A.Protocol.TaskState state) -> bool
 Ambinder.A2A.Server.Auth.IOwnerResolver.GetOwner(System.Security.Claims.ClaimsPrincipal! user) -> string!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder
-Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string! name, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>! publicCard, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>? extendedCard = null, string? authorizationPolicy = null) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+Ambinder.A2A.Server.Hosting.A2AServerBuilder.AddAgent<THandler>(string! name, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>! publicCard, System.Func<System.IServiceProvider!, Ambinder.A2A.Protocol.AgentCard!>? extendedCard = null, string? authorizationPolicy = null, System.Action<Ambinder.A2A.Server.Agents.AgentOptions!>? configure = null) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 Ambinder.A2A.Server.Hosting.A2AServerBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Ambinder.A2A.Server.Hosting.A2AServerBuilder.UseAuthorizationMiddleware<T>() -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+Ambinder.A2A.Server.Hosting.A2AServerBuilder.UseMiddleware<T>() -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 Ambinder.A2A.Server.Hosting.A2AServerOptions
 Ambinder.A2A.Server.Hosting.A2AServerOptions.A2AServerOptions() -> void
 Ambinder.A2A.Server.Hosting.A2AServerOptions.CardCacheMaxAge.get -> System.TimeSpan
@@ -98,6 +144,8 @@ Ambinder.A2A.Server.Hosting.AgentCardContext.IsExtended.get -> bool
 Ambinder.A2A.Server.Hosting.AgentCardContext.IsExtended.init -> void
 Ambinder.A2A.Server.Hosting.IAgentCardContributor
 Ambinder.A2A.Server.Hosting.IAgentCardContributor.Contribute(Ambinder.A2A.Server.Hosting.AgentCardContext! card, System.Text.Json.Nodes.JsonObject! cardJson) -> void
+Ambinder.A2A.Server.IA2AMiddleware
+Ambinder.A2A.Server.IA2AMiddleware.InvokeAsync(Ambinder.A2A.Server.A2AOperationContext! context, Ambinder.A2A.Server.A2AOperationDelegate! next) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.A2AOperationResult>
 Ambinder.A2A.Server.IA2ARequestHandler
 Ambinder.A2A.Server.IA2ARequestHandler.CancelTaskAsync(Ambinder.A2A.Server.A2ACallContext! call, Ambinder.A2A.Protocol.CancelTaskRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.AgentTask!>!
 Ambinder.A2A.Server.IA2ARequestHandler.CreateTaskPushNotificationConfigAsync(Ambinder.A2A.Server.A2ACallContext! call, Ambinder.A2A.Protocol.TaskPushNotificationConfig! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>!
@@ -155,12 +203,12 @@ Ambinder.A2A.Server.Tasks.StoredTask.Task.get -> Ambinder.A2A.Protocol.AgentTask
 Ambinder.A2A.Server.Tasks.StoredTask.Task.init -> void
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.get -> string?
 Ambinder.A2A.Server.Tasks.StoredTask.Tenant.init -> void
+Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
 const Ambinder.A2A.Server.Auth.CallerIdentity.Anonymous = "anonymous" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.ApiKeyClaim = "a2a:apikey" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.MappedTenantIdClaim = "http://schemas.microsoft.com/identity/claims/tenantid" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.TenantIdClaim = "tid" -> string!
 const Ambinder.A2A.Server.Auth.DefaultOwnerResolver.DefaultApiKeyAuthenticationType = "ApiKey" -> string!
-Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions
 override Ambinder.A2A.Server.A2ACallContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.A2ACallContext.GetHashCode() -> int
 override Ambinder.A2A.Server.A2ACallContext.ToString() -> string!
@@ -178,6 +226,8 @@ override Ambinder.A2A.Server.Tasks.StoredTask.GetHashCode() -> int
 override Ambinder.A2A.Server.Tasks.StoredTask.ToString() -> string!
 static Ambinder.A2A.Server.A2ACallContext.operator !=(Ambinder.A2A.Server.A2ACallContext? left, Ambinder.A2A.Server.A2ACallContext? right) -> bool
 static Ambinder.A2A.Server.A2ACallContext.operator ==(Ambinder.A2A.Server.A2ACallContext? left, Ambinder.A2A.Server.A2ACallContext? right) -> bool
+static Ambinder.A2A.Server.A2AOperationResult.FromEvents(System.Collections.Generic.IAsyncEnumerable<Ambinder.A2A.Protocol.StreamResponse!>! events) -> Ambinder.A2A.Server.A2AOperationResult
+static Ambinder.A2A.Server.A2AOperationResult.FromValue(object? value) -> Ambinder.A2A.Server.A2AOperationResult
 static Ambinder.A2A.Server.AgentRequestContext.operator !=(Ambinder.A2A.Server.AgentRequestContext? left, Ambinder.A2A.Server.AgentRequestContext? right) -> bool
 static Ambinder.A2A.Server.AgentRequestContext.operator ==(Ambinder.A2A.Server.AgentRequestContext? left, Ambinder.A2A.Server.AgentRequestContext? right) -> bool
 static Ambinder.A2A.Server.Agents.AgentRegistration.operator !=(Ambinder.A2A.Server.Agents.AgentRegistration? left, Ambinder.A2A.Server.Agents.AgentRegistration? right) -> bool
@@ -189,3 +239,4 @@ static Ambinder.A2A.Server.Hosting.AgentCardContext.operator ==(Ambinder.A2A.Ser
 static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+virtual Ambinder.A2A.Server.A2AOperationDelegate.Invoke(Ambinder.A2A.Server.A2AOperationContext! context) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.A2AOperationResult>
