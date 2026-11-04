@@ -53,6 +53,7 @@ public static class A2AServerCoreServiceCollectionExtensions
         services.AddOptions<A2AServerOptions>()
             .Configure(configure)
             .PostConfigure(o => o.Push.Issuer = o.BaseUrl);
+        services.AddOptions<A2ASecurityOptions>();
         // Validation lives here, not in AddA2AServer, so it runs for hosts with and without ASP.NET Core.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<A2AServerOptions>, A2AServerOptionsValidator>());
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.AspNetCore.Transports.Sse;
 using Microsoft.AspNetCore.Http;
@@ -110,7 +111,7 @@ internal static class JsonRpcEndpoint
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, JsonRpcRequest request,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, A2ACaller caller, JsonRpcRequest request,
         ILogger logger, CancellationToken ct)
     {
         Method method;

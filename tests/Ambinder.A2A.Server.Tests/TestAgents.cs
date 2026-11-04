@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Tasks;
@@ -94,7 +95,20 @@ internal sealed class TestHost
     };
 
     public static A2ACallContext Call(string owner = "alice", params string[] extensions)
-        => new(AgentName, new ClaimsPrincipal(new ClaimsIdentity()), owner, null, A2AConstants.ProtocolVersion, extensions);
+        => new()
+        {
+            AgentName = AgentName,
+            Caller = new A2ACaller
+            {
+                Owner = owner,
+                Kind = owner == "anonymous" ? CallerKind.Anonymous : owner.Contains("/app:", StringComparison.Ordinal) ? CallerKind.Application
+                    : owner.Contains("/user:", StringComparison.Ordinal) ? CallerKind.User : CallerKind.Other,
+                Principal = new ClaimsPrincipal(new ClaimsIdentity()),
+            },
+            Tenant = "",
+            ProtocolVersion = A2AConstants.ProtocolVersion,
+            RequestedExtensions = extensions,
+        };
 
     public static Message UserText(string text, string? taskId = null) => new()
     {

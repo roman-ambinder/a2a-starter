@@ -1,4 +1,25 @@
 #nullable enable
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.A2AVersionDispatchContext() -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.AgentName.get -> string!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.AgentName.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Binding.get -> string!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Binding.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Caller.get -> Ambinder.A2A.Server.Security.A2ACaller!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Caller.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.PublicCard.get -> Ambinder.A2A.Protocol.AgentCard!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.PublicCard.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.RequestedVersion.get -> string!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.RequestedVersion.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.RestPath.get -> Microsoft.AspNetCore.Http.PathString
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.RestPath.init -> void
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Tenant.get -> string!
+Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext.Tenant.init -> void
+Ambinder.A2A.AspNetCore.Hosting.IA2ACallerResolver
+Ambinder.A2A.AspNetCore.Hosting.IA2ACallerResolver.ResolveAsync(Microsoft.AspNetCore.Http.HttpContext! http, string! agentName, string? requestTenant, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<(Ambinder.A2A.Server.Security.A2ACaller! Caller, string! Tenant)>
+Ambinder.A2A.AspNetCore.Hosting.IA2AVersionDispatcher
+Ambinder.A2A.AspNetCore.Hosting.IA2AVersionDispatcher.CanHandle(string! version) -> bool
+Ambinder.A2A.AspNetCore.Hosting.IA2AVersionDispatcher.HandleAsync(Microsoft.AspNetCore.Http.HttpContext! http, Ambinder.A2A.AspNetCore.Hosting.A2AVersionDispatchContext! context, System.Threading.CancellationToken ct) -> System.Threading.Tasks.Task!
 Microsoft.AspNetCore.Builder.A2AEndpointRouteBuilderExtensions
 Microsoft.AspNetCore.Builder.A2AKestrelExtensions
 Microsoft.Extensions.DependencyInjection.A2AServerServiceCollectionExtensions

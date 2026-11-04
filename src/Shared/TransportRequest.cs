@@ -4,6 +4,7 @@ using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Security;
+using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -14,8 +15,7 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 
 /// <summary>
 /// Per-request steps shared by the transports: auth failure, extended card check, call context, tenant. Compiled into
-/// <c>Ambinder.A2A.AspNetCore</c> and <c>Ambinder.A2A.AspNetCore.Grpc</c>; each adds its own <c>ResolveCallerAsync</c> in a partial
-/// part (the HTTP transports also add version dispatch).
+/// <c>Ambinder.A2A.AspNetCore</c> and <c>Ambinder.A2A.AspNetCore.Grpc</c>; the HTTP transports add version dispatch in a partial part.
 /// </summary>
 internal static partial class TransportRequest
 {
@@ -47,9 +47,9 @@ internal static partial class TransportRequest
     /// <c>capabilities.extendedAgentCard</c>. Otherwise the handler answers UnsupportedOperation to anyone (spec 3.3.4).
     /// Throws <see cref="A2AAuthException"/> (401).
     /// </summary>
-    public static void AuthorizeExtendedCard(AgentRegistration agent, DispatchCaller caller)
+    public static void AuthorizeExtendedCard(AgentRegistration agent, A2ACaller caller)
     {
-        if (agent.PublicCard.Capabilities.ExtendedAgentCard != true || IsAuthenticated(caller.User)) return;
+        if (agent.PublicCard.Capabilities.ExtendedAgentCard != true || IsAuthenticated(caller.Principal)) return;
         TagError("401");
         throw new A2AAuthException(401, "Authentication is required.");
     }
@@ -76,12 +76,36 @@ internal static partial class TransportRequest
         if (!http.Response.HasStarted) http.Response.StatusCode = StatusCodes.Status401Unauthorized;
     }
 
-    public static A2ACallContext CreateCallContext(HttpContext http, AgentRegistration agent, DispatchCaller caller, string? version,
+    public static A2ACallContext CreateCallContext(HttpContext http, AgentRegistration agent, A2ACaller caller, string? version,
         IReadOnlyList<string> extensions, object request, string transport)
-        => new(agent.Name, caller.User, caller.Owner,
-            ResolveTenant(agent.Name, TenantOf(request), http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value),
-            ServiceParameters.NormalizeVersion(version), extensions)
-        { Transport = transport };
+        => new()
+        {
+            AgentName = agent.Name,
+            Caller = caller,
+            Tenant = ResolveTenant(agent.Name, TenantOf(request), http.RequestServices.GetRequiredService<IOptions<A2AServerOptions>>().Value) ?? "",
+            ProtocolVersion = ServiceParameters.NormalizeVersion(version),
+            RequestedExtensions = extensions,
+            Transport = transport,
+        };
+
+    /// <summary>
+    /// Resolves the caller and tenant through the registered <see cref="IA2ACallerResolver"/> (agent policy, owner, tenant). An
+    /// <see cref="A2AAuthException"/> is tagged on the request activity (<c>error.type</c> = <c>401</c> / <c>403</c>) and rethrown.
+    /// </summary>
+    public static async Task<(A2ACaller Caller, string Tenant)> ResolveCallerAsync(HttpContext http, AgentRegistration agent,
+        string? requestTenant)
+    {
+        var resolver = http.RequestServices.GetRequiredService<IA2ACallerResolver>();
+        try
+        {
+            return await resolver.ResolveAsync(http, agent.Name, requestTenant, http.RequestAborted).ConfigureAwait(false);
+        }
+        catch (A2AAuthException ex)
+        {
+            TagError(ex.HttpStatus.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            throw;
+        }
+    }
 
     /// <summary>
     /// The tenant of a request to <paramref name="agentName"/> (spec 8.3.2): the interface's tenant from
@@ -114,11 +138,3 @@ internal static partial class TransportRequest
         _ => null,
     };
 }
-
-/// <summary>
-/// The caller of a request: the principal and the task owner key. Stands in for the future <c>A2ACaller</c> type and is
-/// replaced by it when that type lands.
-/// </summary>
-/// <param name="User">The authenticated (or anonymous) principal.</param>
-/// <param name="Owner">The task owner key, from the registered owner resolver.</param>
-internal sealed record DispatchCaller(ClaimsPrincipal User, string Owner);

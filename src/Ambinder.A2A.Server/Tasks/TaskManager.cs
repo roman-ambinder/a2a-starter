@@ -97,7 +97,7 @@ internal sealed class TaskManager : IA2ARequestHandler
     public async Task<ListTasksResponse> ListTasksAsync(A2ACallContext call, ListTasksRequest request, CancellationToken ct)
     {
         GetAgent(call);
-        return await _writer.Store.ListAsync(call.AgentName, call.Owner, request, ct).ConfigureAwait(false);
+        return await _writer.Store.ListAsync(call.AgentName, call.Caller.Owner, request, ct).ConfigureAwait(false);
     }
 
     public async Task<AgentTask> CancelTaskAsync(A2ACallContext call, CancelTaskRequest request, CancellationToken ct)
@@ -128,7 +128,7 @@ internal sealed class TaskManager : IA2ARequestHandler
 
             var task = stored.Task;
             var context = new AgentRequestContext(call.AgentName, task.Id, task.ContextId ?? "",
-                task.History.LastOrDefault(m => m.Role == Role.User) ?? new Message(), task, call.User,
+                task.History.LastOrDefault(m => m.Role == Role.User) ?? new Message(), task, call.Caller.Principal,
                 RequestValidator.ActiveExtensions(registration.PublicCard, call.RequestedExtensions), null);
             var sink = AgentEventSink.ForExistingTask(_writer, null, stored);
             try
@@ -251,8 +251,8 @@ internal sealed class TaskManager : IA2ARequestHandler
             execution = new TaskExecution(agent, taskId);
             _running[(agent, taskId)] = execution;
             if (subscribe) subscription = _writer.Broker.Open(agent, taskId, ct);
-            sink = AgentEventSink.ForNewTask(_writer, execution, call.Owner, call.Tenant, userMessage);
-            context = new AgentRequestContext(agent, taskId, contextId, userMessage, null, call.User, extensions, request.Configuration);
+            sink = AgentEventSink.ForNewTask(_writer, execution, call.Caller.Owner, call.Tenant, userMessage);
+            context = new AgentRequestContext(agent, taskId, contextId, userMessage, null, call.Caller.Principal, extensions, request.Configuration);
         }
         else
         {
@@ -297,7 +297,7 @@ internal sealed class TaskManager : IA2ARequestHandler
                 }
                 _running[(agent, taskId)] = execution;
                 sink = AgentEventSink.ForExistingTask(_writer, execution, stored);
-                context = new AgentRequestContext(agent, taskId, stored.Task.ContextId ?? "", userMessage, stored.Task, call.User,
+                context = new AgentRequestContext(agent, taskId, stored.Task.ContextId ?? "", userMessage, stored.Task, call.Caller.Principal,
                     extensions, request.Configuration);
             }
         }
@@ -418,7 +418,7 @@ internal sealed class TaskManager : IA2ARequestHandler
     {
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         // Another owner's task is reported as not found, so task ids do not leak.
-        if (stored is null || stored.Owner != call.Owner)
+        if (stored is null || stored.Owner != call.Caller.Owner)
             throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found. Check the task id.");
         return stored;
     }
@@ -431,11 +431,12 @@ internal sealed class TaskManager : IA2ARequestHandler
     {
         var stored = string.IsNullOrEmpty(taskId) ? null : await _writer.Store.GetAsync(call.AgentName, taskId, ct).ConfigureAwait(false);
         if (stored is null
-            || (stored.Owner != call.Owner && !IsTenantStepUp(stored.Owner, call.Owner, stored.Task.Status.State)))
+            || (stored.Owner != call.Caller.Owner && !IsTenantStepUp(stored.Owner, call.Caller.Owner, stored.Task.Status.State)))
             throw new A2AException(A2AErrorCode.TaskNotFound, $"Task '{taskId}' was not found. Check the task id.");
         return stored;
     }
 
+    // TODO(Task 8): remove with the continuation grants (contradicts Review Focus 2)
     /// <summary>True only for AUTH_REQUIRED when both owners are app owners (<c>tid:{tid}/app:{id}</c>) of the same tenant.</summary>
     private static bool IsTenantStepUp(string taskOwner, string callerOwner, TaskState state)
         => state == TaskState.AuthRequired && AppTenantPrefix(taskOwner) is { } tenant && tenant == AppTenantPrefix(callerOwner);

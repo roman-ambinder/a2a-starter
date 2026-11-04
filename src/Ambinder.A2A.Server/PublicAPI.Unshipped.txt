@@ -1,23 +1,20 @@
 #nullable enable
 Ambinder.A2A.Server.A2ACallContext
 Ambinder.A2A.Server.A2ACallContext.<Clone>$() -> Ambinder.A2A.Server.A2ACallContext!
-Ambinder.A2A.Server.A2ACallContext.A2ACallContext(string! AgentName, System.Security.Claims.ClaimsPrincipal! User, string! Owner, string? Tenant, string? ProtocolVersion, System.Collections.Generic.IReadOnlyList<string!>! RequestedExtensions) -> void
+Ambinder.A2A.Server.A2ACallContext.A2ACallContext() -> void
 Ambinder.A2A.Server.A2ACallContext.AgentName.get -> string!
 Ambinder.A2A.Server.A2ACallContext.AgentName.init -> void
-Ambinder.A2A.Server.A2ACallContext.Deconstruct(out string! AgentName, out System.Security.Claims.ClaimsPrincipal! User, out string! Owner, out string? Tenant, out string? ProtocolVersion, out System.Collections.Generic.IReadOnlyList<string!>! RequestedExtensions) -> void
+Ambinder.A2A.Server.A2ACallContext.Caller.get -> Ambinder.A2A.Server.Security.A2ACaller!
+Ambinder.A2A.Server.A2ACallContext.Caller.init -> void
 Ambinder.A2A.Server.A2ACallContext.Equals(Ambinder.A2A.Server.A2ACallContext? other) -> bool
-Ambinder.A2A.Server.A2ACallContext.Owner.get -> string!
-Ambinder.A2A.Server.A2ACallContext.Owner.init -> void
 Ambinder.A2A.Server.A2ACallContext.ProtocolVersion.get -> string?
 Ambinder.A2A.Server.A2ACallContext.ProtocolVersion.init -> void
 Ambinder.A2A.Server.A2ACallContext.RequestedExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Ambinder.A2A.Server.A2ACallContext.RequestedExtensions.init -> void
-Ambinder.A2A.Server.A2ACallContext.Tenant.get -> string?
+Ambinder.A2A.Server.A2ACallContext.Tenant.get -> string!
 Ambinder.A2A.Server.A2ACallContext.Tenant.init -> void
 Ambinder.A2A.Server.A2ACallContext.Transport.get -> string?
 Ambinder.A2A.Server.A2ACallContext.Transport.init -> void
-Ambinder.A2A.Server.A2ACallContext.User.get -> System.Security.Claims.ClaimsPrincipal!
-Ambinder.A2A.Server.A2ACallContext.User.init -> void
 Ambinder.A2A.Server.AgentRequestContext
 Ambinder.A2A.Server.AgentRequestContext.<Clone>$() -> Ambinder.A2A.Server.AgentRequestContext!
 Ambinder.A2A.Server.AgentRequestContext.ActiveExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -145,6 +142,14 @@ Ambinder.A2A.Server.Security.A2ACaller.Principal.get -> System.Security.Claims.C
 Ambinder.A2A.Server.Security.A2ACaller.Principal.init -> void
 Ambinder.A2A.Server.Security.A2ACaller.UserObjectId.get -> string?
 Ambinder.A2A.Server.Security.A2ACaller.UserObjectId.init -> void
+Ambinder.A2A.Server.Security.A2ASecurityOptions
+Ambinder.A2A.Server.Security.A2ASecurityOptions.A2ASecurityOptions() -> void
+Ambinder.A2A.Server.Security.A2ASecurityOptions.FilterExtendedCardSkills.get -> bool
+Ambinder.A2A.Server.Security.A2ASecurityOptions.FilterExtendedCardSkills.set -> void
+Ambinder.A2A.Server.Security.A2ASecurityOptions.KeepCallerToken.get -> bool
+Ambinder.A2A.Server.Security.A2ASecurityOptions.KeepCallerToken.set -> void
+Ambinder.A2A.Server.Security.A2ASecurityOptions.TenantBindings.get -> System.Collections.Generic.IDictionary<string!, string![]!>!
+Ambinder.A2A.Server.Security.A2ASecurityOptions.Tenants.get -> System.Collections.Generic.IDictionary<string!, string![]!>!
 Ambinder.A2A.Server.Security.CallerKind
 Ambinder.A2A.Server.Security.CallerKind.Anonymous = 0 -> Ambinder.A2A.Server.Security.CallerKind
 Ambinder.A2A.Server.Security.CallerKind.Application = 1 -> Ambinder.A2A.Server.Security.CallerKind

@@ -5,6 +5,7 @@ using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,7 @@ public static class A2AServerServiceCollectionExtensions
     /// <see cref="Ambinder.A2A.Server.IA2ARequestHandler"/>, push delivery (config store, signing key, sender), <see cref="IAgentAuthorizer"/>,
     /// <see cref="IOwnerResolver"/> (default <see cref="DefaultOwnerResolver"/>) and a startup check
     /// (unknown policy, default agent or gRPC port key → <see cref="InvalidOperationException"/> before the server listens).
+    /// <see cref="A2ASecurityOptions"/> are bound from the <c>A2A:Security</c> configuration section.
     /// Authentication schemes are the app's job; call <c>UseAuthentication()</c> before <c>MapA2A()</c>.
     /// gRPC is opt-in: add <c>Ambinder.A2A.AspNetCore.Grpc</c> and call <c>AddA2AGrpc()</c> on the returned builder.
     /// </summary>
@@ -42,6 +44,7 @@ public static class A2AServerServiceCollectionExtensions
     {
         var builder = services.AddA2AServerCore(configure);
         services.AddAuthorization();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<A2ASecurityOptions>, SecurityOptionsConfiguration>());
         services.TryAddSingleton<IAgentAuthorizer, AgentAuthorizer>();
         services.TryAddSingleton<IA2ACallerResolver, DefaultA2ACallerResolver>();
         services.TryAddSingleton<AgentCardRenderer>();

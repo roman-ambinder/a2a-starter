@@ -1,4 +1,4 @@
-using Ambinder.A2A.AspNetCore.Transports;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +15,7 @@ namespace Ambinder.A2A.AspNetCore.Hosting;
 /// that claims the version handles the whole request and the core writes nothing more. Register implementations as singletons;
 /// calls can run concurrently. gRPC does not use dispatchers. After 1.0, new members get a default implementation.
 /// </remarks>
-internal interface IA2AVersionDispatcher
+public interface IA2AVersionDispatcher
 {
     /// <summary>Says whether this dispatcher serves requests that ask for the given protocol version.</summary>
     /// <param name="version">The requested version as <c>Major.Minor</c> (<c>"0.3"</c> when the request has no version header), or the trimmed raw value when it does not parse.</param>
@@ -35,7 +35,7 @@ internal interface IA2AVersionDispatcher
 }
 
 /// <summary>What the core resolved for a request that an <see cref="IA2AVersionDispatcher"/> handles.</summary>
-internal sealed class A2AVersionDispatchContext
+public sealed class A2AVersionDispatchContext
 {
     /// <summary>The agent's registered name, as used in its URLs.</summary>
     public required string AgentName { get; init; }
@@ -50,7 +50,7 @@ internal sealed class A2AVersionDispatchContext
     public required string RequestedVersion { get; init; }
 
     /// <summary>The authenticated caller, with the same owner rules as 1.0 requests.</summary>
-    public required DispatchCaller Caller { get; init; }
+    public required A2ACaller Caller { get; init; }
 
     /// <summary>
     /// The resolved tenant. When the agent has an interface tenant (<see cref="A2AServerOptions.InterfaceTenants"/>), it is that tenant:

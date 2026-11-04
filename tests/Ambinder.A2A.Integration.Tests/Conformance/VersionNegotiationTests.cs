@@ -194,12 +194,12 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
         Assert.Equal("", context.RequestedVersion);
         Assert.Equal("", context.Tenant);
         Assert.False(context.RestPath.HasValue);
-        Assert.True(context.Caller.User.Identity?.IsAuthenticated);
+        Assert.True(context.Caller.Principal.Identity?.IsAuthenticated);
         var owners = server.Services.GetRequiredService<Ambinder.A2A.Server.Security.IOwnerResolver>();
         var agent = server.Services.GetRequiredService<Ambinder.A2A.Server.Agents.AgentCatalog>().TryGet("echo", out var registered)
             ? registered
             : throw new InvalidOperationException("The echo agent is not registered.");
-        Assert.Equal((await owners.ResolveAsync(context.Caller.User, agent, Ct)).Owner, context.Caller.Owner);
+        Assert.Equal((await owners.ResolveAsync(context.Caller.Principal, agent, Ct)).Owner, context.Caller.Owner);
         Assert.NotEmpty(context.Caller.Owner);
         // D2: the core has not read the body; the dispatcher gets the bytes the client sent.
         Assert.Equal(JsonRpcListTasks, seen.Body);
@@ -392,9 +392,9 @@ public sealed class VersionNegotiationTests(A2ATestHost host) : IDisposable
         var owners = new List<string>();
         foreach (var call in recorder.Calls)
         {
-            var http = new DefaultHttpContext { User = call.User };
+            var http = new DefaultHttpContext { User = call.Caller.Principal };
             var (caller, tenant) = await resolver.ResolveAsync(http, "echo", call.Tenant, Ct);
-            Assert.Equal(call.Owner, caller.Owner);
+            Assert.Equal(call.Caller.Owner, caller.Owner);
             Assert.Equal(call.Tenant ?? "", tenant);
             owners.Add(caller.Owner);
         }

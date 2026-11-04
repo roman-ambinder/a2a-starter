@@ -1,25 +1,31 @@
-using System.Security.Claims;
+using Ambinder.A2A.Server.Security;
 
 namespace Ambinder.A2A.Server;
 
 /// <summary>
 /// Per-call information the transport passes to <see cref="IA2ARequestHandler"/>.
 /// </summary>
-/// <remarks>Transports create this value. Create one yourself only to call an <see cref="IA2ARequestHandler"/> in process, for example in a test.</remarks>
-/// <param name="AgentName">The agent addressed by the call (from the URL or gRPC port). Must exist in the catalog.</param>
-/// <param name="User">The authenticated (or anonymous) caller.</param>
-/// <param name="Owner">Task owner key for the caller, from the registered <see cref="Security.IOwnerResolver"/>.</param>
-/// <param name="Tenant">The request's <c>tenant</c> field. Stored on the task; Phase 1 does not isolate by it.</param>
-/// <param name="ProtocolVersion">The A2A version the caller sent (already checked by the transport).</param>
-/// <param name="RequestedExtensions">Extension URIs the caller asked for (A2A-Extensions header).</param>
-public sealed record A2ACallContext(
-    string AgentName,
-    ClaimsPrincipal User,
-    string Owner,
-    string? Tenant,
-    string? ProtocolVersion,
-    IReadOnlyList<string> RequestedExtensions)
+/// <remarks>Transports create this value. Create one yourself only to call an <see cref="IA2ARequestHandler"/> in process, for example in a test. Use an object initializer.</remarks>
+public sealed record A2ACallContext
 {
+    /// <summary>The agent addressed by the call (from the URL or gRPC port). Must exist in the catalog.</summary>
+    public required string AgentName { get; init; }
+
+    /// <summary>
+    /// The caller: owner key, kind and Entra identity, from the registered <see cref="IOwnerResolver"/>. Its
+    /// <see cref="A2ACaller.Principal"/> is a snapshot that stays valid after the request ends.
+    /// </summary>
+    public required A2ACaller Caller { get; init; }
+
+    /// <summary>The resolved tenant of the call. An empty string means no tenant.</summary>
+    public required string Tenant { get; init; }
+
+    /// <summary>The A2A version the caller sent (already checked by the transport).</summary>
+    public string? ProtocolVersion { get; init; }
+
+    /// <summary>Extension URIs the caller asked for (<c>A2A-Extensions</c> header).</summary>
+    public IReadOnlyList<string> RequestedExtensions { get; init; } = [];
+
     /// <summary>The transport that carried the call: <c>jsonrpc</c>, <c>rest</c> or <c>grpc</c>. Null when called in process.</summary>
     public string? Transport { get; init; }
 }

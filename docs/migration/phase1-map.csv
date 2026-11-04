@@ -36,3 +36,7 @@ Ambinder.A2A.Server.Agents.AgentRequestContext,Ambinder.A2A.Server.AgentRequestC
 A2A.Server.Auth.CallerIdentity,,Ambinder.A2A.Server,removed; the default resolver reads claims through OwnerKey and A2ACaller (Ambinder.A2A.Server.Security)
 A2A.Server.Auth.IOwnerResolver,Ambinder.A2A.Server.Security.IOwnerResolver,Ambinder.A2A.Server,moved; GetOwner and CanContinueInterrupted removed; ResolveAsync returns A2ACaller
 A2A.Server.Auth.DefaultOwnerResolver,Ambinder.A2A.Server.Security.DefaultOwnerResolver,Ambinder.A2A.Server,moved; owner keys are tid:{tid}/app:{appid} or tid:{tid}/user:{oid}; no constructor arguments; no Instance; no API key rule
+A2A.Server.A2ACallContext.A2ACallContext(AgentName,User,Owner,Tenant,ProtocolVersion,RequestedExtensions),Ambinder.A2A.Server.A2ACallContext (object initializer),Ambinder.A2A.Server,removed; A2ACallContext is a property record: AgentName and Caller and Tenant are required
+A2A.Server.A2ACallContext.User,Ambinder.A2A.Server.A2ACallContext.Caller.Principal,Ambinder.A2A.Server,replaced by Caller (A2ACaller); Principal is a snapshot copy
+A2A.Server.A2ACallContext.Owner,Ambinder.A2A.Server.A2ACallContext.Caller.Owner,Ambinder.A2A.Server,replaced by Caller (A2ACaller)
+A2A.Server.A2ACallContext.Tenant,Ambinder.A2A.Server.A2ACallContext.Tenant,Ambinder.A2A.Server,now a non-null string; empty means no tenant

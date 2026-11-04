@@ -145,6 +145,9 @@ public class TaskManagerTests
     [InlineData(TaskState.AuthRequired, "tid:t1/app:b", true)]   // step-up within the tenant
     [InlineData(TaskState.AuthRequired, "tid:t2/app:b", false)]  // other tenant
     [InlineData(TaskState.InputRequired, "tid:t1/app:b", false)] // not a step-up
+    [InlineData(TaskState.AuthRequired, "tid:t1/user:u", false)] // a user is not an app owner
+    [InlineData(TaskState.AuthRequired, "apikey:ops", false)]    // other schemes get no step-up
+    [InlineData(TaskState.AuthRequired, "anonymous", false)]     // neither does the anonymous owner
     public async Task Another_owner_may_continue_only_an_auth_required_task_of_the_same_tenant(TaskState paused, string caller, bool allowed)
     {
         var host = new TestHost();

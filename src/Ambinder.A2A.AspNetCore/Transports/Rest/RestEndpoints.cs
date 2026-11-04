@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server.Security;
 using Ambinder.A2A.Server.Hosting;
 using Ambinder.A2A.AspNetCore.Transports.Sse;
 using Microsoft.AspNetCore.Http;
@@ -95,7 +96,7 @@ internal static class RestEndpoints
         }
     }
 
-    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, DispatchCaller caller, A2AServerOptions options,
+    private static async Task DispatchAsync(HttpContext http, AgentRegistration agent, A2ACaller caller, A2AServerOptions options,
         ILogger logger, CancellationToken ct)
     {
         var path = http.Request.RouteValues["path"] as string ?? "";

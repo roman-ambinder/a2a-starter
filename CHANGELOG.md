@@ -55,6 +55,11 @@ Every preview section keeps a `### Breaking changes` heading.
   token), so tasks stored under the old keys are no longer found. A caller that is authenticated but has no `tid` (for example an API key) now gets 401 until you
   register an `IOwnerResolver` for that scheme, and `apikey:{name}` is no longer built in. The "another app of the same tenant may continue an
   `AUTH_REQUIRED` task" rule still applies to app owners, as a temporary rule until continuation grants replace it.
+- **`A2ACallContext` is a property record and carries the caller.** The positional constructor, `User` and `Owner` are gone. Create one with an
+  object initializer (`AgentName`, `Caller`, `Tenant` are required) and read `call.Caller.Principal` and `call.Caller.Owner`. `Tenant` is now a
+  non-null `string`; an empty string means no tenant. The transports resolve the caller once per request through `IA2ACallerResolver`, which, with
+  `IA2AVersionDispatcher` and `A2AVersionDispatchContext`, is now public in `Ambinder.A2A.AspNetCore`. Set `A2A:Security:KeepCallerToken` to
+  `true` to keep the raw bearer token in `A2ACaller.AccessToken` (off by default).
 
 ### Added
 
