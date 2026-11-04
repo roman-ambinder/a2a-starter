@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
+    <InternalsVisibleTo Include="Ambinder.A2A.Client.Tests" />
   </ItemGroup>
 </Project>

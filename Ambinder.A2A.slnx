@@ -24,6 +24,7 @@
     <Project Path="tests/Ambinder.A2A.MockEntra.Tests/Ambinder.A2A.MockEntra.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.PublicApi.Tests/Ambinder.A2A.PublicApi.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Protocol.Tests/Ambinder.A2A.Protocol.Tests.csproj" />
+    <Project Path="tests/Ambinder.A2A.Client.Tests/Ambinder.A2A.Client.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Client.Grpc.Tests/Ambinder.A2A.Client.Grpc.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Integration.Tests/Ambinder.A2A.Integration.Tests.csproj" />
     <Project Path="tests/Ambinder.A2A.Server.Tests/Ambinder.A2A.Server.Tests.csproj" />
