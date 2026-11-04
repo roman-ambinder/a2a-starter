@@ -15,6 +15,7 @@
   <ItemGroup>
     <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
     <Compile Include="../Shared/ClientSupport.cs" Link="Shared/ClientSupport.cs" />
+    <Compile Include="../Shared/Sse/SseParser.cs" Link="Shared/Sse/SseParser.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
