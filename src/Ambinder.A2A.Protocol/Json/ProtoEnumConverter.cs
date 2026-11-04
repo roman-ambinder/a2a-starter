@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Metrics;
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Ambinder.A2A.Protocol;
@@ -12,6 +11,12 @@ namespace Ambinder.A2A.Protocol;
 /// failing the whole payload, so a newer peer's enum values do not break older readers (spec 5: ignore what you do not know).
 /// Servers reject <c>Unspecified</c> where a value is required. The name tables are built once per enum type.
 /// </summary>
+/// <remarks>
+/// This type is public only because the public enums <see cref="TaskState"/> and <see cref="Role"/> name it in
+/// <c>[JsonConverter]</c>. The System.Text.Json source generator needs an accessible converter, so an app's own
+/// <c>JsonSerializerContext</c> that lists A2A models compiles only if this class is public. Apps do not use it directly.
+/// </remarks>
+/// <typeparam name="T">The enum type to convert. Every member needs a <c>JsonStringEnumMemberName</c> attribute with its ProtoJSON name.</typeparam>
 public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     : JsonConverter<T> where T : struct, Enum
 {
@@ -32,6 +37,7 @@ public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAc
         }
     }
 
+    /// <inheritdoc/>
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         switch (reader.TokenType)
@@ -50,6 +56,7 @@ public sealed class ProtoEnumConverter<[DynamicallyAccessedMembers(DynamicallyAc
         return default;
     }
 
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         => writer.WriteStringValue(ToName.TryGetValue(value, out var name) ? name : ToName[default]);
 }

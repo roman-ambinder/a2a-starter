@@ -168,7 +168,9 @@ public sealed class EnumWireTests(MinimalServer server)
         await using var app = builder.Build();
         app.MapGrpcService<StubGrpcService>();
         await app.StartAsync(Ct);
-        await using var client = new GrpcA2AClient(new Uri(app.Urls.First()), new AgentCard { Name = "stub" }, new A2AClientOptions());
+        // GrpcA2AClient is internal; the public way to get one is the transport (same constructor, no tenant).
+        var grpcInterface = new AgentInterface { Url = app.Urls.First(), ProtocolBinding = "GRPC", ProtocolVersion = "1.0" };
+        await using var client = GrpcClientTransport.Instance.Create(grpcInterface, new AgentCard { Name = "stub" }, new A2AClientOptions(), null);
 
         var task = await client.GetTaskAsync(new GetTaskRequest { Id = "t1" }, Ct);
 

@@ -29,13 +29,18 @@ internal sealed class A2AStartupValidation : IStartupFilter
         var unknownPorts = options.GrpcPorts.Keys.Where(k => !catalog.TryGet(k, out _)).ToList();
         if (unknownPorts.Count > 0)
             throw new InvalidOperationException(
-                $"A2AServerOptions.GrpcPorts has entries for unknown agents: {string.Join(", ", unknownPorts.Select(k => $"'{k}'"))}.");
+                $"A2AServerOptions.GrpcPorts has entries for unknown agents: {string.Join(", ", unknownPorts.Select(k => $"'{k}'"))}. " +
+                "Remove those entries, or add the agents with AddAgent so every GrpcPorts key is the name of a registered agent.");
 
         var policies = services.GetRequiredService<IAuthorizationPolicyProvider>();
         foreach (var agent in catalog.All)
         {
             if (agent.AuthorizationPolicy is not { } name) continue;
-            if (policies.GetPolicyAsync(name).GetAwaiter().GetResult() is null)
+            // Synchronous startup check; the default policy provider completes synchronously. Package 09 moves startup checks.
+#pragma warning disable RS0030
+            var policy = policies.GetPolicyAsync(name).GetAwaiter().GetResult();
+#pragma warning restore RS0030
+            if (policy is null)
                 throw new InvalidOperationException(
                     $"Agent '{agent.Name}' uses authorization policy '{name}', which is not registered. Add it with AddAuthorization/AddAuthorizationBuilder.");
         }

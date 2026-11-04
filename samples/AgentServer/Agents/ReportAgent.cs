@@ -1,7 +1,7 @@
+using Ambinder.A2A.Server;
 using System.Text;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Server.Agents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 

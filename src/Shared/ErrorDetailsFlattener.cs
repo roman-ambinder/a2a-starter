@@ -1,4 +1,6 @@
+#pragma warning disable IDE0005 // Linked into Ambinder.A2A.Protocol, where System.Text.Json is already a global using, and into projects where it is not.
 using System.Text.Json;
+#pragma warning restore IDE0005
 
 namespace Ambinder.A2A.Shared;
 

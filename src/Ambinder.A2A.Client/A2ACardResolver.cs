@@ -6,8 +6,12 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Client;
 
 /// <summary>Fetches agent cards. Results are cached per resolved URL for 5 minutes.</summary>
+/// <remarks>The resolver is thread-safe. Keep one instance per <see cref="HttpClient"/> so the cache is shared.</remarks>
+/// <param name="httpClient">The HTTP client that fetches the cards. The resolver does not dispose it.</param>
+/// <param name="timeProvider">The clock used for cache expiry, or <see langword="null"/> for the system clock.</param>
 public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timeProvider = null)
 {
+    /// <summary>How long a fetched card is reused: 5 minutes.</summary>
     public static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     private readonly HttpClient _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -18,6 +22,11 @@ public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timePro
     /// Gets the card. A URL whose path ends in <c>.json</c> is used as is; otherwise
     /// <c>/.well-known/agent-card.json</c> is appended to it.
     /// </summary>
+    /// <param name="baseOrCardUrl">The base URL of the agent, or the full URL of the card.</param>
+    /// <param name="ct">A token that cancels the call.</param>
+    /// <returns>The agent card.</returns>
+    /// <exception cref="A2AAuthException">The server answered with HTTP 401 or 403.</exception>
+    /// <exception cref="A2AException">The server answered with another error, or the body is not a valid card (<see cref="A2AErrorCode.InvalidAgentResponse"/>).</exception>
     public async Task<AgentCard> GetAgentCardAsync(Uri baseOrCardUrl, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(baseOrCardUrl);
@@ -38,7 +47,7 @@ public sealed class A2ACardResolver(HttpClient httpClient, TimeProvider? timePro
         AgentCard? card;
         try
         {
-            card = JsonSerializer.Deserialize(bytes, A2AJsonContext.Default.AgentCard);
+            card = JsonSerializer.Deserialize(bytes, A2AJson.AgentCard);
         }
         catch (JsonException ex)
         {

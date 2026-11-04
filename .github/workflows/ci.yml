@@ -70,6 +70,38 @@ jobs:
             **/TestResults/
           if-no-files-found: ignore
 
+  # Shows the change to the public API files in the job summary of every pull request (spec 02 section 2). It must always report so it can
+  # be a required check. It reads the repository only: no comment is posted, so it behaves the same on pull requests from forks.
+  # The build job is what fails on an undeclared API change; this job is the review surface.
+  public-api-diff:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the diff needs the base commit
+
+      - name: Public API diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          diff=$(git diff --no-color "$BASE_SHA"...HEAD -- '*PublicAPI.Shipped.txt' '*PublicAPI.Unshipped.txt')
+          {
+            echo "## Public API diff"
+            if [ -z "$diff" ]; then
+              echo "No public API change."
+            else
+              echo '```diff'
+              # The job summary is limited to 1 MiB.
+              echo "$diff" | head -c 900000
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Unit tests on Windows (path, line ending and culture differences). There is no separate Client unit test project: the client
   # unit-level tests live in Ambinder.A2A.Integration.Tests, which stays on Ubuntu together with TCK and interop.
   windows-unit:
@@ -85,11 +117,11 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Test (Protocol, Server, Client.Grpc)
+      - name: Test (Protocol, Server, AspNetCore, Client.Grpc)
         shell: bash
         run: |
           set -euo pipefail
-          for project in tests/Ambinder.A2A.Protocol.Tests tests/Ambinder.A2A.Server.Tests tests/Ambinder.A2A.Client.Grpc.Tests; do
+          for project in tests/Ambinder.A2A.Protocol.Tests tests/Ambinder.A2A.Server.Tests tests/Ambinder.A2A.AspNetCore.Tests tests/Ambinder.A2A.Client.Grpc.Tests; do
             echo "::group::$project"
             dotnet test --project "$project" --configuration Release $A2A_AUDIT_ARGS
             echo "::endgroup::"

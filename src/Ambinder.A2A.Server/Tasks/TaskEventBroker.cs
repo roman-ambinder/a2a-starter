@@ -12,7 +12,7 @@ namespace Ambinder.A2A.Server.Tasks;
 /// An interrupted state (INPUT_REQUIRED, AUTH_REQUIRED) completes the other subscribers (streaming send), but not
 /// the ones opened to last until a terminal state (SubscribeToTask, spec 3.1.6).
 /// </summary>
-public sealed class TaskEventBroker
+internal sealed class TaskEventBroker
 {
     public const int DefaultCapacity = 256;
 

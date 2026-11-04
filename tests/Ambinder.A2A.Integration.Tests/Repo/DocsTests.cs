@@ -37,11 +37,24 @@ public sealed class DocsTests
     }
 
     [Fact]
+    public void Readme_and_contributing_link_to_the_versioning_policy()
+    {
+        var root = RepoRoot();
+        Assert.True(File.Exists(Path.Combine(root, "docs", "policies", "versioning.md")), "docs/policies/versioning.md is missing");
+        foreach (var name in new[] { "README.md", "CONTRIBUTING.md" })
+        {
+            var text = File.ReadAllText(Path.Combine(root, name));
+            Assert.Matches(@"\]\(docs/policies/versioning\.md(#[^)]*)?\)", text);
+        }
+    }
+
+    [Fact]
     public void Relative_links_resolve()
     {
         var root = RepoRoot();
-        var files = new List<string> { Path.Combine(root, "README.md") };
+        var files = new List<string> { Path.Combine(root, "README.md"), Path.Combine(root, "CONTRIBUTING.md") };
         files.AddRange(Directory.GetFiles(Path.Combine(root, "docs"), "*.md"));
+        files.AddRange(Directory.GetFiles(Path.Combine(root, "docs", "policies"), "*.md"));
         foreach (var top in new[] { "src", "samples" })
             files.AddRange(Directory.GetFiles(Path.Combine(root, top), "README.md", SearchOption.AllDirectories)
                 .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")));

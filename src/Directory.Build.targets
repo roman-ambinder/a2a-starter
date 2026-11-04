@@ -1,0 +1,13 @@
+<Project>
+  <!-- Public API files (spec 02 section 2). Every shipped project keeps PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to its csproj. -->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <!-- Create the files when missing. Each file starts with #nullable enable. -->
+  <Target Name="A2AEnsurePublicApiFiles" BeforeTargets="BeforeBuild;CoreCompile">
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt" Lines="#nullable enable" Condition="!Exists('$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt')" />
+    <WriteLinesToFile File="$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt" Lines="#nullable enable" Condition="!Exists('$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt')" />
+  </Target>
+</Project>

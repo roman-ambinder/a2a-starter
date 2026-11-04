@@ -1,5 +1,4 @@
 using Ambinder.A2A.Integration.Tests.Fixtures;
-using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

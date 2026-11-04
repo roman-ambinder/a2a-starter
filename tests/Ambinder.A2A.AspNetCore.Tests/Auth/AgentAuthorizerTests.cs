@@ -6,7 +6,7 @@ using Ambinder.A2A.Server.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ambinder.A2A.Server.Tests.Auth;
+namespace Ambinder.A2A.AspNetCore.Tests.Auth;
 
 public class AgentAuthorizerTests
 {

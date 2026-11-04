@@ -1,0 +1,906 @@
+#nullable enable
+Ambinder.A2A.Protocol.A2AAuthException
+Ambinder.A2A.Protocol.A2AAuthException.A2AAuthException(int httpStatus, string! message) -> void
+Ambinder.A2A.Protocol.A2AAuthException.HttpStatus.get -> int
+Ambinder.A2A.Protocol.A2AConstants
+Ambinder.A2A.Protocol.A2AError
+Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.ContentTypeNotSupported = -32005 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.ExtendedAgentCardNotConfigured = -32007 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.ExtensionSupportRequired = -32008 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.InternalError = -32603 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.InvalidAgentResponse = -32006 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.InvalidParams = -32602 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.InvalidRequest = -32600 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.MethodNotFound = -32601 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.ParseError = -32700 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.PushNotificationNotSupported = -32003 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.TaskNotCancelable = -32002 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.TaskNotFound = -32001 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.UnsupportedOperation = -32004 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorCode.VersionNotSupported = -32009 -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorInfo
+Ambinder.A2A.Protocol.A2AErrorInfo.<Clone>$() -> Ambinder.A2A.Protocol.A2AErrorInfo!
+Ambinder.A2A.Protocol.A2AErrorInfo.A2AErrorInfo(Ambinder.A2A.Protocol.A2AErrorCode Code, int HttpStatus, string! GrpcStatus, string? Reason) -> void
+Ambinder.A2A.Protocol.A2AErrorInfo.Code.get -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AErrorInfo.Code.init -> void
+Ambinder.A2A.Protocol.A2AErrorInfo.Deconstruct(out Ambinder.A2A.Protocol.A2AErrorCode Code, out int HttpStatus, out string! GrpcStatus, out string? Reason) -> void
+Ambinder.A2A.Protocol.A2AErrorInfo.Equals(Ambinder.A2A.Protocol.A2AErrorInfo? other) -> bool
+Ambinder.A2A.Protocol.A2AErrorInfo.GrpcStatus.get -> string!
+Ambinder.A2A.Protocol.A2AErrorInfo.GrpcStatus.init -> void
+Ambinder.A2A.Protocol.A2AErrorInfo.HttpStatus.get -> int
+Ambinder.A2A.Protocol.A2AErrorInfo.HttpStatus.init -> void
+Ambinder.A2A.Protocol.A2AErrorInfo.Reason.get -> string?
+Ambinder.A2A.Protocol.A2AErrorInfo.Reason.init -> void
+Ambinder.A2A.Protocol.A2AException
+Ambinder.A2A.Protocol.A2AException.A2AException(Ambinder.A2A.Protocol.A2AErrorCode code, string! message, System.Text.Json.JsonElement? data = null) -> void
+Ambinder.A2A.Protocol.A2AException.Code.get -> Ambinder.A2A.Protocol.A2AErrorCode
+Ambinder.A2A.Protocol.A2AException.Data.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.A2AException.Details.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.A2AJson
+Ambinder.A2A.Protocol.A2ATelemetryNames
+Ambinder.A2A.Protocol.AgentCapabilities
+Ambinder.A2A.Protocol.AgentCapabilities.<Clone>$() -> Ambinder.A2A.Protocol.AgentCapabilities!
+Ambinder.A2A.Protocol.AgentCapabilities.AgentCapabilities() -> void
+Ambinder.A2A.Protocol.AgentCapabilities.Equals(Ambinder.A2A.Protocol.AgentCapabilities? other) -> bool
+Ambinder.A2A.Protocol.AgentCapabilities.ExtendedAgentCard.get -> bool?
+Ambinder.A2A.Protocol.AgentCapabilities.ExtendedAgentCard.init -> void
+Ambinder.A2A.Protocol.AgentCapabilities.Extensions.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentExtension!>!
+Ambinder.A2A.Protocol.AgentCapabilities.Extensions.init -> void
+Ambinder.A2A.Protocol.AgentCapabilities.PushNotifications.get -> bool?
+Ambinder.A2A.Protocol.AgentCapabilities.PushNotifications.init -> void
+Ambinder.A2A.Protocol.AgentCapabilities.Streaming.get -> bool?
+Ambinder.A2A.Protocol.AgentCapabilities.Streaming.init -> void
+Ambinder.A2A.Protocol.AgentCard
+Ambinder.A2A.Protocol.AgentCard.<Clone>$() -> Ambinder.A2A.Protocol.AgentCard!
+Ambinder.A2A.Protocol.AgentCard.AgentCard() -> void
+Ambinder.A2A.Protocol.AgentCard.Capabilities.get -> Ambinder.A2A.Protocol.AgentCapabilities!
+Ambinder.A2A.Protocol.AgentCard.Capabilities.init -> void
+Ambinder.A2A.Protocol.AgentCard.DefaultInputModes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentCard.DefaultInputModes.init -> void
+Ambinder.A2A.Protocol.AgentCard.DefaultOutputModes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentCard.DefaultOutputModes.init -> void
+Ambinder.A2A.Protocol.AgentCard.Description.get -> string!
+Ambinder.A2A.Protocol.AgentCard.Description.init -> void
+Ambinder.A2A.Protocol.AgentCard.DocumentationUrl.get -> string?
+Ambinder.A2A.Protocol.AgentCard.DocumentationUrl.init -> void
+Ambinder.A2A.Protocol.AgentCard.Equals(Ambinder.A2A.Protocol.AgentCard? other) -> bool
+Ambinder.A2A.Protocol.AgentCard.IconUrl.get -> string?
+Ambinder.A2A.Protocol.AgentCard.IconUrl.init -> void
+Ambinder.A2A.Protocol.AgentCard.Name.get -> string!
+Ambinder.A2A.Protocol.AgentCard.Name.init -> void
+Ambinder.A2A.Protocol.AgentCard.Provider.get -> Ambinder.A2A.Protocol.AgentProvider?
+Ambinder.A2A.Protocol.AgentCard.Provider.init -> void
+Ambinder.A2A.Protocol.AgentCard.SecurityRequirements.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.SecurityRequirement!>!
+Ambinder.A2A.Protocol.AgentCard.SecurityRequirements.init -> void
+Ambinder.A2A.Protocol.AgentCard.SecuritySchemes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Ambinder.A2A.Protocol.SecurityScheme!>?
+Ambinder.A2A.Protocol.AgentCard.SecuritySchemes.init -> void
+Ambinder.A2A.Protocol.AgentCard.Signatures.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentCardSignature!>!
+Ambinder.A2A.Protocol.AgentCard.Signatures.init -> void
+Ambinder.A2A.Protocol.AgentCard.Skills.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentSkill!>!
+Ambinder.A2A.Protocol.AgentCard.Skills.init -> void
+Ambinder.A2A.Protocol.AgentCard.SupportedInterfaces.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentInterface!>!
+Ambinder.A2A.Protocol.AgentCard.SupportedInterfaces.init -> void
+Ambinder.A2A.Protocol.AgentCard.Version.get -> string!
+Ambinder.A2A.Protocol.AgentCard.Version.init -> void
+Ambinder.A2A.Protocol.AgentCardSignature
+Ambinder.A2A.Protocol.AgentCardSignature.<Clone>$() -> Ambinder.A2A.Protocol.AgentCardSignature!
+Ambinder.A2A.Protocol.AgentCardSignature.AgentCardSignature() -> void
+Ambinder.A2A.Protocol.AgentCardSignature.Equals(Ambinder.A2A.Protocol.AgentCardSignature? other) -> bool
+Ambinder.A2A.Protocol.AgentCardSignature.Header.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.AgentCardSignature.Header.init -> void
+Ambinder.A2A.Protocol.AgentCardSignature.Protected.get -> string!
+Ambinder.A2A.Protocol.AgentCardSignature.Protected.init -> void
+Ambinder.A2A.Protocol.AgentCardSignature.Signature.get -> string!
+Ambinder.A2A.Protocol.AgentCardSignature.Signature.init -> void
+Ambinder.A2A.Protocol.AgentExtension
+Ambinder.A2A.Protocol.AgentExtension.<Clone>$() -> Ambinder.A2A.Protocol.AgentExtension!
+Ambinder.A2A.Protocol.AgentExtension.AgentExtension() -> void
+Ambinder.A2A.Protocol.AgentExtension.Description.get -> string?
+Ambinder.A2A.Protocol.AgentExtension.Description.init -> void
+Ambinder.A2A.Protocol.AgentExtension.Equals(Ambinder.A2A.Protocol.AgentExtension? other) -> bool
+Ambinder.A2A.Protocol.AgentExtension.Params.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.AgentExtension.Params.init -> void
+Ambinder.A2A.Protocol.AgentExtension.Required.get -> bool
+Ambinder.A2A.Protocol.AgentExtension.Required.init -> void
+Ambinder.A2A.Protocol.AgentExtension.Uri.get -> string?
+Ambinder.A2A.Protocol.AgentExtension.Uri.init -> void
+Ambinder.A2A.Protocol.AgentInterface
+Ambinder.A2A.Protocol.AgentInterface.<Clone>$() -> Ambinder.A2A.Protocol.AgentInterface!
+Ambinder.A2A.Protocol.AgentInterface.AgentInterface() -> void
+Ambinder.A2A.Protocol.AgentInterface.Equals(Ambinder.A2A.Protocol.AgentInterface? other) -> bool
+Ambinder.A2A.Protocol.AgentInterface.ProtocolBinding.get -> string!
+Ambinder.A2A.Protocol.AgentInterface.ProtocolBinding.init -> void
+Ambinder.A2A.Protocol.AgentInterface.ProtocolVersion.get -> string!
+Ambinder.A2A.Protocol.AgentInterface.ProtocolVersion.init -> void
+Ambinder.A2A.Protocol.AgentInterface.Tenant.get -> string?
+Ambinder.A2A.Protocol.AgentInterface.Tenant.init -> void
+Ambinder.A2A.Protocol.AgentInterface.Url.get -> string!
+Ambinder.A2A.Protocol.AgentInterface.Url.init -> void
+Ambinder.A2A.Protocol.AgentProvider
+Ambinder.A2A.Protocol.AgentProvider.<Clone>$() -> Ambinder.A2A.Protocol.AgentProvider!
+Ambinder.A2A.Protocol.AgentProvider.AgentProvider() -> void
+Ambinder.A2A.Protocol.AgentProvider.Equals(Ambinder.A2A.Protocol.AgentProvider? other) -> bool
+Ambinder.A2A.Protocol.AgentProvider.Organization.get -> string!
+Ambinder.A2A.Protocol.AgentProvider.Organization.init -> void
+Ambinder.A2A.Protocol.AgentProvider.Url.get -> string!
+Ambinder.A2A.Protocol.AgentProvider.Url.init -> void
+Ambinder.A2A.Protocol.AgentSkill
+Ambinder.A2A.Protocol.AgentSkill.<Clone>$() -> Ambinder.A2A.Protocol.AgentSkill!
+Ambinder.A2A.Protocol.AgentSkill.AgentSkill() -> void
+Ambinder.A2A.Protocol.AgentSkill.Description.get -> string!
+Ambinder.A2A.Protocol.AgentSkill.Description.init -> void
+Ambinder.A2A.Protocol.AgentSkill.Equals(Ambinder.A2A.Protocol.AgentSkill? other) -> bool
+Ambinder.A2A.Protocol.AgentSkill.Examples.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentSkill.Examples.init -> void
+Ambinder.A2A.Protocol.AgentSkill.Id.get -> string!
+Ambinder.A2A.Protocol.AgentSkill.Id.init -> void
+Ambinder.A2A.Protocol.AgentSkill.InputModes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentSkill.InputModes.init -> void
+Ambinder.A2A.Protocol.AgentSkill.Name.get -> string!
+Ambinder.A2A.Protocol.AgentSkill.Name.init -> void
+Ambinder.A2A.Protocol.AgentSkill.OutputModes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentSkill.OutputModes.init -> void
+Ambinder.A2A.Protocol.AgentSkill.SecurityRequirements.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.SecurityRequirement!>!
+Ambinder.A2A.Protocol.AgentSkill.SecurityRequirements.init -> void
+Ambinder.A2A.Protocol.AgentSkill.Tags.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.AgentSkill.Tags.init -> void
+Ambinder.A2A.Protocol.AgentTask
+Ambinder.A2A.Protocol.AgentTask.<Clone>$() -> Ambinder.A2A.Protocol.AgentTask!
+Ambinder.A2A.Protocol.AgentTask.AgentTask() -> void
+Ambinder.A2A.Protocol.AgentTask.Artifacts.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.Artifact!>!
+Ambinder.A2A.Protocol.AgentTask.Artifacts.init -> void
+Ambinder.A2A.Protocol.AgentTask.ContextId.get -> string?
+Ambinder.A2A.Protocol.AgentTask.ContextId.init -> void
+Ambinder.A2A.Protocol.AgentTask.Equals(Ambinder.A2A.Protocol.AgentTask? other) -> bool
+Ambinder.A2A.Protocol.AgentTask.History.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.Message!>!
+Ambinder.A2A.Protocol.AgentTask.History.init -> void
+Ambinder.A2A.Protocol.AgentTask.Id.get -> string!
+Ambinder.A2A.Protocol.AgentTask.Id.init -> void
+Ambinder.A2A.Protocol.AgentTask.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.AgentTask.Metadata.init -> void
+Ambinder.A2A.Protocol.AgentTask.Status.get -> Ambinder.A2A.Protocol.AgentTaskStatus!
+Ambinder.A2A.Protocol.AgentTask.Status.init -> void
+Ambinder.A2A.Protocol.AgentTaskStatus
+Ambinder.A2A.Protocol.AgentTaskStatus.<Clone>$() -> Ambinder.A2A.Protocol.AgentTaskStatus!
+Ambinder.A2A.Protocol.AgentTaskStatus.AgentTaskStatus() -> void
+Ambinder.A2A.Protocol.AgentTaskStatus.Equals(Ambinder.A2A.Protocol.AgentTaskStatus? other) -> bool
+Ambinder.A2A.Protocol.AgentTaskStatus.Message.get -> Ambinder.A2A.Protocol.Message?
+Ambinder.A2A.Protocol.AgentTaskStatus.Message.init -> void
+Ambinder.A2A.Protocol.AgentTaskStatus.State.get -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.AgentTaskStatus.State.init -> void
+Ambinder.A2A.Protocol.AgentTaskStatus.Timestamp.get -> System.DateTimeOffset?
+Ambinder.A2A.Protocol.AgentTaskStatus.Timestamp.init -> void
+Ambinder.A2A.Protocol.ApiKeySecurityScheme
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.ApiKeySecurityScheme!
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.ApiKeySecurityScheme() -> void
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Description.get -> string?
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Description.init -> void
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Equals(Ambinder.A2A.Protocol.ApiKeySecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Location.get -> string!
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Location.init -> void
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Name.get -> string!
+Ambinder.A2A.Protocol.ApiKeySecurityScheme.Name.init -> void
+Ambinder.A2A.Protocol.Artifact
+Ambinder.A2A.Protocol.Artifact.<Clone>$() -> Ambinder.A2A.Protocol.Artifact!
+Ambinder.A2A.Protocol.Artifact.Artifact() -> void
+Ambinder.A2A.Protocol.Artifact.ArtifactId.get -> string!
+Ambinder.A2A.Protocol.Artifact.ArtifactId.init -> void
+Ambinder.A2A.Protocol.Artifact.Description.get -> string?
+Ambinder.A2A.Protocol.Artifact.Description.init -> void
+Ambinder.A2A.Protocol.Artifact.Equals(Ambinder.A2A.Protocol.Artifact? other) -> bool
+Ambinder.A2A.Protocol.Artifact.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.Artifact.Extensions.init -> void
+Ambinder.A2A.Protocol.Artifact.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.Artifact.Metadata.init -> void
+Ambinder.A2A.Protocol.Artifact.Name.get -> string?
+Ambinder.A2A.Protocol.Artifact.Name.init -> void
+Ambinder.A2A.Protocol.Artifact.Parts.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.Part!>!
+Ambinder.A2A.Protocol.Artifact.Parts.init -> void
+Ambinder.A2A.Protocol.AuthenticationInfo
+Ambinder.A2A.Protocol.AuthenticationInfo.<Clone>$() -> Ambinder.A2A.Protocol.AuthenticationInfo!
+Ambinder.A2A.Protocol.AuthenticationInfo.AuthenticationInfo() -> void
+Ambinder.A2A.Protocol.AuthenticationInfo.Credentials.get -> string?
+Ambinder.A2A.Protocol.AuthenticationInfo.Credentials.init -> void
+Ambinder.A2A.Protocol.AuthenticationInfo.Equals(Ambinder.A2A.Protocol.AuthenticationInfo? other) -> bool
+Ambinder.A2A.Protocol.AuthenticationInfo.Scheme.get -> string!
+Ambinder.A2A.Protocol.AuthenticationInfo.Scheme.init -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.<Clone>$() -> Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow!
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.AuthorizationCodeOAuthFlow() -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.AuthorizationUrl.get -> string!
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.AuthorizationUrl.init -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.Equals(Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow? other) -> bool
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.PkceRequired.get -> bool
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.PkceRequired.init -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.RefreshUrl.get -> string?
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.RefreshUrl.init -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.Scopes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.Scopes.init -> void
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.TokenUrl.get -> string!
+Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.TokenUrl.init -> void
+Ambinder.A2A.Protocol.CancelTaskRequest
+Ambinder.A2A.Protocol.CancelTaskRequest.<Clone>$() -> Ambinder.A2A.Protocol.CancelTaskRequest!
+Ambinder.A2A.Protocol.CancelTaskRequest.CancelTaskRequest() -> void
+Ambinder.A2A.Protocol.CancelTaskRequest.Equals(Ambinder.A2A.Protocol.CancelTaskRequest? other) -> bool
+Ambinder.A2A.Protocol.CancelTaskRequest.Id.get -> string!
+Ambinder.A2A.Protocol.CancelTaskRequest.Id.init -> void
+Ambinder.A2A.Protocol.CancelTaskRequest.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.CancelTaskRequest.Metadata.init -> void
+Ambinder.A2A.Protocol.CancelTaskRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.CancelTaskRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.<Clone>$() -> Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow!
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.ClientCredentialsOAuthFlow() -> void
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.Equals(Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow? other) -> bool
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.RefreshUrl.get -> string?
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.RefreshUrl.init -> void
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.Scopes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.Scopes.init -> void
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.TokenUrl.get -> string!
+Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.TokenUrl.init -> void
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.<Clone>$() -> Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest!
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.DeleteTaskPushNotificationConfigRequest() -> void
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Equals(Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest? other) -> bool
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Id.get -> string!
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Id.init -> void
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.TaskId.get -> string!
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.TaskId.init -> void
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.<Clone>$() -> Ambinder.A2A.Protocol.DeviceCodeOAuthFlow!
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.DeviceAuthorizationUrl.get -> string!
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.DeviceAuthorizationUrl.init -> void
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.DeviceCodeOAuthFlow() -> void
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.Equals(Ambinder.A2A.Protocol.DeviceCodeOAuthFlow? other) -> bool
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.RefreshUrl.get -> string?
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.RefreshUrl.init -> void
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.Scopes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.Scopes.init -> void
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.TokenUrl.get -> string!
+Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.TokenUrl.init -> void
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.<Clone>$() -> Ambinder.A2A.Protocol.GetExtendedAgentCardRequest!
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.Equals(Ambinder.A2A.Protocol.GetExtendedAgentCardRequest? other) -> bool
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.GetExtendedAgentCardRequest() -> void
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.<Clone>$() -> Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest!
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Equals(Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest? other) -> bool
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.GetTaskPushNotificationConfigRequest() -> void
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Id.get -> string!
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Id.init -> void
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.TaskId.get -> string!
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.TaskId.init -> void
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.GetTaskRequest
+Ambinder.A2A.Protocol.GetTaskRequest.<Clone>$() -> Ambinder.A2A.Protocol.GetTaskRequest!
+Ambinder.A2A.Protocol.GetTaskRequest.Equals(Ambinder.A2A.Protocol.GetTaskRequest? other) -> bool
+Ambinder.A2A.Protocol.GetTaskRequest.GetTaskRequest() -> void
+Ambinder.A2A.Protocol.GetTaskRequest.HistoryLength.get -> int?
+Ambinder.A2A.Protocol.GetTaskRequest.HistoryLength.init -> void
+Ambinder.A2A.Protocol.GetTaskRequest.Id.get -> string!
+Ambinder.A2A.Protocol.GetTaskRequest.Id.init -> void
+Ambinder.A2A.Protocol.GetTaskRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.GetTaskRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.HttpAuthSecurityScheme!
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.BearerFormat.get -> string?
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.BearerFormat.init -> void
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Description.get -> string?
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Description.init -> void
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Equals(Ambinder.A2A.Protocol.HttpAuthSecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.HttpAuthSecurityScheme() -> void
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Scheme.get -> string!
+Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Scheme.init -> void
+Ambinder.A2A.Protocol.ImplicitOAuthFlow
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.<Clone>$() -> Ambinder.A2A.Protocol.ImplicitOAuthFlow!
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.AuthorizationUrl.get -> string!
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.AuthorizationUrl.init -> void
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.Equals(Ambinder.A2A.Protocol.ImplicitOAuthFlow? other) -> bool
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.ImplicitOAuthFlow() -> void
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.RefreshUrl.get -> string?
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.RefreshUrl.init -> void
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.Scopes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.ImplicitOAuthFlow.Scopes.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.<Clone>$() -> Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest!
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.Equals(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest? other) -> bool
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.ListTaskPushNotificationConfigsRequest() -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.PageSize.get -> int?
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.PageSize.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.PageToken.get -> string?
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.PageToken.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.TaskId.get -> string!
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.TaskId.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.<Clone>$() -> Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse!
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.Configs.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>!
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.Configs.init -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.Equals(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse? other) -> bool
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.ListTaskPushNotificationConfigsResponse() -> void
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.NextPageToken.get -> string?
+Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.NextPageToken.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest
+Ambinder.A2A.Protocol.ListTasksRequest.<Clone>$() -> Ambinder.A2A.Protocol.ListTasksRequest!
+Ambinder.A2A.Protocol.ListTasksRequest.ContextId.get -> string?
+Ambinder.A2A.Protocol.ListTasksRequest.ContextId.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.Equals(Ambinder.A2A.Protocol.ListTasksRequest? other) -> bool
+Ambinder.A2A.Protocol.ListTasksRequest.HistoryLength.get -> int?
+Ambinder.A2A.Protocol.ListTasksRequest.HistoryLength.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.IncludeArtifacts.get -> bool?
+Ambinder.A2A.Protocol.ListTasksRequest.IncludeArtifacts.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.ListTasksRequest() -> void
+Ambinder.A2A.Protocol.ListTasksRequest.PageSize.get -> int?
+Ambinder.A2A.Protocol.ListTasksRequest.PageSize.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.PageToken.get -> string?
+Ambinder.A2A.Protocol.ListTasksRequest.PageToken.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.Status.get -> Ambinder.A2A.Protocol.TaskState?
+Ambinder.A2A.Protocol.ListTasksRequest.Status.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.StatusTimestampAfter.get -> System.DateTimeOffset?
+Ambinder.A2A.Protocol.ListTasksRequest.StatusTimestampAfter.init -> void
+Ambinder.A2A.Protocol.ListTasksRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.ListTasksRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.ListTasksResponse
+Ambinder.A2A.Protocol.ListTasksResponse.<Clone>$() -> Ambinder.A2A.Protocol.ListTasksResponse!
+Ambinder.A2A.Protocol.ListTasksResponse.Equals(Ambinder.A2A.Protocol.ListTasksResponse? other) -> bool
+Ambinder.A2A.Protocol.ListTasksResponse.ListTasksResponse() -> void
+Ambinder.A2A.Protocol.ListTasksResponse.NextPageToken.get -> string!
+Ambinder.A2A.Protocol.ListTasksResponse.NextPageToken.init -> void
+Ambinder.A2A.Protocol.ListTasksResponse.PageSize.get -> int
+Ambinder.A2A.Protocol.ListTasksResponse.PageSize.init -> void
+Ambinder.A2A.Protocol.ListTasksResponse.Tasks.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentTask!>!
+Ambinder.A2A.Protocol.ListTasksResponse.Tasks.init -> void
+Ambinder.A2A.Protocol.ListTasksResponse.TotalSize.get -> int
+Ambinder.A2A.Protocol.ListTasksResponse.TotalSize.init -> void
+Ambinder.A2A.Protocol.Message
+Ambinder.A2A.Protocol.Message.<Clone>$() -> Ambinder.A2A.Protocol.Message!
+Ambinder.A2A.Protocol.Message.ContextId.get -> string?
+Ambinder.A2A.Protocol.Message.ContextId.init -> void
+Ambinder.A2A.Protocol.Message.Equals(Ambinder.A2A.Protocol.Message? other) -> bool
+Ambinder.A2A.Protocol.Message.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.Message.Extensions.init -> void
+Ambinder.A2A.Protocol.Message.Message() -> void
+Ambinder.A2A.Protocol.Message.MessageId.get -> string!
+Ambinder.A2A.Protocol.Message.MessageId.init -> void
+Ambinder.A2A.Protocol.Message.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.Message.Metadata.init -> void
+Ambinder.A2A.Protocol.Message.Parts.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.Part!>!
+Ambinder.A2A.Protocol.Message.Parts.init -> void
+Ambinder.A2A.Protocol.Message.ReferenceTaskIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.Message.ReferenceTaskIds.init -> void
+Ambinder.A2A.Protocol.Message.Role.get -> Ambinder.A2A.Protocol.Role
+Ambinder.A2A.Protocol.Message.Role.init -> void
+Ambinder.A2A.Protocol.Message.TaskId.get -> string?
+Ambinder.A2A.Protocol.Message.TaskId.init -> void
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.MutualTlsSecurityScheme!
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme.Description.get -> string?
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme.Description.init -> void
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme.Equals(Ambinder.A2A.Protocol.MutualTlsSecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.MutualTlsSecurityScheme.MutualTlsSecurityScheme() -> void
+Ambinder.A2A.Protocol.OAuth2SecurityScheme
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.OAuth2SecurityScheme!
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Description.get -> string?
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Description.init -> void
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Equals(Ambinder.A2A.Protocol.OAuth2SecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Flows.get -> Ambinder.A2A.Protocol.OAuthFlows!
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Flows.init -> void
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Oauth2MetadataUrl.get -> string?
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.Oauth2MetadataUrl.init -> void
+Ambinder.A2A.Protocol.OAuth2SecurityScheme.OAuth2SecurityScheme() -> void
+Ambinder.A2A.Protocol.OAuthFlows
+Ambinder.A2A.Protocol.OAuthFlows.<Clone>$() -> Ambinder.A2A.Protocol.OAuthFlows!
+Ambinder.A2A.Protocol.OAuthFlows.AuthorizationCode.get -> Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow?
+Ambinder.A2A.Protocol.OAuthFlows.AuthorizationCode.init -> void
+Ambinder.A2A.Protocol.OAuthFlows.ClientCredentials.get -> Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow?
+Ambinder.A2A.Protocol.OAuthFlows.ClientCredentials.init -> void
+Ambinder.A2A.Protocol.OAuthFlows.DeviceCode.get -> Ambinder.A2A.Protocol.DeviceCodeOAuthFlow?
+Ambinder.A2A.Protocol.OAuthFlows.DeviceCode.init -> void
+Ambinder.A2A.Protocol.OAuthFlows.Equals(Ambinder.A2A.Protocol.OAuthFlows? other) -> bool
+Ambinder.A2A.Protocol.OAuthFlows.Implicit.get -> Ambinder.A2A.Protocol.ImplicitOAuthFlow?
+Ambinder.A2A.Protocol.OAuthFlows.Implicit.init -> void
+Ambinder.A2A.Protocol.OAuthFlows.OAuthFlows() -> void
+Ambinder.A2A.Protocol.OAuthFlows.Password.get -> Ambinder.A2A.Protocol.PasswordOAuthFlow?
+Ambinder.A2A.Protocol.OAuthFlows.Password.init -> void
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme!
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.Description.get -> string?
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.Description.init -> void
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.Equals(Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.OpenIdConnectSecurityScheme() -> void
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.OpenIdConnectUrl.get -> string!
+Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.OpenIdConnectUrl.init -> void
+Ambinder.A2A.Protocol.Part
+Ambinder.A2A.Protocol.Part.<Clone>$() -> Ambinder.A2A.Protocol.Part!
+Ambinder.A2A.Protocol.Part.Data.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.Part.Data.init -> void
+Ambinder.A2A.Protocol.Part.EffectiveMediaType.get -> string!
+Ambinder.A2A.Protocol.Part.Equals(Ambinder.A2A.Protocol.Part? other) -> bool
+Ambinder.A2A.Protocol.Part.Filename.get -> string?
+Ambinder.A2A.Protocol.Part.Filename.init -> void
+Ambinder.A2A.Protocol.Part.IsValid.get -> bool
+Ambinder.A2A.Protocol.Part.MediaType.get -> string?
+Ambinder.A2A.Protocol.Part.MediaType.init -> void
+Ambinder.A2A.Protocol.Part.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.Part.Metadata.init -> void
+Ambinder.A2A.Protocol.Part.Part() -> void
+Ambinder.A2A.Protocol.Part.Raw.get -> byte[]?
+Ambinder.A2A.Protocol.Part.Raw.init -> void
+Ambinder.A2A.Protocol.Part.Text.get -> string?
+Ambinder.A2A.Protocol.Part.Text.init -> void
+Ambinder.A2A.Protocol.Part.Url.get -> string?
+Ambinder.A2A.Protocol.Part.Url.init -> void
+Ambinder.A2A.Protocol.PasswordOAuthFlow
+Ambinder.A2A.Protocol.PasswordOAuthFlow.<Clone>$() -> Ambinder.A2A.Protocol.PasswordOAuthFlow!
+Ambinder.A2A.Protocol.PasswordOAuthFlow.Equals(Ambinder.A2A.Protocol.PasswordOAuthFlow? other) -> bool
+Ambinder.A2A.Protocol.PasswordOAuthFlow.PasswordOAuthFlow() -> void
+Ambinder.A2A.Protocol.PasswordOAuthFlow.RefreshUrl.get -> string?
+Ambinder.A2A.Protocol.PasswordOAuthFlow.RefreshUrl.init -> void
+Ambinder.A2A.Protocol.PasswordOAuthFlow.Scopes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Ambinder.A2A.Protocol.PasswordOAuthFlow.Scopes.init -> void
+Ambinder.A2A.Protocol.PasswordOAuthFlow.TokenUrl.get -> string!
+Ambinder.A2A.Protocol.PasswordOAuthFlow.TokenUrl.init -> void
+Ambinder.A2A.Protocol.ProtoEnumConverter<T>
+Ambinder.A2A.Protocol.ProtoEnumConverter<T>.ProtoEnumConverter() -> void
+Ambinder.A2A.Protocol.Role
+Ambinder.A2A.Protocol.Role.Agent = 2 -> Ambinder.A2A.Protocol.Role
+Ambinder.A2A.Protocol.Role.Unspecified = 0 -> Ambinder.A2A.Protocol.Role
+Ambinder.A2A.Protocol.Role.User = 1 -> Ambinder.A2A.Protocol.Role
+Ambinder.A2A.Protocol.SecurityRequirement
+Ambinder.A2A.Protocol.SecurityRequirement.<Clone>$() -> Ambinder.A2A.Protocol.SecurityRequirement!
+Ambinder.A2A.Protocol.SecurityRequirement.Equals(Ambinder.A2A.Protocol.SecurityRequirement? other) -> bool
+Ambinder.A2A.Protocol.SecurityRequirement.Schemes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Ambinder.A2A.Protocol.StringList!>!
+Ambinder.A2A.Protocol.SecurityRequirement.Schemes.init -> void
+Ambinder.A2A.Protocol.SecurityRequirement.SecurityRequirement() -> void
+Ambinder.A2A.Protocol.SecurityScheme
+Ambinder.A2A.Protocol.SecurityScheme.<Clone>$() -> Ambinder.A2A.Protocol.SecurityScheme!
+Ambinder.A2A.Protocol.SecurityScheme.ApiKeySecurityScheme.get -> Ambinder.A2A.Protocol.ApiKeySecurityScheme?
+Ambinder.A2A.Protocol.SecurityScheme.ApiKeySecurityScheme.init -> void
+Ambinder.A2A.Protocol.SecurityScheme.Equals(Ambinder.A2A.Protocol.SecurityScheme? other) -> bool
+Ambinder.A2A.Protocol.SecurityScheme.HttpAuthSecurityScheme.get -> Ambinder.A2A.Protocol.HttpAuthSecurityScheme?
+Ambinder.A2A.Protocol.SecurityScheme.HttpAuthSecurityScheme.init -> void
+Ambinder.A2A.Protocol.SecurityScheme.MtlsSecurityScheme.get -> Ambinder.A2A.Protocol.MutualTlsSecurityScheme?
+Ambinder.A2A.Protocol.SecurityScheme.MtlsSecurityScheme.init -> void
+Ambinder.A2A.Protocol.SecurityScheme.Oauth2SecurityScheme.get -> Ambinder.A2A.Protocol.OAuth2SecurityScheme?
+Ambinder.A2A.Protocol.SecurityScheme.Oauth2SecurityScheme.init -> void
+Ambinder.A2A.Protocol.SecurityScheme.OpenIdConnectSecurityScheme.get -> Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme?
+Ambinder.A2A.Protocol.SecurityScheme.OpenIdConnectSecurityScheme.init -> void
+Ambinder.A2A.Protocol.SecurityScheme.SecurityScheme() -> void
+Ambinder.A2A.Protocol.SendMessageConfiguration
+Ambinder.A2A.Protocol.SendMessageConfiguration.<Clone>$() -> Ambinder.A2A.Protocol.SendMessageConfiguration!
+Ambinder.A2A.Protocol.SendMessageConfiguration.AcceptedOutputModes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.SendMessageConfiguration.AcceptedOutputModes.init -> void
+Ambinder.A2A.Protocol.SendMessageConfiguration.Equals(Ambinder.A2A.Protocol.SendMessageConfiguration? other) -> bool
+Ambinder.A2A.Protocol.SendMessageConfiguration.HistoryLength.get -> int?
+Ambinder.A2A.Protocol.SendMessageConfiguration.HistoryLength.init -> void
+Ambinder.A2A.Protocol.SendMessageConfiguration.ReturnImmediately.get -> bool
+Ambinder.A2A.Protocol.SendMessageConfiguration.ReturnImmediately.init -> void
+Ambinder.A2A.Protocol.SendMessageConfiguration.SendMessageConfiguration() -> void
+Ambinder.A2A.Protocol.SendMessageConfiguration.TaskPushNotificationConfig.get -> Ambinder.A2A.Protocol.TaskPushNotificationConfig?
+Ambinder.A2A.Protocol.SendMessageConfiguration.TaskPushNotificationConfig.init -> void
+Ambinder.A2A.Protocol.SendMessageRequest
+Ambinder.A2A.Protocol.SendMessageRequest.<Clone>$() -> Ambinder.A2A.Protocol.SendMessageRequest!
+Ambinder.A2A.Protocol.SendMessageRequest.Configuration.get -> Ambinder.A2A.Protocol.SendMessageConfiguration?
+Ambinder.A2A.Protocol.SendMessageRequest.Configuration.init -> void
+Ambinder.A2A.Protocol.SendMessageRequest.Equals(Ambinder.A2A.Protocol.SendMessageRequest? other) -> bool
+Ambinder.A2A.Protocol.SendMessageRequest.Message.get -> Ambinder.A2A.Protocol.Message!
+Ambinder.A2A.Protocol.SendMessageRequest.Message.init -> void
+Ambinder.A2A.Protocol.SendMessageRequest.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.SendMessageRequest.Metadata.init -> void
+Ambinder.A2A.Protocol.SendMessageRequest.SendMessageRequest() -> void
+Ambinder.A2A.Protocol.SendMessageRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.SendMessageRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.SendMessageResponse
+Ambinder.A2A.Protocol.SendMessageResponse.<Clone>$() -> Ambinder.A2A.Protocol.SendMessageResponse!
+Ambinder.A2A.Protocol.SendMessageResponse.Equals(Ambinder.A2A.Protocol.SendMessageResponse? other) -> bool
+Ambinder.A2A.Protocol.SendMessageResponse.Message.get -> Ambinder.A2A.Protocol.Message?
+Ambinder.A2A.Protocol.SendMessageResponse.Message.init -> void
+Ambinder.A2A.Protocol.SendMessageResponse.SendMessageResponse() -> void
+Ambinder.A2A.Protocol.SendMessageResponse.Task.get -> Ambinder.A2A.Protocol.AgentTask?
+Ambinder.A2A.Protocol.SendMessageResponse.Task.init -> void
+Ambinder.A2A.Protocol.StreamResponse
+Ambinder.A2A.Protocol.StreamResponse.<Clone>$() -> Ambinder.A2A.Protocol.StreamResponse!
+Ambinder.A2A.Protocol.StreamResponse.ArtifactUpdate.get -> Ambinder.A2A.Protocol.TaskArtifactUpdateEvent?
+Ambinder.A2A.Protocol.StreamResponse.ArtifactUpdate.init -> void
+Ambinder.A2A.Protocol.StreamResponse.Equals(Ambinder.A2A.Protocol.StreamResponse? other) -> bool
+Ambinder.A2A.Protocol.StreamResponse.Message.get -> Ambinder.A2A.Protocol.Message?
+Ambinder.A2A.Protocol.StreamResponse.Message.init -> void
+Ambinder.A2A.Protocol.StreamResponse.StatusUpdate.get -> Ambinder.A2A.Protocol.TaskStatusUpdateEvent?
+Ambinder.A2A.Protocol.StreamResponse.StatusUpdate.init -> void
+Ambinder.A2A.Protocol.StreamResponse.StreamResponse() -> void
+Ambinder.A2A.Protocol.StreamResponse.Task.get -> Ambinder.A2A.Protocol.AgentTask?
+Ambinder.A2A.Protocol.StreamResponse.Task.init -> void
+Ambinder.A2A.Protocol.StringList
+Ambinder.A2A.Protocol.StringList.<Clone>$() -> Ambinder.A2A.Protocol.StringList!
+Ambinder.A2A.Protocol.StringList.Equals(Ambinder.A2A.Protocol.StringList? other) -> bool
+Ambinder.A2A.Protocol.StringList.List.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Protocol.StringList.List.init -> void
+Ambinder.A2A.Protocol.StringList.StringList() -> void
+Ambinder.A2A.Protocol.SubscribeToTaskRequest
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.<Clone>$() -> Ambinder.A2A.Protocol.SubscribeToTaskRequest!
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.Equals(Ambinder.A2A.Protocol.SubscribeToTaskRequest? other) -> bool
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.Id.get -> string!
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.Id.init -> void
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.SubscribeToTaskRequest() -> void
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.Tenant.get -> string?
+Ambinder.A2A.Protocol.SubscribeToTaskRequest.Tenant.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.<Clone>$() -> Ambinder.A2A.Protocol.TaskArtifactUpdateEvent!
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Append.get -> bool
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Append.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Artifact.get -> Ambinder.A2A.Protocol.Artifact!
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Artifact.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.ContextId.get -> string!
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.ContextId.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Equals(Ambinder.A2A.Protocol.TaskArtifactUpdateEvent? other) -> bool
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.LastChunk.get -> bool
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.LastChunk.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Metadata.init -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.TaskArtifactUpdateEvent() -> void
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.TaskId.get -> string!
+Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.TaskId.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.<Clone>$() -> Ambinder.A2A.Protocol.TaskPushNotificationConfig!
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Authentication.get -> Ambinder.A2A.Protocol.AuthenticationInfo?
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Authentication.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Equals(Ambinder.A2A.Protocol.TaskPushNotificationConfig? other) -> bool
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Id.get -> string?
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Id.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.TaskId.get -> string?
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.TaskId.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.TaskPushNotificationConfig() -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Tenant.get -> string?
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Tenant.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Token.get -> string?
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Token.init -> void
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Url.get -> string!
+Ambinder.A2A.Protocol.TaskPushNotificationConfig.Url.init -> void
+Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.AuthRequired = 8 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Canceled = 5 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Completed = 3 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Failed = 4 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.InputRequired = 6 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Rejected = 7 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Submitted = 1 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Unspecified = 0 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskState.Working = 2 -> Ambinder.A2A.Protocol.TaskState
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.<Clone>$() -> Ambinder.A2A.Protocol.TaskStatusUpdateEvent!
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.ContextId.get -> string!
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.ContextId.init -> void
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Equals(Ambinder.A2A.Protocol.TaskStatusUpdateEvent? other) -> bool
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Metadata.get -> System.Text.Json.JsonElement?
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Metadata.init -> void
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Status.get -> Ambinder.A2A.Protocol.AgentTaskStatus!
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Status.init -> void
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.TaskId.get -> string!
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.TaskId.init -> void
+Ambinder.A2A.Protocol.TaskStatusUpdateEvent.TaskStatusUpdateEvent() -> void
+const Ambinder.A2A.Protocol.A2AConstants.BindingGrpc = "GRPC" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.BindingJsonRpc = "JSONRPC" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.BindingRest = "HTTP+JSON" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.ContentType = "application/a2a+json" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.EventStream = "text/event-stream" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.ExtensionsHeader = "A2A-Extensions" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.GrpcExtensionsKey = "a2a-extensions" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.GrpcVersionKey = "a2a-version" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.JsonRpcContentType = "application/json" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.NotificationTokenHeader = "X-A2A-Notification-Token" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.ProtocolVersion = "1.0" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.PushSignatureHeader = "X-A2A-Push-Signature" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.VersionHeader = "A2A-Version" -> string!
+const Ambinder.A2A.Protocol.A2AConstants.WellKnownCardPath = "/.well-known/agent-card.json" -> string!
+const Ambinder.A2A.Protocol.A2AError.Domain = "a2a-protocol.org" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.Agent = "a2a.agent" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ClientSource = "Ambinder.A2A.Client" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ContextId = "a2a.context.id" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ErrorType = "error.type" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.Method = "a2a.method" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.Outcome = "outcome" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ProtocolMeter = "Ambinder.A2A.Protocol" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.PushAttempt = "a2a.push.attempt" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.PushDeliveries = "a2a.server.push.deliveries" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ServerAddress = "server.address" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ServerMeter = "Ambinder.A2A.Server" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.ServerSource = "Ambinder.A2A.Server" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.StreamsActive = "a2a.server.streams.active" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TaskId = "a2a.task.id" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TasksCompleted = "a2a.server.tasks.completed" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TaskState = "a2a.task.state" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TaskStateEvent = "a2a.task.state" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.Tenant = "a2a.tenant" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.Transport = "a2a.transport" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TransportGrpc = "grpc" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TransportJsonRpc = "jsonrpc" -> string!
+const Ambinder.A2A.Protocol.A2ATelemetryNames.TransportRest = "rest" -> string!
+override Ambinder.A2A.Protocol.A2AErrorInfo.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.A2AErrorInfo.GetHashCode() -> int
+override Ambinder.A2A.Protocol.A2AErrorInfo.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentCapabilities.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentCapabilities.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentCapabilities.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentCard.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentCard.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentCard.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentCardSignature.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentCardSignature.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentCardSignature.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentExtension.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentExtension.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentExtension.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentInterface.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentInterface.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentInterface.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentProvider.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentProvider.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentProvider.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentSkill.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentSkill.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentSkill.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentTask.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentTask.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentTask.ToString() -> string!
+override Ambinder.A2A.Protocol.AgentTaskStatus.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AgentTaskStatus.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AgentTaskStatus.ToString() -> string!
+override Ambinder.A2A.Protocol.ApiKeySecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ApiKeySecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ApiKeySecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.Artifact.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.Artifact.GetHashCode() -> int
+override Ambinder.A2A.Protocol.Artifact.ToString() -> string!
+override Ambinder.A2A.Protocol.AuthenticationInfo.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AuthenticationInfo.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AuthenticationInfo.ToString() -> string!
+override Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.GetHashCode() -> int
+override Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.ToString() -> string!
+override Ambinder.A2A.Protocol.CancelTaskRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.CancelTaskRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.CancelTaskRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.ToString() -> string!
+override Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.GetHashCode() -> int
+override Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.ToString() -> string!
+override Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.GetTaskRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.GetTaskRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.GetTaskRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.HttpAuthSecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.HttpAuthSecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.HttpAuthSecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.ImplicitOAuthFlow.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ImplicitOAuthFlow.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ImplicitOAuthFlow.ToString() -> string!
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.ToString() -> string!
+override Ambinder.A2A.Protocol.ListTasksRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ListTasksRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ListTasksRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.ListTasksResponse.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.ListTasksResponse.GetHashCode() -> int
+override Ambinder.A2A.Protocol.ListTasksResponse.ToString() -> string!
+override Ambinder.A2A.Protocol.Message.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.Message.GetHashCode() -> int
+override Ambinder.A2A.Protocol.Message.ToString() -> string!
+override Ambinder.A2A.Protocol.MutualTlsSecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.MutualTlsSecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.MutualTlsSecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.OAuth2SecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.OAuth2SecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.OAuth2SecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.OAuthFlows.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.OAuthFlows.GetHashCode() -> int
+override Ambinder.A2A.Protocol.OAuthFlows.ToString() -> string!
+override Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.Part.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.Part.GetHashCode() -> int
+override Ambinder.A2A.Protocol.Part.ToString() -> string!
+override Ambinder.A2A.Protocol.PasswordOAuthFlow.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.PasswordOAuthFlow.GetHashCode() -> int
+override Ambinder.A2A.Protocol.PasswordOAuthFlow.ToString() -> string!
+override Ambinder.A2A.Protocol.ProtoEnumConverter<T>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> T
+override Ambinder.A2A.Protocol.ProtoEnumConverter<T>.Write(System.Text.Json.Utf8JsonWriter! writer, T value, System.Text.Json.JsonSerializerOptions! options) -> void
+override Ambinder.A2A.Protocol.SecurityRequirement.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SecurityRequirement.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SecurityRequirement.ToString() -> string!
+override Ambinder.A2A.Protocol.SecurityScheme.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SecurityScheme.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SecurityScheme.ToString() -> string!
+override Ambinder.A2A.Protocol.SendMessageConfiguration.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SendMessageConfiguration.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SendMessageConfiguration.ToString() -> string!
+override Ambinder.A2A.Protocol.SendMessageRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SendMessageRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SendMessageRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.SendMessageResponse.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SendMessageResponse.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SendMessageResponse.ToString() -> string!
+override Ambinder.A2A.Protocol.StreamResponse.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.StreamResponse.GetHashCode() -> int
+override Ambinder.A2A.Protocol.StreamResponse.ToString() -> string!
+override Ambinder.A2A.Protocol.StringList.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.StringList.GetHashCode() -> int
+override Ambinder.A2A.Protocol.StringList.ToString() -> string!
+override Ambinder.A2A.Protocol.SubscribeToTaskRequest.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.SubscribeToTaskRequest.GetHashCode() -> int
+override Ambinder.A2A.Protocol.SubscribeToTaskRequest.ToString() -> string!
+override Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.GetHashCode() -> int
+override Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.ToString() -> string!
+override Ambinder.A2A.Protocol.TaskPushNotificationConfig.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.TaskPushNotificationConfig.GetHashCode() -> int
+override Ambinder.A2A.Protocol.TaskPushNotificationConfig.ToString() -> string!
+override Ambinder.A2A.Protocol.TaskStatusUpdateEvent.Equals(object? obj) -> bool
+override Ambinder.A2A.Protocol.TaskStatusUpdateEvent.GetHashCode() -> int
+override Ambinder.A2A.Protocol.TaskStatusUpdateEvent.ToString() -> string!
+static Ambinder.A2A.Protocol.A2AError.FromReason(string! reason) -> Ambinder.A2A.Protocol.A2AErrorCode?
+static Ambinder.A2A.Protocol.A2AError.Get(Ambinder.A2A.Protocol.A2AErrorCode code) -> Ambinder.A2A.Protocol.A2AErrorInfo!
+static Ambinder.A2A.Protocol.A2AErrorInfo.operator !=(Ambinder.A2A.Protocol.A2AErrorInfo? left, Ambinder.A2A.Protocol.A2AErrorInfo? right) -> bool
+static Ambinder.A2A.Protocol.A2AErrorInfo.operator ==(Ambinder.A2A.Protocol.A2AErrorInfo? left, Ambinder.A2A.Protocol.A2AErrorInfo? right) -> bool
+static Ambinder.A2A.Protocol.A2AJson.AgentCapabilities.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentCapabilities!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentCard.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentCard!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentCardSignature.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentCardSignature!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentExtension.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentExtension!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentInterface.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentInterface!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentProvider.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentProvider!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentSkill.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentSkill!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentTask.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentTask!>!
+static Ambinder.A2A.Protocol.A2AJson.AgentTaskStatus.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AgentTaskStatus!>!
+static Ambinder.A2A.Protocol.A2AJson.ApiKeySecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ApiKeySecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.Artifact.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.Artifact!>!
+static Ambinder.A2A.Protocol.A2AJson.AuthenticationInfo.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AuthenticationInfo!>!
+static Ambinder.A2A.Protocol.A2AJson.AuthorizationCodeOAuthFlow.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow!>!
+static Ambinder.A2A.Protocol.A2AJson.CancelTaskRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.CancelTaskRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.ClientCredentialsOAuthFlow.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow!>!
+static Ambinder.A2A.Protocol.A2AJson.DeleteTaskPushNotificationConfigRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.DeviceCodeOAuthFlow.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.DeviceCodeOAuthFlow!>!
+static Ambinder.A2A.Protocol.A2AJson.GetExtendedAgentCardRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.GetExtendedAgentCardRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.GetTaskPushNotificationConfigRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.GetTaskRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.GetTaskRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.HttpAuthSecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.HttpAuthSecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.ImplicitOAuthFlow.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ImplicitOAuthFlow!>!
+static Ambinder.A2A.Protocol.A2AJson.ListTaskPushNotificationConfigsRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.ListTaskPushNotificationConfigsResponse.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse!>!
+static Ambinder.A2A.Protocol.A2AJson.ListTasksRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ListTasksRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.ListTasksResponse.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.ListTasksResponse!>!
+static Ambinder.A2A.Protocol.A2AJson.Message.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.Message!>!
+static Ambinder.A2A.Protocol.A2AJson.MutualTlsSecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.MutualTlsSecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.OAuth2SecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.OAuth2SecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.OAuthFlows.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.OAuthFlows!>!
+static Ambinder.A2A.Protocol.A2AJson.OpenIdConnectSecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.Options.get -> System.Text.Json.JsonSerializerOptions!
+static Ambinder.A2A.Protocol.A2AJson.Part.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.Part!>!
+static Ambinder.A2A.Protocol.A2AJson.PasswordOAuthFlow.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.PasswordOAuthFlow!>!
+static Ambinder.A2A.Protocol.A2AJson.Role.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.Role>!
+static Ambinder.A2A.Protocol.A2AJson.SecurityRequirement.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SecurityRequirement!>!
+static Ambinder.A2A.Protocol.A2AJson.SecurityScheme.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SecurityScheme!>!
+static Ambinder.A2A.Protocol.A2AJson.SendMessageConfiguration.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SendMessageConfiguration!>!
+static Ambinder.A2A.Protocol.A2AJson.SendMessageRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SendMessageRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.SendMessageResponse.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SendMessageResponse!>!
+static Ambinder.A2A.Protocol.A2AJson.StreamResponse.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.StreamResponse!>!
+static Ambinder.A2A.Protocol.A2AJson.StringList.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.StringList!>!
+static Ambinder.A2A.Protocol.A2AJson.SubscribeToTaskRequest.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.SubscribeToTaskRequest!>!
+static Ambinder.A2A.Protocol.A2AJson.TaskArtifactUpdateEvent.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.TaskArtifactUpdateEvent!>!
+static Ambinder.A2A.Protocol.A2AJson.TaskPushNotificationConfig.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>!
+static Ambinder.A2A.Protocol.A2AJson.TaskState.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.TaskState>!
+static Ambinder.A2A.Protocol.A2AJson.TaskStatusUpdateEvent.get -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<Ambinder.A2A.Protocol.TaskStatusUpdateEvent!>!
+static Ambinder.A2A.Protocol.A2AJson.TypeInfoResolver.get -> System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!
+static Ambinder.A2A.Protocol.A2ATelemetryNames.StateValue(Ambinder.A2A.Protocol.TaskState state) -> string!
+static Ambinder.A2A.Protocol.AgentCapabilities.operator !=(Ambinder.A2A.Protocol.AgentCapabilities? left, Ambinder.A2A.Protocol.AgentCapabilities? right) -> bool
+static Ambinder.A2A.Protocol.AgentCapabilities.operator ==(Ambinder.A2A.Protocol.AgentCapabilities? left, Ambinder.A2A.Protocol.AgentCapabilities? right) -> bool
+static Ambinder.A2A.Protocol.AgentCard.operator !=(Ambinder.A2A.Protocol.AgentCard? left, Ambinder.A2A.Protocol.AgentCard? right) -> bool
+static Ambinder.A2A.Protocol.AgentCard.operator ==(Ambinder.A2A.Protocol.AgentCard? left, Ambinder.A2A.Protocol.AgentCard? right) -> bool
+static Ambinder.A2A.Protocol.AgentCardSignature.operator !=(Ambinder.A2A.Protocol.AgentCardSignature? left, Ambinder.A2A.Protocol.AgentCardSignature? right) -> bool
+static Ambinder.A2A.Protocol.AgentCardSignature.operator ==(Ambinder.A2A.Protocol.AgentCardSignature? left, Ambinder.A2A.Protocol.AgentCardSignature? right) -> bool
+static Ambinder.A2A.Protocol.AgentExtension.operator !=(Ambinder.A2A.Protocol.AgentExtension? left, Ambinder.A2A.Protocol.AgentExtension? right) -> bool
+static Ambinder.A2A.Protocol.AgentExtension.operator ==(Ambinder.A2A.Protocol.AgentExtension? left, Ambinder.A2A.Protocol.AgentExtension? right) -> bool
+static Ambinder.A2A.Protocol.AgentInterface.operator !=(Ambinder.A2A.Protocol.AgentInterface? left, Ambinder.A2A.Protocol.AgentInterface? right) -> bool
+static Ambinder.A2A.Protocol.AgentInterface.operator ==(Ambinder.A2A.Protocol.AgentInterface? left, Ambinder.A2A.Protocol.AgentInterface? right) -> bool
+static Ambinder.A2A.Protocol.AgentProvider.operator !=(Ambinder.A2A.Protocol.AgentProvider? left, Ambinder.A2A.Protocol.AgentProvider? right) -> bool
+static Ambinder.A2A.Protocol.AgentProvider.operator ==(Ambinder.A2A.Protocol.AgentProvider? left, Ambinder.A2A.Protocol.AgentProvider? right) -> bool
+static Ambinder.A2A.Protocol.AgentSkill.operator !=(Ambinder.A2A.Protocol.AgentSkill? left, Ambinder.A2A.Protocol.AgentSkill? right) -> bool
+static Ambinder.A2A.Protocol.AgentSkill.operator ==(Ambinder.A2A.Protocol.AgentSkill? left, Ambinder.A2A.Protocol.AgentSkill? right) -> bool
+static Ambinder.A2A.Protocol.AgentTask.operator !=(Ambinder.A2A.Protocol.AgentTask? left, Ambinder.A2A.Protocol.AgentTask? right) -> bool
+static Ambinder.A2A.Protocol.AgentTask.operator ==(Ambinder.A2A.Protocol.AgentTask? left, Ambinder.A2A.Protocol.AgentTask? right) -> bool
+static Ambinder.A2A.Protocol.AgentTaskStatus.operator !=(Ambinder.A2A.Protocol.AgentTaskStatus? left, Ambinder.A2A.Protocol.AgentTaskStatus? right) -> bool
+static Ambinder.A2A.Protocol.AgentTaskStatus.operator ==(Ambinder.A2A.Protocol.AgentTaskStatus? left, Ambinder.A2A.Protocol.AgentTaskStatus? right) -> bool
+static Ambinder.A2A.Protocol.ApiKeySecurityScheme.operator !=(Ambinder.A2A.Protocol.ApiKeySecurityScheme? left, Ambinder.A2A.Protocol.ApiKeySecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.ApiKeySecurityScheme.operator ==(Ambinder.A2A.Protocol.ApiKeySecurityScheme? left, Ambinder.A2A.Protocol.ApiKeySecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.Artifact.operator !=(Ambinder.A2A.Protocol.Artifact? left, Ambinder.A2A.Protocol.Artifact? right) -> bool
+static Ambinder.A2A.Protocol.Artifact.operator ==(Ambinder.A2A.Protocol.Artifact? left, Ambinder.A2A.Protocol.Artifact? right) -> bool
+static Ambinder.A2A.Protocol.AuthenticationInfo.operator !=(Ambinder.A2A.Protocol.AuthenticationInfo? left, Ambinder.A2A.Protocol.AuthenticationInfo? right) -> bool
+static Ambinder.A2A.Protocol.AuthenticationInfo.operator ==(Ambinder.A2A.Protocol.AuthenticationInfo? left, Ambinder.A2A.Protocol.AuthenticationInfo? right) -> bool
+static Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.operator !=(Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow? left, Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow.operator ==(Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow? left, Ambinder.A2A.Protocol.AuthorizationCodeOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.CancelTaskRequest.operator !=(Ambinder.A2A.Protocol.CancelTaskRequest? left, Ambinder.A2A.Protocol.CancelTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.CancelTaskRequest.operator ==(Ambinder.A2A.Protocol.CancelTaskRequest? left, Ambinder.A2A.Protocol.CancelTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.operator !=(Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow? left, Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow.operator ==(Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow? left, Ambinder.A2A.Protocol.ClientCredentialsOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.operator !=(Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest? left, Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest? right) -> bool
+static Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest.operator ==(Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest? left, Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest? right) -> bool
+static Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.operator !=(Ambinder.A2A.Protocol.DeviceCodeOAuthFlow? left, Ambinder.A2A.Protocol.DeviceCodeOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.DeviceCodeOAuthFlow.operator ==(Ambinder.A2A.Protocol.DeviceCodeOAuthFlow? left, Ambinder.A2A.Protocol.DeviceCodeOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.operator !=(Ambinder.A2A.Protocol.GetExtendedAgentCardRequest? left, Ambinder.A2A.Protocol.GetExtendedAgentCardRequest? right) -> bool
+static Ambinder.A2A.Protocol.GetExtendedAgentCardRequest.operator ==(Ambinder.A2A.Protocol.GetExtendedAgentCardRequest? left, Ambinder.A2A.Protocol.GetExtendedAgentCardRequest? right) -> bool
+static Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.operator !=(Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest? left, Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest? right) -> bool
+static Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest.operator ==(Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest? left, Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest? right) -> bool
+static Ambinder.A2A.Protocol.GetTaskRequest.operator !=(Ambinder.A2A.Protocol.GetTaskRequest? left, Ambinder.A2A.Protocol.GetTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.GetTaskRequest.operator ==(Ambinder.A2A.Protocol.GetTaskRequest? left, Ambinder.A2A.Protocol.GetTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.HttpAuthSecurityScheme.operator !=(Ambinder.A2A.Protocol.HttpAuthSecurityScheme? left, Ambinder.A2A.Protocol.HttpAuthSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.HttpAuthSecurityScheme.operator ==(Ambinder.A2A.Protocol.HttpAuthSecurityScheme? left, Ambinder.A2A.Protocol.HttpAuthSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.ImplicitOAuthFlow.operator !=(Ambinder.A2A.Protocol.ImplicitOAuthFlow? left, Ambinder.A2A.Protocol.ImplicitOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.ImplicitOAuthFlow.operator ==(Ambinder.A2A.Protocol.ImplicitOAuthFlow? left, Ambinder.A2A.Protocol.ImplicitOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.operator !=(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest? left, Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest? right) -> bool
+static Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest.operator ==(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest? left, Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest? right) -> bool
+static Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.operator !=(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse? left, Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse? right) -> bool
+static Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse.operator ==(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse? left, Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse? right) -> bool
+static Ambinder.A2A.Protocol.ListTasksRequest.operator !=(Ambinder.A2A.Protocol.ListTasksRequest? left, Ambinder.A2A.Protocol.ListTasksRequest? right) -> bool
+static Ambinder.A2A.Protocol.ListTasksRequest.operator ==(Ambinder.A2A.Protocol.ListTasksRequest? left, Ambinder.A2A.Protocol.ListTasksRequest? right) -> bool
+static Ambinder.A2A.Protocol.ListTasksResponse.operator !=(Ambinder.A2A.Protocol.ListTasksResponse? left, Ambinder.A2A.Protocol.ListTasksResponse? right) -> bool
+static Ambinder.A2A.Protocol.ListTasksResponse.operator ==(Ambinder.A2A.Protocol.ListTasksResponse? left, Ambinder.A2A.Protocol.ListTasksResponse? right) -> bool
+static Ambinder.A2A.Protocol.Message.operator !=(Ambinder.A2A.Protocol.Message? left, Ambinder.A2A.Protocol.Message? right) -> bool
+static Ambinder.A2A.Protocol.Message.operator ==(Ambinder.A2A.Protocol.Message? left, Ambinder.A2A.Protocol.Message? right) -> bool
+static Ambinder.A2A.Protocol.MutualTlsSecurityScheme.operator !=(Ambinder.A2A.Protocol.MutualTlsSecurityScheme? left, Ambinder.A2A.Protocol.MutualTlsSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.MutualTlsSecurityScheme.operator ==(Ambinder.A2A.Protocol.MutualTlsSecurityScheme? left, Ambinder.A2A.Protocol.MutualTlsSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.OAuth2SecurityScheme.operator !=(Ambinder.A2A.Protocol.OAuth2SecurityScheme? left, Ambinder.A2A.Protocol.OAuth2SecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.OAuth2SecurityScheme.operator ==(Ambinder.A2A.Protocol.OAuth2SecurityScheme? left, Ambinder.A2A.Protocol.OAuth2SecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.OAuthFlows.operator !=(Ambinder.A2A.Protocol.OAuthFlows? left, Ambinder.A2A.Protocol.OAuthFlows? right) -> bool
+static Ambinder.A2A.Protocol.OAuthFlows.operator ==(Ambinder.A2A.Protocol.OAuthFlows? left, Ambinder.A2A.Protocol.OAuthFlows? right) -> bool
+static Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.operator !=(Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme? left, Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme.operator ==(Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme? left, Ambinder.A2A.Protocol.OpenIdConnectSecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.Part.FromData(System.Text.Json.JsonElement data) -> Ambinder.A2A.Protocol.Part!
+static Ambinder.A2A.Protocol.Part.FromRaw(byte[]! raw, string! mediaType, string? filename = null) -> Ambinder.A2A.Protocol.Part!
+static Ambinder.A2A.Protocol.Part.FromText(string! text, string? mediaType = null) -> Ambinder.A2A.Protocol.Part!
+static Ambinder.A2A.Protocol.Part.FromUrl(string! url, string! mediaType, string? filename = null) -> Ambinder.A2A.Protocol.Part!
+static Ambinder.A2A.Protocol.Part.operator !=(Ambinder.A2A.Protocol.Part? left, Ambinder.A2A.Protocol.Part? right) -> bool
+static Ambinder.A2A.Protocol.Part.operator ==(Ambinder.A2A.Protocol.Part? left, Ambinder.A2A.Protocol.Part? right) -> bool
+static Ambinder.A2A.Protocol.PasswordOAuthFlow.operator !=(Ambinder.A2A.Protocol.PasswordOAuthFlow? left, Ambinder.A2A.Protocol.PasswordOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.PasswordOAuthFlow.operator ==(Ambinder.A2A.Protocol.PasswordOAuthFlow? left, Ambinder.A2A.Protocol.PasswordOAuthFlow? right) -> bool
+static Ambinder.A2A.Protocol.SecurityRequirement.operator !=(Ambinder.A2A.Protocol.SecurityRequirement? left, Ambinder.A2A.Protocol.SecurityRequirement? right) -> bool
+static Ambinder.A2A.Protocol.SecurityRequirement.operator ==(Ambinder.A2A.Protocol.SecurityRequirement? left, Ambinder.A2A.Protocol.SecurityRequirement? right) -> bool
+static Ambinder.A2A.Protocol.SecurityScheme.operator !=(Ambinder.A2A.Protocol.SecurityScheme? left, Ambinder.A2A.Protocol.SecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.SecurityScheme.operator ==(Ambinder.A2A.Protocol.SecurityScheme? left, Ambinder.A2A.Protocol.SecurityScheme? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageConfiguration.operator !=(Ambinder.A2A.Protocol.SendMessageConfiguration? left, Ambinder.A2A.Protocol.SendMessageConfiguration? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageConfiguration.operator ==(Ambinder.A2A.Protocol.SendMessageConfiguration? left, Ambinder.A2A.Protocol.SendMessageConfiguration? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageRequest.operator !=(Ambinder.A2A.Protocol.SendMessageRequest? left, Ambinder.A2A.Protocol.SendMessageRequest? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageRequest.operator ==(Ambinder.A2A.Protocol.SendMessageRequest? left, Ambinder.A2A.Protocol.SendMessageRequest? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageResponse.operator !=(Ambinder.A2A.Protocol.SendMessageResponse? left, Ambinder.A2A.Protocol.SendMessageResponse? right) -> bool
+static Ambinder.A2A.Protocol.SendMessageResponse.operator ==(Ambinder.A2A.Protocol.SendMessageResponse? left, Ambinder.A2A.Protocol.SendMessageResponse? right) -> bool
+static Ambinder.A2A.Protocol.StreamResponse.operator !=(Ambinder.A2A.Protocol.StreamResponse? left, Ambinder.A2A.Protocol.StreamResponse? right) -> bool
+static Ambinder.A2A.Protocol.StreamResponse.operator ==(Ambinder.A2A.Protocol.StreamResponse? left, Ambinder.A2A.Protocol.StreamResponse? right) -> bool
+static Ambinder.A2A.Protocol.StringList.operator !=(Ambinder.A2A.Protocol.StringList? left, Ambinder.A2A.Protocol.StringList? right) -> bool
+static Ambinder.A2A.Protocol.StringList.operator ==(Ambinder.A2A.Protocol.StringList? left, Ambinder.A2A.Protocol.StringList? right) -> bool
+static Ambinder.A2A.Protocol.SubscribeToTaskRequest.operator !=(Ambinder.A2A.Protocol.SubscribeToTaskRequest? left, Ambinder.A2A.Protocol.SubscribeToTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.SubscribeToTaskRequest.operator ==(Ambinder.A2A.Protocol.SubscribeToTaskRequest? left, Ambinder.A2A.Protocol.SubscribeToTaskRequest? right) -> bool
+static Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.operator !=(Ambinder.A2A.Protocol.TaskArtifactUpdateEvent? left, Ambinder.A2A.Protocol.TaskArtifactUpdateEvent? right) -> bool
+static Ambinder.A2A.Protocol.TaskArtifactUpdateEvent.operator ==(Ambinder.A2A.Protocol.TaskArtifactUpdateEvent? left, Ambinder.A2A.Protocol.TaskArtifactUpdateEvent? right) -> bool
+static Ambinder.A2A.Protocol.TaskPushNotificationConfig.operator !=(Ambinder.A2A.Protocol.TaskPushNotificationConfig? left, Ambinder.A2A.Protocol.TaskPushNotificationConfig? right) -> bool
+static Ambinder.A2A.Protocol.TaskPushNotificationConfig.operator ==(Ambinder.A2A.Protocol.TaskPushNotificationConfig? left, Ambinder.A2A.Protocol.TaskPushNotificationConfig? right) -> bool
+static Ambinder.A2A.Protocol.TaskStatusUpdateEvent.operator !=(Ambinder.A2A.Protocol.TaskStatusUpdateEvent? left, Ambinder.A2A.Protocol.TaskStatusUpdateEvent? right) -> bool
+static Ambinder.A2A.Protocol.TaskStatusUpdateEvent.operator ==(Ambinder.A2A.Protocol.TaskStatusUpdateEvent? left, Ambinder.A2A.Protocol.TaskStatusUpdateEvent? right) -> bool

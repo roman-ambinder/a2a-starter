@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Diagnostics;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Shared;
 using Microsoft.AspNetCore.Http;
@@ -52,7 +52,8 @@ internal static partial class TransportErrors
         http.Response.StatusCode = httpStatus;
         http.Response.ContentType = "application/json";
         using var buffer = new MemoryStream();
-        await using (var w = new Utf8JsonWriter(buffer))
+        var w = new Utf8JsonWriter(buffer);
+        await using (w.ConfigureAwait(false))
         {
             w.WriteStartObject();
             w.WriteStartObject("error");
@@ -62,7 +63,7 @@ internal static partial class TransportErrors
             w.WriteEndObject();
             w.WriteEndObject();
         }
-        await http.Response.Body.WriteAsync(buffer.ToArray(), http.RequestAborted);
+        await http.Response.Body.WriteAsync(buffer.ToArray(), http.RequestAborted).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -119,10 +120,10 @@ internal static partial class TransportErrors
     public static Task WriteUnknownAgentAsync(HttpContext http, string? agentName)
         => WriteStatusAsync(http, StatusCodes.Status404NotFound, "NOT_FOUND", $"Unknown agent '{agentName}'. Use an agent name from the server's agent list.");
 
-    private static A2AException Internal(Exception ex, ILogger logger)
+    private static TraceIdInternalError Internal(Exception ex, ILogger logger)
     {
         var traceId = Activity.Current?.TraceId.ToHexString() ?? ActivityTraceId.CreateRandom().ToHexString();
-        LogUnhandled(logger, ex, traceId);
+        UnhandledTransportError(logger, ex, traceId);
         return new TraceIdInternalError(
             $"Internal error. Quote trace id {traceId} when you report it.",
             TraceIdData(traceId));
@@ -145,6 +146,7 @@ internal static partial class TransportErrors
     /// <summary>The internal error the server builds for an unknown exception. Only this one is sent with an ErrorInfo.</summary>
     private sealed class TraceIdInternalError(string message, JsonElement data) : A2AException(A2AErrorCode.InternalError, message, data);
 
-    [LoggerMessage(EventId = 3001, Level = LogLevel.Error, Message = "Unhandled error in A2A request. Trace id {TraceId}.")]
-    private static partial void LogUnhandled(ILogger logger, Exception exception, string traceId);
+    [LoggerMessage(EventId = LogEventIds.UnhandledTransportError, EventName = nameof(UnhandledTransportError), Level = LogLevel.Error,
+        Message = "Unhandled error in A2A request. Trace id {TraceId}.")]
+    private static partial void UnhandledTransportError(ILogger logger, Exception exception, string traceId);
 }

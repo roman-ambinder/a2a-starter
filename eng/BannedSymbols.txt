@@ -1,0 +1,20 @@
+# General bans (package 02). Performance bans are added by package 14 in this file.
+# Format: Roslyn documentation ID;message. The analyzer reports RS0030. A line may be used only with a documented #pragma exception.
+P:System.DateTime.Now;Use TimeProvider (inject it; default TimeProvider.System).
+P:System.DateTime.UtcNow;Use TimeProvider (inject it; default TimeProvider.System).
+P:System.DateTimeOffset.Now;Use TimeProvider (inject it; default TimeProvider.System).
+P:System.DateTimeOffset.UtcNow;Use TimeProvider (inject it; default TimeProvider.System).
+M:System.Threading.Thread.Sleep(System.Int32);Do not block. Use await Task.Delay with a TimeProvider.
+M:System.Threading.Thread.Sleep(System.TimeSpan);Do not block. Use await Task.Delay with a TimeProvider.
+M:System.Threading.Tasks.Task.Wait;Do not block on async code. Await it.
+M:System.Threading.Tasks.Task.Wait(System.Int32);Do not block on async code. Await it.
+M:System.Threading.Tasks.Task.Wait(System.TimeSpan);Do not block on async code. Await it.
+M:System.Threading.Tasks.Task.Wait(System.Threading.CancellationToken);Do not block on async code. Await it.
+M:System.Threading.Tasks.Task.Wait(System.Int32,System.Threading.CancellationToken);Do not block on async code. Await it.
+P:System.Threading.Tasks.Task`1.Result;Do not block on async code. Await it.
+M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;Do not block on async code. Await it.
+M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;Do not block on async code. Await it.
+M:System.Net.Http.HttpClient.#ctor;Use IHttpClientFactory.
+M:System.Net.Http.HttpClient.#ctor(System.Net.Http.HttpMessageHandler);Use IHttpClientFactory.
+M:System.Net.Http.HttpClient.#ctor(System.Net.Http.HttpMessageHandler,System.Boolean);Use IHttpClientFactory.
+T:System.Console;Do not write to the console from a library. Use ILogger.

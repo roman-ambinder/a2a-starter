@@ -1,0 +1,6 @@
+#nullable enable
+Ambinder.A2A.Client.Grpc.GrpcClientTransport
+Ambinder.A2A.Client.Grpc.GrpcClientTransport.Create(Ambinder.A2A.Protocol.AgentInterface! agentInterface, Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2AClientOptions! options, string? tenant) -> Ambinder.A2A.Client.IA2AClient!
+Ambinder.A2A.Client.Grpc.GrpcClientTransport.ProtocolBinding.get -> string!
+Ambinder.A2A.Client.Grpc.GrpcClientTransport.TransportName.get -> string!
+static Ambinder.A2A.Client.Grpc.GrpcClientTransport.Instance.get -> Ambinder.A2A.Client.Grpc.GrpcClientTransport!

@@ -1,4 +1,3 @@
-using Ambinder.A2A.AspNetCore.Auth;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.Server.Auth;

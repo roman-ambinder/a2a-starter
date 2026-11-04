@@ -11,7 +11,7 @@ namespace Ambinder.A2A.Client;
 /// <paramref name="agent"/> is the agent card's name (<c>a2a.agent</c>), <paramref name="transport"/> the <c>a2a.transport</c> value,
 /// <paramref name="tenant"/> the card interface's tenant.
 /// </summary>
-public sealed class TracingA2AClient(IA2AClient inner, string agent, string transport, string? tenant) : IA2AClient
+internal sealed class TracingA2AClient(IA2AClient inner, string agent, string transport, string? tenant) : IA2AClient
 {
     private static readonly ActivitySource Source = new(A2ATelemetryNames.ClientSource);
 

@@ -29,10 +29,15 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
+  <!-- Analyzer level (spec 02 section 7). Applies to src only. Rules that are turned down are listed in .editorconfig with a reason. -->
+  <PropertyGroup Label="Analyzers">
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
   <PropertyGroup Label="Documentation, symbols, SourceLink">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- CS1591 (missing doc) and CS1573 (some but not all parameters documented): XML doc completeness is enforced by package 02. -->
-    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <DebugType>portable</DebugType>
@@ -51,6 +56,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all" />
+    <!-- Banned APIs (spec 02 section 7). Build-only: PrivateAssets=all keeps it out of the nuspec. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(A2ARepoRoot)eng/BannedSymbols.txt" Link="BannedSymbols.txt" />
+    <!-- Public API files (spec 02 section 2). Build-only: PrivateAssets=all keeps it out of the nuspec. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Label="Package contents">

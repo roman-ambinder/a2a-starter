@@ -33,8 +33,9 @@ dotnet test --project tests/Ambinder.A2A.Server.Tests -c Release
 
 ## Rules
 
-- **No `InternalsVisibleTo` between shipped assemblies.** It is allowed only to the matching test assemblies and to the
-  benchmarks assembly. Share small helpers by linking source files from `src/Shared/` instead.
+- **No `InternalsVisibleTo` between shipped assemblies.** It is allowed only to the matching `*.Tests` assembly, to
+  `Ambinder.A2A.Benchmarks` and to `Ambinder.A2A.Integration.Tests` (owner decision 2026-11-03); none of them is shipped. Share small
+  helpers by linking source files from `src/Shared/` instead.
 - **New dependencies are visible in review.** Add every new package dependency of a shipped project to
   `eng/package-dependencies.json` in the same PR. The package check fails when the packed dependencies differ from that file.
   Run it locally: `dotnet pack Ambinder.A2A.slnx -c Release -o artifacts/packages`, then
@@ -42,8 +43,48 @@ dotnet test --project tests/Ambinder.A2A.Server.Tests -c Release
   ASP.NET Core, gRPC, Azure, EF or a database.
   `eng/check-core-only.sh` publishes `tests/Ambinder.A2A.CoreOnly.Smoke` (Server and Client only), fails when the output holds
   ASP.NET Core, gRPC, protobuf or Azure files, and runs the app.
-- **Public API files.** Workflow for `PublicAPI.*.txt`: added by package 02.
+- **Public API.** See the next section.
 - **Performance rules.** Added by package 14.
+
+## Public API
+
+The public surface of each shipped project is tracked in `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` next to its `.csproj`
+(Microsoft.CodeAnalysis.PublicApiAnalyzers). The rules are in the [versioning policy](docs/policies/versioning.md).
+
+**Workflow when you change a public member**
+
+1. Write the code and build. The build fails with RS0016 (member not declared) or RS0017 (declared member missing).
+2. Add the lines with the analyzer's fix, **once per project**. Running it on `Ambinder.A2A.slnx` fixes only one project, so run it for each project you changed:
+   ```bash
+   dotnet format analyzers src/Ambinder.A2A.Server/Ambinder.A2A.Server.csproj --diagnostics RS0016 RS0037 --severity info
+   ```
+   For a removed or changed member, edit the old line in `PublicAPI.Unshipped.txt` by hand.
+3. Read the diff of the API files. Every line must be something you meant to expose.
+4. Commit the API files with the code. Never regenerate an API file wholesale: the diff is the review surface, and a pull request check (`public-api-diff`) shows it.
+
+**During previews** every line stays in `PublicAPI.Unshipped.txt`; nothing moves to `Shipped` until `1.0.0-rc.1`. A removal or a change of a
+public member during previews needs a line under `### Breaking changes` in `CHANGELOG.md`. After `rc.1` a removal needs a `*REMOVED*` line and the deprecation policy.
+
+**Evolution rules in short** (full text in the [policy](docs/policies/versioning.md))
+
+- No new abstract members on implementer-facing or mocked interfaces after `1.0.0`: use a default interface method or a new interface.
+- Classes are `sealed` unless inheritance is a designed extension point. Models are `sealed record` with `init` properties and no positional constructor.
+- No new optional parameters on an existing method: add an overload.
+- Options are `sealed`, validated at startup, and the failure message names the property, the bad value and the fix.
+- A record that can hold a secret overrides `PrintMembers` and has a `ToString()` test.
+- A configuration key, telemetry name, header name, error code or log EventId is API.
+
+**XML docs.** Every public and protected member has a doc comment (a missing one is CS1591, an error). `XmlDocQualityTests` checks the shape
+(summaries, `<param>`, `<returns>`, examples on the entry points). Write what a caller needs to know, not what the name already says.
+
+**Banned APIs and analyzers.** `eng/BannedSymbols.txt` lists APIs that shipped code must not call (a call to one fails the build, RS0030); each entry says what to use instead.
+A suppression needs a `#pragma` with the reason next to it. `src/` builds with `AnalysisMode=Recommended`, `ConfigureAwait(false)` on every await (CA2007)
+and `[LoggerMessage]` for every log message (CA1848, CA2254).
+
+**Log EventIds** are API. Each assembly owns a block (Server 1000 to 1999, AspNetCore 2000 to 2999, AspNetCore.Grpc 3000 to 3999, Client 4000, Client.Grpc 5000,
+Client.Entra 6000). Never change or reuse an id. The table is in the [policy](docs/policies/versioning.md#8-log-eventid-blocks); `LogEventIdTests` enforces it.
+
+The pull request template has an "API files reviewed" checkbox, and `.github/CODEOWNERS` routes `PublicAPI.*.txt` to the API owner.
 
 ## Commits and pull requests
 

@@ -42,7 +42,7 @@ internal sealed class TaskWriter(
         catch (Exception ex)
         {
             // A throwing listener must not stop the publish or the observers: the task is already saved.
-            logger.LogDebug(ex, "Recording telemetry failed for task {TaskId}", task.Task.Id);
+            Log.RecordingTelemetryFailed(logger, ex, task.Task.Id);
         }
         broker.Publish(task.AgentName, task.Task.Id, evt);
         foreach (var observer in observers)
@@ -53,7 +53,7 @@ internal sealed class TaskWriter(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Task event observer {Observer} failed for task {TaskId}", observer.GetType().Name, task.Task.Id);
+                Log.TaskEventObserverFailed(logger, ex, observer.GetType().Name, task.Task.Id);
             }
         }
     }
@@ -105,7 +105,7 @@ internal sealed class TaskWriter(
         Parts = [Part.FromText(text)],
     };
 
-    public readonly struct Releaser(SemaphoreSlim semaphore) : IDisposable
+    internal readonly struct Releaser(SemaphoreSlim semaphore) : IDisposable
     {
         public void Dispose() => semaphore.Release();
     }

@@ -1,0 +1,52 @@
+#nullable enable
+Ambinder.A2A.Client.A2ACardResolver
+Ambinder.A2A.Client.A2ACardResolver.A2ACardResolver(System.Net.Http.HttpClient! httpClient, System.TimeProvider? timeProvider = null) -> void
+Ambinder.A2A.Client.A2ACardResolver.GetAgentCardAsync(System.Uri! baseOrCardUrl, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.AgentCard!>!
+Ambinder.A2A.Client.A2AClientFactory
+Ambinder.A2A.Client.A2AClientOptions
+Ambinder.A2A.Client.A2AClientOptions.A2AClientOptions() -> void
+Ambinder.A2A.Client.A2AClientOptions.ClientCertificate.get -> System.Security.Cryptography.X509Certificates.X509Certificate2?
+Ambinder.A2A.Client.A2AClientOptions.ClientCertificate.init -> void
+Ambinder.A2A.Client.A2AClientOptions.Credentials.get -> Ambinder.A2A.Client.Auth.IA2ACredentialProvider?
+Ambinder.A2A.Client.A2AClientOptions.Credentials.init -> void
+Ambinder.A2A.Client.A2AClientOptions.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Ambinder.A2A.Client.A2AClientOptions.Extensions.init -> void
+Ambinder.A2A.Client.A2AClientOptions.GrpcUseTls.get -> bool?
+Ambinder.A2A.Client.A2AClientOptions.GrpcUseTls.init -> void
+Ambinder.A2A.Client.A2AClientOptions.HttpClient.get -> System.Net.Http.HttpClient?
+Ambinder.A2A.Client.A2AClientOptions.HttpClient.init -> void
+Ambinder.A2A.Client.A2AClientOptions.PreferredBinding.get -> string?
+Ambinder.A2A.Client.A2AClientOptions.PreferredBinding.init -> void
+Ambinder.A2A.Client.A2AClientOptions.Transports.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Client.IA2AClientTransport!>!
+Ambinder.A2A.Client.A2AClientOptions.Transports.init -> void
+Ambinder.A2A.Client.Auth.ApiKeyCredentialProvider
+Ambinder.A2A.Client.Auth.ApiKeyCredentialProvider.ApiKeyCredentialProvider(string! key) -> void
+Ambinder.A2A.Client.Auth.ApiKeyCredentialProvider.GetHeadersAsync(Ambinder.A2A.Protocol.AgentCard! card, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+Ambinder.A2A.Client.Auth.BearerTokenCredentialProvider
+Ambinder.A2A.Client.Auth.BearerTokenCredentialProvider.BearerTokenCredentialProvider(string! token) -> void
+Ambinder.A2A.Client.Auth.BearerTokenCredentialProvider.GetHeadersAsync(Ambinder.A2A.Protocol.AgentCard! card, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+Ambinder.A2A.Client.Auth.ClientCredentialsProvider
+Ambinder.A2A.Client.Auth.ClientCredentialsProvider.AllowedTokenHosts.get -> System.Collections.Generic.IReadOnlySet<string!>!
+Ambinder.A2A.Client.Auth.ClientCredentialsProvider.ClientCredentialsProvider(string! clientId, string! clientSecret, string! scope, System.Uri? tokenUrlOverride = null, System.Net.Http.HttpClient? httpClient = null, System.TimeProvider? timeProvider = null, System.Collections.Generic.IEnumerable<string!>? allowedTokenHosts = null) -> void
+Ambinder.A2A.Client.Auth.ClientCredentialsProvider.Dispose() -> void
+Ambinder.A2A.Client.Auth.ClientCredentialsProvider.GetHeadersAsync(Ambinder.A2A.Protocol.AgentCard! card, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+Ambinder.A2A.Client.Auth.IA2ACredentialProvider
+Ambinder.A2A.Client.Auth.IA2ACredentialProvider.GetHeadersAsync(Ambinder.A2A.Protocol.AgentCard! card, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+Ambinder.A2A.Client.IA2AClient
+Ambinder.A2A.Client.IA2AClient.CancelTaskAsync(Ambinder.A2A.Protocol.CancelTaskRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.AgentTask!>!
+Ambinder.A2A.Client.IA2AClient.CreateTaskPushNotificationConfigAsync(Ambinder.A2A.Protocol.TaskPushNotificationConfig! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>!
+Ambinder.A2A.Client.IA2AClient.DeleteTaskPushNotificationConfigAsync(Ambinder.A2A.Protocol.DeleteTaskPushNotificationConfigRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Ambinder.A2A.Client.IA2AClient.GetExtendedAgentCardAsync(Ambinder.A2A.Protocol.GetExtendedAgentCardRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.AgentCard!>!
+Ambinder.A2A.Client.IA2AClient.GetTaskAsync(Ambinder.A2A.Protocol.GetTaskRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.AgentTask!>!
+Ambinder.A2A.Client.IA2AClient.GetTaskPushNotificationConfigAsync(Ambinder.A2A.Protocol.GetTaskPushNotificationConfigRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.TaskPushNotificationConfig!>!
+Ambinder.A2A.Client.IA2AClient.ListTaskPushNotificationConfigsAsync(Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.ListTaskPushNotificationConfigsResponse!>!
+Ambinder.A2A.Client.IA2AClient.ListTasksAsync(Ambinder.A2A.Protocol.ListTasksRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.ListTasksResponse!>!
+Ambinder.A2A.Client.IA2AClient.SendMessageAsync(Ambinder.A2A.Protocol.SendMessageRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Ambinder.A2A.Protocol.SendMessageResponse!>!
+Ambinder.A2A.Client.IA2AClient.SendStreamingMessageAsync(Ambinder.A2A.Protocol.SendMessageRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Ambinder.A2A.Protocol.StreamResponse!>!
+Ambinder.A2A.Client.IA2AClient.SubscribeToTaskAsync(Ambinder.A2A.Protocol.SubscribeToTaskRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Ambinder.A2A.Protocol.StreamResponse!>!
+Ambinder.A2A.Client.IA2AClientTransport
+Ambinder.A2A.Client.IA2AClientTransport.Create(Ambinder.A2A.Protocol.AgentInterface! agentInterface, Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2AClientOptions! options, string? tenant) -> Ambinder.A2A.Client.IA2AClient!
+Ambinder.A2A.Client.IA2AClientTransport.ProtocolBinding.get -> string!
+Ambinder.A2A.Client.IA2AClientTransport.TransportName.get -> string!
+static Ambinder.A2A.Client.A2AClientFactory.Create(Ambinder.A2A.Protocol.AgentCard! card, Ambinder.A2A.Client.A2AClientOptions! options) -> Ambinder.A2A.Client.IA2AClient!
+static readonly Ambinder.A2A.Client.A2ACardResolver.CacheDuration -> System.TimeSpan

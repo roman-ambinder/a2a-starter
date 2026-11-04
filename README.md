@@ -16,7 +16,7 @@ dotnet run --project samples/GettingStarted.Client                 # terminal 2:
 
 ## Packages
 
-Nothing is published to NuGet yet, and every version is a preview until 1.0.0 (any preview can contain breaking changes; see [CHANGELOG.md](CHANGELOG.md)). The `dotnet add package` lines below work once the first preview is released; until then, use the project references described in the [samples](samples/GettingStarted.Agent/README.md) or `eng/build-samples-on-packages.sh`.
+Nothing is published to NuGet yet, and every version is a preview until 1.0.0 (any preview can contain breaking changes; see [CHANGELOG.md](CHANGELOG.md)). What a version number promises and what counts as public API: [versioning policy](docs/policies/versioning.md). The `dotnet add package` lines below work once the first preview is released; until then, use the project references described in the [samples](samples/GettingStarted.Agent/README.md) or `eng/build-samples-on-packages.sh`.
 
 One package for a server (`Ambinder.A2A.AspNetCore`), one for a client (`Ambinder.A2A.Client`). gRPC and Entra are opt-in.
 
@@ -127,6 +127,7 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `Ambinder.A2A.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
+On pull requests the `public-api-diff` job also writes the change to the `PublicAPI.*.txt` files into the job summary.
 It does not run the TCK or start Docker or the AppHost.
 
 `.github/dependabot.yml` opens weekly update pull requests for NuGet packages, GitHub Actions and the Docker base images in `docker/`.

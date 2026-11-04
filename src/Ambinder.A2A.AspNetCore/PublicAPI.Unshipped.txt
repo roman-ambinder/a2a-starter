@@ -1,0 +1,7 @@
+#nullable enable
+Microsoft.AspNetCore.Builder.A2AEndpointRouteBuilderExtensions
+Microsoft.AspNetCore.Builder.A2AKestrelExtensions
+Microsoft.Extensions.DependencyInjection.A2AServerServiceCollectionExtensions
+static Microsoft.AspNetCore.Builder.A2AEndpointRouteBuilderExtensions.MapA2A(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+static Microsoft.AspNetCore.Builder.A2AKestrelExtensions.ConfigureA2AKestrel(this Microsoft.AspNetCore.Builder.WebApplicationBuilder! builder) -> Microsoft.AspNetCore.Builder.WebApplicationBuilder!
+static Microsoft.Extensions.DependencyInjection.A2AServerServiceCollectionExtensions.AddA2AServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!

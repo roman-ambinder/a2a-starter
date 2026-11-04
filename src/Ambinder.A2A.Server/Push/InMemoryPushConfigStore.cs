@@ -6,7 +6,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Push;
 
 /// <summary>Keeps push configs in memory. Page tokens are the creation sequence number of the last item returned.</summary>
-public sealed class InMemoryPushConfigStore : IPushConfigStore
+internal sealed class InMemoryPushConfigStore : IPushConfigStore
 {
     private const int DefaultPageSize = 50;
     private const int MaxPageSize = 100;

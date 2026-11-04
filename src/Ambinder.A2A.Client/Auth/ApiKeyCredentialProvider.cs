@@ -6,10 +6,14 @@ namespace Ambinder.A2A.Client.Auth;
 /// Sends an API key in the header named by the card's <c>apiKeySecurityScheme</c>.
 /// Phase 1 supports <c>location = "header"</c> only.
 /// </summary>
+/// <param name="key">The API key. It is a secret; do not log it.</param>
 public sealed class ApiKeyCredentialProvider(string key) : IA2ACredentialProvider
 {
     private readonly string _key = key ?? throw new ArgumentNullException(nameof(key));
 
+    /// <inheritdoc/>
+    /// <exception cref="InvalidOperationException">The card declares no API key scheme, or the scheme has no header name.</exception>
+    /// <exception cref="NotSupportedException">The API key scheme puts the key somewhere other than a header.</exception>
     public ValueTask<IReadOnlyDictionary<string, string>> GetHeadersAsync(AgentCard card, CancellationToken ct)
     {
         var scheme = card.SecuritySchemes?.Values.Select(s => s.ApiKeySecurityScheme).FirstOrDefault(s => s is not null)

@@ -19,8 +19,10 @@
   <ItemGroup>
     <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
     <Compile Include="../Shared/RequestValidator.cs" Link="Shared/RequestValidator.cs" />
+    <Compile Include="../Shared/InternalServiceKeys.cs" Link="Shared/InternalServiceKeys.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Ambinder.A2A.Server.Tests" />
+    <InternalsVisibleTo Include="Ambinder.A2A.Integration.Tests" />
   </ItemGroup>
 </Project>

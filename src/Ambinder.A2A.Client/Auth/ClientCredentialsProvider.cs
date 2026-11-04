@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
+using Ambinder.A2A.Client.Transports;
 
 namespace Ambinder.A2A.Client.Auth;
 
@@ -38,11 +39,18 @@ public sealed class ClientCredentialsProvider : IA2ACredentialProvider, IDisposa
     private string? _token;
     private DateTimeOffset _refreshAt;
 
+    /// <summary>Creates a provider for the OAuth 2.0 client credentials flow.</summary>
+    /// <param name="clientId">The client ID.</param>
+    /// <param name="clientSecret">The client secret. It is sent to the token URL; do not log it.</param>
+    /// <param name="scope">The scope to request.</param>
     /// <param name="tokenUrlOverride">The token URL to use. When set, the card's token URL is ignored.</param>
+    /// <param name="httpClient">The HTTP client for token requests, or <see langword="null"/> to create one that this provider disposes.</param>
+    /// <param name="timeProvider">The clock used for token expiry, or <see langword="null"/> for the system clock.</param>
     /// <param name="allowedTokenHosts">
     /// Hosts whose card-advertised token URL may be used (case-insensitive, for example <c>login.microsoftonline.com</c>).
     /// Empty or null: the card's token URL is never used and <paramref name="tokenUrlOverride"/> is required.
     /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="clientId"/>, <paramref name="clientSecret"/> or <paramref name="scope"/> is <see langword="null"/>.</exception>
     public ClientCredentialsProvider(string clientId, string clientSecret, string scope, Uri? tokenUrlOverride = null,
         HttpClient? httpClient = null, TimeProvider? timeProvider = null, IEnumerable<string>? allowedTokenHosts = null)
     {
@@ -50,7 +58,7 @@ public sealed class ClientCredentialsProvider : IA2ACredentialProvider, IDisposa
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
         _scope = scope ?? throw new ArgumentNullException(nameof(scope));
         _tokenUrlOverride = tokenUrlOverride;
-        _http = httpClient ?? new HttpClient();
+        _http = httpClient ?? ClientSupport.CreateOwnedHttpClient();
         _ownsHttp = httpClient is null;
         _time = timeProvider ?? TimeProvider.System;
         AllowedTokenHosts = new HashSet<string>(
@@ -61,6 +69,9 @@ public sealed class ClientCredentialsProvider : IA2ACredentialProvider, IDisposa
     /// <summary>Hosts whose card-advertised token URL may receive the client secret. Empty: only the explicit override is used.</summary>
     public IReadOnlySet<string> AllowedTokenHosts { get; }
 
+    /// <inheritdoc/>
+    /// <exception cref="A2AAuthException">The token URL is refused, or the token endpoint returned an error (HTTP 401).</exception>
+    /// <exception cref="InvalidOperationException">The card has no client credentials flow and no token URL override was given.</exception>
     public async ValueTask<IReadOnlyDictionary<string, string>> GetHeadersAsync(AgentCard card, CancellationToken ct)
     {
         var tokenUrl = _tokenUrlOverride ?? TrustedCardTokenUrl(card);
@@ -178,6 +189,7 @@ public sealed class ClientCredentialsProvider : IA2ACredentialProvider, IDisposa
             ? v.GetString()
             : null;
 
+    /// <summary>Disposes the provider, and the HTTP client when the provider created it.</summary>
     public void Dispose()
     {
         _gate.Dispose();

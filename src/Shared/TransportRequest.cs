@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Security.Claims;
-using Ambinder.A2A.AspNetCore.Auth;
 using Ambinder.A2A.Protocol;
 using Ambinder.A2A.Server;
 using Ambinder.A2A.Server.Agents;
@@ -20,6 +19,12 @@ namespace Ambinder.A2A.AspNetCore.Transports;
 /// </summary>
 internal static partial class TransportRequest
 {
+    /// <summary>
+    /// True when the primary identity (<see cref="ClaimsPrincipal.Identity"/>) is authenticated. The same rule as
+    /// <see cref="DefaultOwnerResolver.GetOwner"/>, so a caller is never authorized and then treated as anonymous for ownership.
+    /// </summary>
+    public static bool IsAuthenticated(ClaimsPrincipal user) => user.Identity?.IsAuthenticated == true;
+
     /// <summary>
     /// <see cref="ServiceParameters.EnsureSupportedVersion"/>, with the rejection tagged on the request activity
     /// (<c>error.type</c> = <c>VERSION_NOT_SUPPORTED</c>) before it is rethrown.
@@ -44,7 +49,7 @@ internal static partial class TransportRequest
     /// </summary>
     public static void AuthorizeExtendedCard(AgentRegistration agent, DispatchCaller caller)
     {
-        if (agent.PublicCard.Capabilities.ExtendedAgentCard != true || AgentAuthorizer.IsAuthenticated(caller.User)) return;
+        if (agent.PublicCard.Capabilities.ExtendedAgentCard != true || IsAuthenticated(caller.User)) return;
         TagError("401");
         throw new A2AAuthException(401, "Authentication is required.");
     }

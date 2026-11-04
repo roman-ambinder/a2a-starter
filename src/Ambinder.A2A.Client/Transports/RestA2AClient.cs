@@ -12,7 +12,7 @@ namespace Ambinder.A2A.Client.Transports;
 /// A2A client for the HTTP+JSON (REST) binding. A request with a tenant (its own, else the default tenant) uses the proto's
 /// <c>/{tenant}/...</c> paths for every operation.
 /// </summary>
-public sealed class RestA2AClient : IA2AClient
+internal sealed class RestA2AClient : IA2AClient
 {
 
     private readonly string _baseUrl;
@@ -25,6 +25,7 @@ public sealed class RestA2AClient : IA2AClient
 
     /// <param name="baseUrl">The REST base URL from the card's supportedInterfaces.</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
+    /// <param name="options">The client options.</param>
     /// <param name="defaultTenant">Tenant used when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
     /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>A2A-Version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
     public RestA2AClient(Uri baseUrl, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
@@ -42,7 +43,7 @@ public sealed class RestA2AClient : IA2AClient
         }
         else
         {
-            _http = new HttpClient(ClientSupport.CreateHandler(options));
+            _http = ClientSupport.CreateOwnedHttpClient(ClientSupport.CreateHandler(options));
             _ownsHttp = true;
         }
     }

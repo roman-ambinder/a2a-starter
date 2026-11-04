@@ -8,7 +8,7 @@ namespace Ambinder.A2A.Server.Telemetry;
 /// Wraps an <see cref="IA2ARequestHandler"/> and records one span per operation (<c>a2a.server &lt;Method&gt;</c>).
 /// Streaming spans stay open for the whole enumeration. Records IDs and error types only, never message content.
 /// </summary>
-public sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2ARequestHandler
+internal sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2ARequestHandler
 {
     public Task<SendMessageResponse> SendMessageAsync(A2ACallContext call, SendMessageRequest request, CancellationToken ct)
         => RunAsync("SendMessage", call, request.Message.TaskId, request.Message.ContextId,
@@ -76,27 +76,30 @@ public sealed class TracingRequestHandler(IA2ARequestHandler inner) : IA2AReques
         try
         {
             // A manual loop: yield cannot sit inside a try block that has a catch.
-            await using var events = operation().GetAsyncEnumerator(ct);
-            while (true)
+            var events = operation().GetAsyncEnumerator(ct);
+            await using (events.ConfigureAwait(false))
             {
-                StreamResponse item;
-                try
+                while (true)
                 {
-                    if (!await events.MoveNextAsync().ConfigureAwait(false)) break;
-                    item = events.Current;
+                    StreamResponse item;
+                    try
+                    {
+                        if (!await events.MoveNextAsync().ConfigureAwait(false)) break;
+                        item = events.Current;
+                    }
+                    catch (Exception ex)
+                    {
+                        Fail(span, ex);
+                        throw;
+                    }
+                    if (span is not null)
+                    {
+                        var task = item.Task;
+                        SetIds(span, task?.Id ?? item.StatusUpdate?.TaskId ?? item.ArtifactUpdate?.TaskId ?? item.Message?.TaskId,
+                            task?.ContextId ?? item.StatusUpdate?.ContextId ?? item.ArtifactUpdate?.ContextId ?? item.Message?.ContextId);
+                    }
+                    yield return item;
                 }
-                catch (Exception ex)
-                {
-                    Fail(span, ex);
-                    throw;
-                }
-                if (span is not null)
-                {
-                    var task = item.Task;
-                    SetIds(span, task?.Id ?? item.StatusUpdate?.TaskId ?? item.ArtifactUpdate?.TaskId ?? item.Message?.TaskId,
-                        task?.ContextId ?? item.StatusUpdate?.ContextId ?? item.ArtifactUpdate?.ContextId ?? item.Message?.ContextId);
-                }
-                yield return item;
             }
         }
         finally

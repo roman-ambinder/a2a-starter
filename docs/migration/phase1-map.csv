@@ -1,0 +1,35 @@
+old symbol,new symbol,package,change
+A2A.Protocol.A2AJsonContext,Ambinder.A2A.Protocol.A2AJson.<Type> / A2AJson.TypeInfoResolver,Ambinder.A2A.Protocol,internal; replaced by A2AJson typed accessors
+A2A.Protocol.UtcTimestampConverter,,Ambinder.A2A.Protocol,internal
+A2A.Server.Tasks.TaskManager,,Ambinder.A2A.Server,internal; reached through IA2ARequestHandler
+A2A.Server.Tasks.TaskEventBroker,,Ambinder.A2A.Server,internal; replaced by ITaskEventBus (package 06)
+A2A.Server.Tasks.TaskWriter.Releaser,,Ambinder.A2A.Server,internal
+A2A.Server.Push.PushNotificationSender,,Ambinder.A2A.Server,internal; public seam designed in package 08
+A2A.Server.Push.PushSigningKey,,Ambinder.A2A.Server,internal; replaced by IPushSigningKeySource (package 08)
+A2A.Server.Telemetry.TracingRequestHandler,,Ambinder.A2A.Server,internal; tracing is on with AddA2AServer
+A2A.Server.Tasks.PageToken,,Ambinder.A2A.Server,internal
+A2A.Server.Tasks.TaskStateRules,,Ambinder.A2A.Server,internal
+A2A.Server.Push.WebhookUrlValidator,,Ambinder.A2A.Server,internal
+A2A.Server.Hosting.AgentCardInterfaces,,Ambinder.A2A.Server,internal
+A2A.Server.Tasks.InMemoryTaskStore,,Ambinder.A2A.Server,internal; registered by AddA2AServer
+A2A.Server.Push.InMemoryPushConfigStore,,Ambinder.A2A.Server,internal; registered by AddA2AServer
+A2A.Server.Transports.RequestValidation,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.ServiceParameters,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.RestErrorWriter,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Transports.SseWriter,,Ambinder.A2A.AspNetCore,internal
+A2A.Server.Auth.AgentAuthorizer,,Ambinder.A2A.AspNetCore,internal; registered by AddA2AServer
+A2A.Server.Grpc.GrpcErrorMapper,,Ambinder.A2A.AspNetCore.Grpc,internal
+A2A.Client.Transports.RestA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.Transports.JsonRpcA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.TracingA2AClient,,Ambinder.A2A.Client,internal; replaced by A2AClientFactory / AddA2AClient (package 10)
+A2A.Client.Transports.Sse.SseReader,,Ambinder.A2A.Client,internal
+A2A.Protocol.Grpc.GrpcA2AClient,Ambinder.A2A.Client.Grpc.GrpcClientTransport.Instance,Ambinder.A2A.Client.Grpc,internal; create through GrpcClientTransport (replaced in package 10)
+Ambinder.A2A.Server.Hosting.A2AServiceCollectionExtensions,Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions,Ambinder.A2A.Server,moved; class renamed
+Ambinder.A2A.AspNetCore.Hosting.A2AAspNetCoreServiceCollectionExtensions,Microsoft.Extensions.DependencyInjection.A2AServerServiceCollectionExtensions,Ambinder.A2A.AspNetCore,moved; class renamed
+Ambinder.A2A.AspNetCore.Hosting.A2AEndpointRouteBuilderExtensions,Microsoft.AspNetCore.Builder.A2AEndpointRouteBuilderExtensions,Ambinder.A2A.AspNetCore,moved
+Ambinder.A2A.AspNetCore.Hosting.A2AKestrelExtensions,Microsoft.AspNetCore.Builder.A2AKestrelExtensions,Ambinder.A2A.AspNetCore,moved
+Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.AddA2AGrpc,Microsoft.Extensions.DependencyInjection.A2AGrpcServerBuilderExtensions.AddA2AGrpc,Ambinder.A2A.AspNetCore.Grpc,moved; class split
+Ambinder.A2A.AspNetCore.Grpc.A2AGrpcExtensions.MapA2AGrpc,Microsoft.AspNetCore.Builder.A2AGrpcEndpointRouteBuilderExtensions.MapA2AGrpc,Ambinder.A2A.AspNetCore.Grpc,moved; class split
+Ambinder.A2A.Server.Agents.IAgentHandler,Ambinder.A2A.Server.IAgentHandler,Ambinder.A2A.Server,moved
+Ambinder.A2A.Server.Agents.IAgentEventSink,Ambinder.A2A.Server.IAgentEventSink,Ambinder.A2A.Server,moved
+Ambinder.A2A.Server.Agents.AgentRequestContext,Ambinder.A2A.Server.AgentRequestContext,Ambinder.A2A.Server,moved

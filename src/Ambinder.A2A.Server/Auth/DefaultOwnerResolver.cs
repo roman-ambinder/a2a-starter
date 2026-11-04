@@ -15,6 +15,7 @@ namespace Ambinder.A2A.Server.Auth;
 /// </list>
 /// Step-up rule (<see cref="CanContinueInterrupted"/>): an <c>AUTH_REQUIRED</c> task may be continued by another app of the same tenant.
 /// </summary>
+/// <remarks>The resolver has no state and is thread-safe. The server uses one shared instance unless you register your own <see cref="IOwnerResolver"/>.</remarks>
 public sealed class DefaultOwnerResolver : IOwnerResolver
 {
     /// <summary>Authentication type of the API key identity (the sample's <c>ApiKey</c> scheme).</summary>
@@ -26,15 +27,19 @@ public sealed class DefaultOwnerResolver : IOwnerResolver
     private const string ObjectIdClaim = "oid";
     private const string MappedObjectIdClaim = "http://schemas.microsoft.com/identity/claims/objectidentifier";
 
+    /// <summary>Creates a resolver.</summary>
     /// <param name="apiKeyAuthenticationType">The <see cref="ClaimsIdentity.AuthenticationType"/> that marks an API key identity.</param>
+    /// <exception cref="ArgumentException"><paramref name="apiKeyAuthenticationType"/> is <see langword="null"/> or empty.</exception>
     public DefaultOwnerResolver(string apiKeyAuthenticationType = DefaultApiKeyAuthenticationType)
     {
         ArgumentException.ThrowIfNullOrEmpty(apiKeyAuthenticationType);
         ApiKeyAuthenticationType = apiKeyAuthenticationType;
     }
 
+    /// <summary>The <see cref="ClaimsIdentity.AuthenticationType"/> that marks an API key identity. The default is <c>ApiKey</c>.</summary>
     public string ApiKeyAuthenticationType { get; }
 
+    /// <inheritdoc/>
     public string GetOwner(ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -58,6 +63,10 @@ public sealed class DefaultOwnerResolver : IOwnerResolver
     }
 
     /// <summary>True only for <see cref="TaskState.AuthRequired"/> when both owners are bearer owners of the same tenant.</summary>
+    /// <param name="taskOwner">The owner key of the task.</param>
+    /// <param name="callerOwner">The owner key of the caller.</param>
+    /// <param name="state">The state of the task.</param>
+    /// <returns><see langword="true"/> when the caller may continue the task.</returns>
     public bool CanContinueInterrupted(string taskOwner, string callerOwner, TaskState state)
     {
         ArgumentNullException.ThrowIfNull(taskOwner);

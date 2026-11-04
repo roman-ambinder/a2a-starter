@@ -104,16 +104,45 @@ public sealed class ErrorRoundTripTests(A2ATestHost host)
         Assert.DoesNotContain("secret detail", error.Status.Detail, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// An <see cref="A2AErrorCode.InternalError"/> a handler throws with its own data keeps that data off the gRPC wire: no ErrorInfo
+    /// detail at all (only the server-generated internal error carries one). The mapper is internal to the gRPC package, so this
+    /// checks it on a real call.
+    /// </summary>
+    [Fact]
+    public async Task Handler_internal_error_data_stays_off_the_grpc_wire()
+    {
+        var portBase = ExtraPortBase + 30;
+        await using var server = await A2ATestHost.StartAgentServerAsync(portBase, A2ATestHost.MockEntraBaseUrl,
+            b => b.Host.ConfigureServices((_, services) => services.AddSingleton<IA2ARequestHandler>(sp => new ThrowingHandler(sp))));
+        using var channel = GrpcChannel.ForAddress($"http://127.0.0.1:{portBase + A2ATestHost.GrpcOffsets["echo"]}");
+        var client = new Proto.A2AService.A2AServiceClient(channel);
+        var headers = new Metadata
+        {
+            { "a2a-version", "1.0" },
+            { "authorization", $"Bearer {await host.GetTokenAsync(TestAuth.Client, Ct)}" },
+        };
+
+        var error = await Assert.ThrowsAsync<RpcException>(async () =>
+            await client.GetTaskAsync(new Proto.GetTaskRequest { Id = ThrowingHandler.HandlerInternalId }, headers, cancellationToken: Ct));
+
+        Assert.Empty(error.GetRpcStatus()!.Details);
+    }
+
     /// <summary>Delegates everything to the real handler except GetTask, which throws the code its id names.</summary>
     private sealed class ThrowingHandler(IServiceProvider services) : IA2ARequestHandler
     {
         private readonly TaskManager _inner = services.GetRequiredService<TaskManager>();
 
         public const string CrashId = "crash";
+        public const string HandlerInternalId = "handler-internal";
 
         public Task<AgentTask> GetTaskAsync(A2ACallContext call, GetTaskRequest request, CancellationToken ct)
             => request.Id == CrashId
                 ? throw new InvalidOperationException("secret detail")
+                : request.Id == HandlerInternalId
+                ? throw new A2AException(A2AErrorCode.InternalError, "handler said so",
+                    System.Text.Json.JsonSerializer.SerializeToElement(new { k = "v" }))
                 : throw new A2AException(Enum.Parse<A2AErrorCode>(request.Id), "thrown for the test",
                     System.Text.Json.JsonSerializer.SerializeToElement(new { k = "v", list = new[] { 1, 2 } }));
 

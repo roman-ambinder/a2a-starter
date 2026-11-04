@@ -37,6 +37,8 @@ internal static partial class TransportRequest
     /// caller goes on; its own version check then rejects an unsupported version. Call it before reading the body or resolving
     /// the operation.
     /// </summary>
+    /// <param name="http">The request.</param>
+    /// <param name="agent">The agent the request addresses.</param>
     /// <param name="binding">The binding the request came in on.</param>
     /// <param name="restPath">For REST, the path after the REST base; empty otherwise.</param>
     /// <param name="requestTenant">Computes the tenant the request names, given whether the version is supported (null: none).</param>

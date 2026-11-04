@@ -13,7 +13,7 @@ namespace Ambinder.A2A.Client.Grpc;
 /// (<c>a2a-version</c>, <c>a2a-extensions</c>, lowercase credential header names). Failures come back as
 /// <see cref="A2AException"/> / <see cref="A2AAuthException"/>; caller cancellation as <see cref="OperationCanceledException"/>.
 /// </summary>
-public sealed class GrpcA2AClient : IA2AClient
+internal sealed class GrpcA2AClient : IA2AClient
 {
     private readonly AgentCard _card;
     private readonly A2AClientOptions _options;
@@ -24,6 +24,7 @@ public sealed class GrpcA2AClient : IA2AClient
 
     /// <param name="address">The gRPC address from the card's supportedInterfaces (<c>http://</c> uses h2c).</param>
     /// <param name="card">The agent card; handed to the credential provider.</param>
+    /// <param name="options">The client options.</param>
     /// <param name="defaultTenant">Tenant sent when a request's tenant is empty (the card interface's <c>tenant</c>).</param>
     /// <param name="protocolVersion">The <c>Major.Minor</c> sent as <c>a2a-version</c> (the selected card interface's version). Null → <see cref="A2AConstants.ProtocolVersion"/>.</param>
     public GrpcA2AClient(Uri address, AgentCard card, A2AClientOptions options, string? defaultTenant = null,
@@ -226,7 +227,9 @@ public sealed class GrpcA2AClient : IA2AClient
                 catch (ArgumentException)
                 {
                     // Never echo the value: it is a credential.
+#pragma warning disable CA2208 // "name" is the header name from the credential provider, not a parameter; callers see it in the message.
                     throw new ArgumentException($"The header '{name}' cannot be sent as gRPC metadata.", nameof(name));
+#pragma warning restore CA2208
                 }
             }
         }

@@ -31,17 +31,22 @@ public static class A2AError
         [A2AErrorCode.VersionNotSupported] = new(A2AErrorCode.VersionNotSupported, 400, "FailedPrecondition", "VERSION_NOT_SUPPORTED"),
     };
 
-    private static readonly IReadOnlyDictionary<string, A2AErrorCode> ByReason = Catalog.Values
+    private static readonly Dictionary<string, A2AErrorCode> ByReason = Catalog.Values
         .Where(info => info.Reason is not null)
         .ToDictionary(info => info.Reason!, info => info.Code, StringComparer.Ordinal);
 
     /// <summary>Returns the catalog row for an error code.</summary>
+    /// <param name="code">The error code.</param>
+    /// <returns>The row with the HTTP status, gRPC status and ErrorInfo reason.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="code"/> is not a known A2A error code.</exception>
     public static A2AErrorInfo Get(A2AErrorCode code)
         => Catalog.TryGetValue(code, out var info)
             ? info
             : throw new ArgumentOutOfRangeException(nameof(code), code, "Unknown A2A error code.");
 
     /// <summary>Returns the error code for an ErrorInfo reason, or null if the reason is unknown. Matching is case-sensitive.</summary>
+    /// <param name="reason">The ErrorInfo reason, for example <c>TASK_NOT_FOUND</c>.</param>
+    /// <returns>The error code, or <see langword="null"/> when the reason is unknown.</returns>
     public static A2AErrorCode? FromReason(string reason)
         => ByReason.TryGetValue(reason, out var code) ? code : null;
 }

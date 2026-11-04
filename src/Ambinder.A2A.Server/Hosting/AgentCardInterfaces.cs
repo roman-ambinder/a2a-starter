@@ -3,7 +3,7 @@ using Ambinder.A2A.Protocol;
 namespace Ambinder.A2A.Server.Hosting;
 
 /// <summary>Builds the <c>supportedInterfaces</c> list of a hosted agent's card from <see cref="A2AServerOptions"/>.</summary>
-public static class AgentCardInterfaces
+internal static class AgentCardInterfaces
 {
     /// <summary>Returns <paramref name="card"/> with its interfaces replaced by <see cref="For"/>.</summary>
     public static AgentCard Apply(AgentCard card, string agentName, A2AServerOptions options)

@@ -72,7 +72,7 @@ public sealed class ClientHardeningTests
         var ex2 = await Assert.ThrowsAsync<ArgumentException>(async () => await rpc.GetTaskAsync(new GetTaskRequest { Id = "t1" }, Ct));
         Assert.DoesNotContain("s3cret-value", ex2.Message);
 
-        await using var grpc = new GrpcA2AClient(new Uri("http://127.0.0.1:1"), new AgentCard { Name = "stub" }, new A2AClientOptions { Credentials = creds });
+        await using var grpc = GrpcClientTransport.Instance.Create(GrpcInterface("http://127.0.0.1:1"), new AgentCard { Name = "stub" }, new A2AClientOptions { Credentials = creds }, null);
         var ex3 = await Assert.ThrowsAsync<ArgumentException>(async () => await grpc.GetTaskAsync(new GetTaskRequest { Id = "t1" }, Ct));
         Assert.Contains("Bad Name", ex3.Message);
         Assert.DoesNotContain("s3cret-value", ex3.Message);
@@ -334,16 +334,19 @@ public sealed class ClientHardeningTests
         return (app, new Uri(app.Urls.First()));
     }
 
+    // GrpcA2AClient is internal; the public way to get one is the transport (same constructor, no tenant).
+    private static AgentInterface GrpcInterface(string url) => new() { Url = url, ProtocolBinding = "GRPC", ProtocolVersion = "1.0" };
+
     [Fact]
     public async Task Grpc_missing_payloads_are_invalid_agent_response_and_statuses_map()
     {
         var (app, address) = await StartBadServerAsync();
         await using var _ = app;
-        await using var client = new GrpcA2AClient(address, new AgentCard { Name = "bad" }, new A2AClientOptions
+        await using var client = GrpcClientTransport.Instance.Create(GrpcInterface(address.ToString()), new AgentCard { Name = "bad" }, new A2AClientOptions
         {
             Extensions = ["urn:a", "urn:b"],
             Credentials = new FixedCredentials(new Dictionary<string, string> { ["X-API-Key"] = "k", ["Authorization"] = "Bearer t" }),
-        });
+        }, null);
 
         var noPayload = await Assert.ThrowsAsync<A2AException>(async () => await client.SendMessageAsync(Send("x"), Ct));
         Assert.Equal(A2AErrorCode.InvalidAgentResponse, noPayload.Code);

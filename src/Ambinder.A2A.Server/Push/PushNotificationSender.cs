@@ -19,7 +19,7 @@ namespace Ambinder.A2A.Server.Push;
 /// A failing webhook is retried (<see cref="PushOptions.MaxRetries"/>, exponential backoff), then logged and given up on.
 /// When a task is terminal, its configs are removed after the last delivery for that event finishes.
 /// </summary>
-public sealed class PushNotificationSender : BackgroundService, ITaskEventObserver
+internal sealed class PushNotificationSender : BackgroundService, ITaskEventObserver
 {
     public const string HttpClientName = "a2a-push";
     private const int QueueCapacity = 10_000;
@@ -63,7 +63,7 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
             Activity.Current?.Context ?? default); // the delivery span joins the trace of whatever committed the event
         if (!_channel.Writer.TryWrite(item))
         {
-            _logger.LogWarning("Push queue is full; dropped an event of task {TaskId}", item.TaskId);
+            Log.PushQueueFull(_logger, item.TaskId);
             CountDelivery(item.AgentName, "dropped");
         }
         return ValueTask.CompletedTask;
@@ -131,7 +131,7 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Push delivery failed unexpectedly for task {TaskId}", item.TaskId);
+                Log.PushDeliveryFailedUnexpectedly(_logger, ex, item.TaskId);
             }
         }
     }
@@ -187,7 +187,7 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
                 var code = (int)response.StatusCode;
                 if (code is >= 400 and < 500 && code is not (408 or 429))
                 {
-                    _logger.LogWarning("Push to {Url} for task {TaskId} was rejected ({Failure}); not retrying", where, item.TaskId, failure);
+                    Log.PushRejected(_logger, where, item.TaskId, failure);
                     return "failed";
                 }
             }
@@ -202,13 +202,13 @@ public sealed class PushNotificationSender : BackgroundService, ITaskEventObserv
 
             if (attempt == attempts)
             {
-                _logger.LogWarning("Push to {Url} for task {TaskId} failed after {Attempts} attempts ({Failure}); giving up", where, item.TaskId, attempts, failure);
+                Log.PushGaveUp(_logger, where, item.TaskId, attempts, failure);
                 return "failed";
             }
 
             CountDelivery(item.AgentName, "retried");
             var delay = _options.InitialBackoff * Math.Pow(2, attempt - 1);
-            _logger.LogInformation("Push to {Url} for task {TaskId} failed ({Failure}); retry {Attempt} of {Retries} in {Delay}", where, item.TaskId, failure, attempt, attempts - 1, delay);
+            Log.PushRetrying(_logger, where, item.TaskId, failure, attempt, attempts - 1, delay);
             try { await Task.Delay(delay, _time, ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return "canceled"; }
 

@@ -1,5 +1,4 @@
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.AspNetCore.Grpc;
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
 using AgentServer.Agents;

@@ -5,7 +5,7 @@ using System.Text;
 namespace Ambinder.A2A.Server.Tasks;
 
 /// <summary>Opaque cursor for ListTasks: the (status timestamp, task id) of the last item returned.</summary>
-public static class PageToken
+internal static class PageToken
 {
     /// <summary>Encodes a cursor as base64url of <c>utcTicks:id</c>.</summary>
     public static string Encode(DateTimeOffset timestamp, string taskId)

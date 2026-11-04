@@ -20,8 +20,21 @@ public static class A2AClientFactory
     /// interface and no gRPC transport is registered, the message says to add the <c>Ambinder.A2A.Client.Grpc</c> package and
     /// <c>GrpcClientTransport.Instance</c> to <see cref="A2AClientOptions.Transports"/>. The chosen interface's
     /// <c>tenant</c> is sent on every request (spec 8.3.2); a request with a different tenant throws <see cref="ArgumentException"/>.
-    /// The result is a <see cref="TracingA2AClient"/> (one span per call); its <see cref="TracingA2AClient.Inner"/> is the transport client.
+    /// The result is an <see cref="IA2AClient"/> for the chosen interface; each call creates one client span.
     /// </summary>
+    /// <param name="card">The card of the agent to call. Get it with <see cref="A2ACardResolver"/>.</param>
+    /// <param name="options">The client options.</param>
+    /// <returns>A client for the chosen interface. Dispose it when you are done.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="card"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="NotSupportedException">The card has no interface this client can use, or the interface URL is not valid.</exception>
+    /// <remarks>This factory is interim. A later preview replaces it with a new way to create clients, and this type will be removed then.</remarks>
+    /// <example>
+    /// <code>
+    /// // requires: HttpClient http;
+    /// var card = await new A2ACardResolver(http).GetAgentCardAsync(new Uri("https://agents.contoso.com/"));
+    /// await using IA2AClient client = A2AClientFactory.Create(card, new A2AClientOptions { HttpClient = http });
+    /// </code>
+    /// </example>
     public static IA2AClient Create(AgentCard card, A2AClientOptions options)
     {
         ArgumentNullException.ThrowIfNull(card);

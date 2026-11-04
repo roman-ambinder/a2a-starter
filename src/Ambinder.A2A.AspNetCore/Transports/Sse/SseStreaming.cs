@@ -14,26 +14,29 @@ internal static class SseStreaming
     public static async Task RunAsync(HttpContext http, IAsyncEnumerable<StreamResponse> events,
         Func<StreamResponse, byte[]> frame, Func<A2AException, byte[]> errorFrame, ILogger logger, CancellationToken ct)
     {
-        await using var e = events.GetAsyncEnumerator(ct);
-        var hasFirst = await e.MoveNextAsync().ConfigureAwait(false);
-        await SseWriter.StartAsync(http.Response, ct).ConfigureAwait(false);
-        if (!hasFirst) return;
+        var e = events.GetAsyncEnumerator(ct);
+        await using (e.ConfigureAwait(false))
+        {
+            var hasFirst = await e.MoveNextAsync().ConfigureAwait(false);
+            await SseWriter.StartAsync(http.Response, ct).ConfigureAwait(false);
+            if (!hasFirst) return;
 
-        try
-        {
-            do
+            try
             {
-                await SseWriter.WriteEventAsync(http.Response, frame(e.Current), ct).ConfigureAwait(false);
+                do
+                {
+                    await SseWriter.WriteEventAsync(http.Response, frame(e.Current), ct).ConfigureAwait(false);
+                }
+                while (await e.MoveNextAsync().ConfigureAwait(false));
             }
-            while (await e.MoveNextAsync().ConfigureAwait(false));
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Client disconnected: only this subscriber ends.
-        }
-        catch (Exception ex)
-        {
-            await SseWriter.WriteEventAsync(http.Response, errorFrame(TransportErrors.ToA2AException(ex, logger)), ct).ConfigureAwait(false);
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Client disconnected: only this subscriber ends.
+            }
+            catch (Exception ex)
+            {
+                await SseWriter.WriteEventAsync(http.Response, errorFrame(TransportErrors.ToA2AException(ex, logger)), ct).ConfigureAwait(false);
+            }
         }
     }
 }

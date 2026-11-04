@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Server.Agents;
+using Ambinder.A2A.Server;
 
 /// <summary>Behaviors keyed by messageId prefix, as the TCK scenarios (scenarios/*.feature) define them.</summary>
 internal sealed class TckAgent : IAgentHandler

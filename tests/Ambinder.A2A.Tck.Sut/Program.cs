@@ -1,6 +1,6 @@
+using Ambinder.A2A.Server;
 using System.Text.Json;
 using Ambinder.A2A.Protocol;
-using Ambinder.A2A.Server.Agents;
 using Ambinder.A2A.AspNetCore.Grpc;
 using Ambinder.A2A.AspNetCore.Hosting;
 using Ambinder.A2A.Server.Hosting;
