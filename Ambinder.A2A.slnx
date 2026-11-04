@@ -8,6 +8,9 @@
     <Project Path="src/Ambinder.A2A.Client.Grpc/Ambinder.A2A.Client.Grpc.csproj" />
     <Project Path="src/Ambinder.A2A.Client.Entra/Ambinder.A2A.Client.Entra.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Ambinder.A2A.Benchmarks/Ambinder.A2A.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/AgentClient/AgentClient.csproj" />
     <Project Path="samples/AgentServer/AgentServer.csproj" />
