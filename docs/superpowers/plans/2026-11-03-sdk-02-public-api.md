@@ -44,6 +44,26 @@ This plan assumes package 01 (rename and split to `Ambinder.A2A.*`) is merged in
 
 If an assumption is false in a way that a step below does not already cover, **stop and ask the owner.** Do not invent a workaround.
 
+### Checked against the package 01 branch (2026-11-04)
+
+Package 01 is being executed on branch `claude/admiring-turing-74whwp`. At its commit `2dc0c16` (not yet merged), the assumptions above compared like this. Task 0 still checks them on `master` after 01 merges, because the branch can change.
+
+| # | On the 01 branch | Effect on this plan |
+|---|---|---|
+| A1 | `Ambinder.A2A.slnx` exists. | none |
+| A2 | The seven shipped projects exist, with the folder = assembly = package rule. Test projects: `Protocol.Tests`, `Server.Tests`, `Client.Grpc.Tests`, `Integration.Tests`, `MockEntra.Tests`, `Tck.Sut`, `Coexistence`, `CoreOnly.Smoke`. There is no `AspNetCore.Tests` or `Client.Tests` project. | Tests for AspNetCore or Client internals go to `Integration.Tests` (allowed by the owner decision in Task 3.1), or to a new matching `*.Tests` project. |
+| A3 | Namespaces follow the folders, for example `Ambinder.A2A.Server.Tasks`, `Ambinder.A2A.AspNetCore.Hosting`, `Ambinder.A2A.AspNetCore.Transports.Rest`. `ProtoMapper` is in `Ambinder.A2A.Protocol.ProtoMapping` inside both gRPC assemblies. The registration classes are `A2AServiceCollectionExtensions` (`AddA2AServerCore`, in `Ambinder.A2A.Server.Hosting`) and `A2AAspNetCoreServiceCollectionExtensions` (`AddA2AServer`, in `Ambinder.A2A.AspNetCore.Hosting`); the names differ, so Task 5.1 can move both into `Microsoft.Extensions.DependencyInjection`. | Task 5.1 keeps the class names unique within that namespace. |
+| A4 | Both gRPC projects compile `proto/a2a.proto` with `Access="Internal"` and link `src/Grpc.Shared/*.cs`; `ProtoMapper` is internal. | Task 3.2 has nothing to do for `ProtoMapper` and `Lf.A2a.V1`. |
+| A5 | `src/Shared/` holds `ClientSupport.cs`, `RequestValidator.cs`, `TransportErrors.cs` and `TransportRequest.cs` (internal). `PageToken` and `TaskStateRules` are still public in `Ambinder.A2A.Server`; `RequestValidation` and `ServiceParameters` are still public in `Ambinder.A2A.AspNetCore`. | Task 3.2 and step 3.2a apply as written. |
+| A6 | `src/Directory.Build.props` sets `GenerateDocumentationFile=true`, `EnablePackageValidation=true` and `<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>`. There is no `src/Directory.Build.targets`. | Task 10.1 removes **both** suppressions. Task 9.2 creates the targets file. |
+| A7 | `InternalsVisibleTo`: Server → `Server.Tests`; Client → `Integration.Tests`; Client.Grpc → `Client.Grpc.Tests`; the `GettingStarted.Agent` sample → `Integration.Tests` (a sample, not shipped). | none |
+| A8 | `eng/package-dependencies.json` has a `packages` object keyed by package ID, each with `dependencies` and `frameworkReferences`. | none (`ShippedAssemblies` reads the `src/` projects, not this file) |
+| A9 | `CODEOWNERS` routes `**/PublicAPI.*.txt` to `@roman-ambinder`; the PR template has "Public API files (`PublicAPI.*.txt`) reviewed"; `CONTRIBUTING.md` and `CHANGELOG.md` exist. | Task 14.2 adds nothing. |
+| A10 | `ci.yml` has `build-and-test` (and `pack`, `samples-on-packages`, `core-only`, `reproducibility`, hook jobs). It runs tests with `dotnet test --solution Ambinder.A2A.slnx`. | The test commands in this plan use the same `--solution` form. |
+| A11 | `Protocol.Tests` and `Integration.Tests` compile `proto/a2a.proto` (and `Protocol.Tests` also `src/Grpc.Shared/*.cs`) into themselves, so they see the generated types without `InternalsVisibleTo` and without type clashes. | Task 3.4 has nothing to do (see there). |
+| A12 | `samples/GettingStarted.Agent` and `samples/GettingStarted.Client` exist. | Task 5.4 uses them. |
+| A13 | Not checked in full; the public type list matches spec 02 section 3 for the types listed above. | Task 0 compares the full list. |
+
 ## Facts from the current code (Phase 1, before 01)
 
 These were checked in the repo when this plan was written. They drive several steps.
@@ -72,7 +92,7 @@ These were checked in the repo when this plan was written. They drive several st
 - **Every made-internal or moved public type gets two records:** a line under "Breaking changes" in `CHANGELOG.md` (preview section), and a row in `docs/migration/phase1-map.csv` (format from spec 13 section 5: `old symbol,new symbol,package,change`; create the file with that header line if it does not exist yet).
 - **Package 03 runs alongside.** The package 03 plan (`docs/superpowers/plans/2026-11-03-sdk-03-spec-conformance.md`, section 0.4) follows this plan's rules for its new public types (`IA2AVersionDispatcher`, `A2AVersionDispatchContext`, `IA2ACallerResolver`, `IAgentCardContributor`, `AgentCardContext`, `A2AException.Details`, and `A2AServerOptions.InterfaceTenants` unless package 07's `A2ASecurityOptions.Tenants` replaced it: 03 plan Task 14). There is no `A2AAgentRoute`: the package 15 plan's D1 (owner decision 2026-11-03) replaced it with `A2AVersionDispatchContext` *(cross-plan review)*. Either plan may land first. Where both change the same thing (`ProtoEnumConverter<T>` internal, `TaskStateRules` internal in `src/Shared`), do the change only if it is not already done, and keep the checks of both plans.
 - **Package 05 may land first.** The package 05 plan (`docs/superpowers/plans/2026-11-03-sdk-05-stores.md`) replaces the Phase 1 store contract: it deletes `PageToken` (now internal `PageTokens` in `src/Shared/Stores/`), replaces `ITaskStore`, `IPushConfigStore`, `StoredTask`, `InMemoryTaskStore` and `InMemoryPushConfigStore`, and adds `InMemoryOutboxStore` and `InMemoryInstanceStore` as `internal`. In Task 3, skip a row whose type no longer exists or is already internal, and do not recreate a deleted type. The same holds for package 08, which removes `PushNotificationSender`, `PushSigningKey` and `WebhookUrlValidator` (and package 06, which removes `TaskEventBroker`) if it lands first.
-- **Commands:** build with `dotnet build Ambinder.A2A.slnx -c Release`; test with `dotnet test Ambinder.A2A.slnx -c Release`. A step that says "build" means this command passes with zero warnings.
+- **Commands:** build with `dotnet build Ambinder.A2A.slnx -c Release`; test with `dotnet test --solution Ambinder.A2A.slnx -c Release` (the form package 01's CI uses with Microsoft.Testing.Platform). A step that says "build" means this command passes with zero warnings.
 
 ## Review focus
 
@@ -108,7 +128,7 @@ No code changes. The output is a short "Package 01 facts" section for the execut
   - A11: `git grep -ln "ProtoMapper\|Lf.A2a.V1" -- tests` and the `ProjectReference`/`Aliases` lines of those test projects
   - A12: `ls samples/`
   - A13: `git grep -nE '^\s*public (static |sealed |abstract |partial |readonly )*(class|record|interface|enum|struct)\b' -- 'src/**/*.cs'` and compare with spec 02 section 3
-- [ ] **0.3** `dotnet build Ambinder.A2A.slnx -c Release && dotnet test Ambinder.A2A.slnx -c Release`. Both must pass before any change. Record the test count.
+- [ ] **0.3** `dotnet build Ambinder.A2A.slnx -c Release && dotnet test --solution Ambinder.A2A.slnx -c Release`. Both must pass before any change. Record the test count.
 - [ ] **0.4** If any assumption is false and the matching step does not already say what to do, stop and ask the owner.
 
 ---
@@ -507,7 +527,7 @@ Types that stay public in this task (owned by 05, 07, 08, 11; spec 02 section 3)
 ```
 
 Add the `Benchmarks` line only if a benchmarks project exists (package 14 adds it otherwise).
-- [ ] **3.4** gRPC tests (A11). If `ProtoMapper` and `Lf.A2a.V1` types are now internal in two assemblies (`AspNetCore.Grpc`, `Client.Grpc`), a test that sees both through `InternalsVisibleTo` gets "type exists in both assemblies" errors (CS0433). Follow whatever 01 did (A11). If 01 did nothing because the types were still public: give `InternalsVisibleTo` from `Ambinder.A2A.AspNetCore.Grpc` to `Ambinder.A2A.AspNetCore.Grpc.Tests` and from `Ambinder.A2A.Client.Grpc` to `Ambinder.A2A.Client.Grpc.Tests`, move the proto round-trip and mapper tests into those projects (create them, same shape as other test projects), and in `Ambinder.A2A.Integration.Tests` reference the gRPC types through an `extern alias` on one of the two project references (`<ProjectReference ... Aliases="grpcserver" />` and `extern alias grpcserver;` in the files that use `Lf.A2a.V1`). The proto round-trip tests must stay byte-for-byte the same.
+- [ ] **3.4** gRPC tests (A11). On the package 01 branch this is already solved: `Protocol.Tests` and `Integration.Tests` compile the proto (and `Protocol.Tests` the `Grpc.Shared` files) into themselves. If that is still true after 01 merges, skip this step. Otherwise: If `ProtoMapper` and `Lf.A2a.V1` types are now internal in two assemblies (`AspNetCore.Grpc`, `Client.Grpc`), a test that sees both through `InternalsVisibleTo` gets "type exists in both assemblies" errors (CS0433). Follow whatever 01 did (A11). If 01 did nothing because the types were still public: give `InternalsVisibleTo` from `Ambinder.A2A.AspNetCore.Grpc` to `Ambinder.A2A.AspNetCore.Grpc.Tests` and from `Ambinder.A2A.Client.Grpc` to `Ambinder.A2A.Client.Grpc.Tests`, move the proto round-trip and mapper tests into those projects (create them, same shape as other test projects), and in `Ambinder.A2A.Integration.Tests` reference the gRPC types through an `extern alias` on one of the two project references (`<ProjectReference ... Aliases="grpcserver" />` and `extern alias grpcserver;` in the files that use `Lf.A2a.V1`). The proto round-trip tests must stay byte-for-byte the same.
 - [ ] **3.5** Fix public XML docs that `cref` a type that is now internal (for example the `AddA2AServer` summary names `TaskManager` and `TracingRequestHandler`). Rewrite the sentence in terms of what the caller gets (`IA2ARequestHandler`), not the internal class.
 - [ ] **3.6** Build the whole solution, including `samples/` and `tests/A2A.Tck.Sut` (renamed by 01). Run all tests. They pass with only access-modifier and `using` changes.
 - [ ] **3.7** Records: one `CHANGELOG.md` "Breaking changes" line per type made internal (group by package), and the matching rows in `docs/migration/phase1-map.csv` with `change` = `now internal` (or `replaced by <X>` when the spec names the replacement, for example `TaskEventBroker` → `replaced by ITaskEventBus (package 06)`, `PushSigningKey` → `replaced by IPushSigningKeySource (package 08)`).
@@ -808,7 +828,7 @@ The largest task. Split it across subagents by package (10a Protocol, 10b Server
 - Implementations of documented members use `<inheritdoc/>`.
 - Text style: short, plain sentences.
 
-- [ ] **10.1** Remove the CS1591 suppression that 01 added (A6). Keep `GenerateDocumentationFile=true`. Build: CS1591 errors list every undocumented member.
+- [ ] **10.1** Remove the CS1591 **and CS1573** suppressions that 01 added (A6: `<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>` in `src/Directory.Build.props`). CS1573 (some but not all parameters documented) is part of the same doc rule. Keep `GenerateDocumentationFile=true`. Build: CS1591 errors list every undocumented member.
 - [ ] **10a / 10b / 10c** For the subagent's packages: write the docs until the build has no CS1591 and no CS1570–CS1574, CS1584, CS1587 (malformed docs; they are errors through `TreatWarningsAsErrors`). Do not change code, only comments. Build and run all tests after each package. Commit per package: `docs(<package>): complete XML docs`.
 - [ ] **10.2** Check that the `.xml` file is in each `.nupkg`: `dotnet pack Ambinder.A2A.slnx -c Release -o artifacts/packages` and list each package (`unzip -l <file>.nupkg | grep "lib/net10.0/.*\.xml"`). If 01's pack job already checks this, note that and skip the manual check.
 
@@ -938,7 +958,7 @@ Match the `actions/checkout` version to the one in `ci.yml` at execution time (P
 
 ### Task 15: Final check against the acceptance criteria
 
-- [ ] **15.1** Clean build and full test run: `git clean -xdf -e .vs -e .idea && dotnet build Ambinder.A2A.slnx -c Release && dotnet test Ambinder.A2A.slnx -c Release`. Zero warnings. Test count is at least the Task 0 count plus the new tests.
+- [ ] **15.1** Clean build and full test run: `git clean -xdf -e .vs -e .idea && dotnet build Ambinder.A2A.slnx -c Release && dotnet test --solution Ambinder.A2A.slnx -c Release`. Zero warnings. Test count is at least the Task 0 count plus the new tests.
 - [ ] **15.2** Go through the M1 rows of the coverage table below. For each, write in the PR description where it is proven (test name, command output or file).
 - [ ] **15.3** The PR description has: "Package 01 facts" (Task 0), "Decisions for the owner" (any stop-and-ask items; Task 3.1 is already decided), the API gate proof (Task 9.8), the per-package public type counts (Task 9.5), and the owner actions (making `public-api-diff` a required check).
 
