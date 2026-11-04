@@ -2,3 +2,5 @@ Ambinder.A2A
 Copyright (c) Roman Ambinder
 
 This product includes proto/a2a.proto from the A2A project (https://github.com/a2aproject/A2A), licensed under the Apache License, Version 2.0. Source: https://raw.githubusercontent.com/a2aproject/A2A/v1.0.1/specification/a2a.proto (release tag v1.0.1).
+
+This product includes RFC 8785 test data under tests/vectors/card-signing/jcs/: the input/output pairs are copied from https://github.com/cyberphone/json-canonicalization (testdata/, commit 32a48195b9b20fe67b1795e39e4509f14d860b45), Copyright 2018 Anders Rundgren, licensed under the Apache License, Version 2.0. The number samples come from RFC 8785 Appendix B (https://www.rfc-editor.org/rfc/rfc8785#appendix-B), Copyright (c) 2020 IETF Trust and the persons identified as the document authors.

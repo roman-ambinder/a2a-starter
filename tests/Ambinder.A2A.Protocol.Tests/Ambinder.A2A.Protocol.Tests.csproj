@@ -31,5 +31,6 @@
   <ItemGroup>
     <Compile Include="../Shared/WireFixtures/*.cs" Link="Shared/WireFixtures/%(Filename)%(Extension)" />
     <None Include="../vectors/wire/**/*.json" Link="vectors/wire/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../vectors/card-signing/**" Link="vectors/card-signing/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

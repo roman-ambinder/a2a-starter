@@ -8,6 +8,10 @@
     <Using Include="System.Text.Json" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The matching test assembly only (spec 01 rule 6 allows this); no shipped assembly sees internals. -->
+    <InternalsVisibleTo Include="Ambinder.A2A.Protocol.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Internal helper compiled into each package that needs it (spec 01 rule 10), not shared through InternalsVisibleTo. -->
     <Compile Include="../Shared/ErrorDetailsFlattener.cs" Link="Shared/ErrorDetailsFlattener.cs" />
   </ItemGroup>
