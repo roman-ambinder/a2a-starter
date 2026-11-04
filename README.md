@@ -127,6 +127,7 @@ Telemetry is off by default. Nothing is exported unless `OTEL_EXPORTER_OTLP_ENDP
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on every push to `master`. It restores, builds and tests `Ambinder.A2A.slnx` in Release on Ubuntu, with the SDK from `global.json`. A new push to the same ref cancels the run before it.
+On pull requests the `public-api-diff` job also writes the change to the `PublicAPI.*.txt` files into the job summary.
 It does not run the TCK or start Docker or the AppHost.
 
 `.github/dependabot.yml` opens weekly update pull requests for NuGet packages, GitHub Actions and the Docker base images in `docker/`.
