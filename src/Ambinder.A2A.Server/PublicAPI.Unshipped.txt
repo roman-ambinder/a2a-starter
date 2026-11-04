@@ -152,6 +152,170 @@ Ambinder.A2A.Server.Stores.A2AStoreException
 Ambinder.A2A.Server.Stores.A2AStoreException.A2AStoreException(Ambinder.A2A.Server.Stores.StoreErrorKind kind, string! message, System.Exception? inner = null, bool? isTransient = null) -> void
 Ambinder.A2A.Server.Stores.A2AStoreException.IsTransient.get -> bool
 Ambinder.A2A.Server.Stores.A2AStoreException.Kind.get -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.A2AStoreOptions
+Ambinder.A2A.Server.Stores.A2AStoreOptions.A2AStoreOptions() -> void
+Ambinder.A2A.Server.Stores.A2AStoreOptions.InterruptedTaskTtl.get -> System.TimeSpan?
+Ambinder.A2A.Server.Stores.A2AStoreOptions.InterruptedTaskTtl.set -> void
+Ambinder.A2A.Server.Stores.A2AStoreOptions.PurgeBatchSize.get -> int
+Ambinder.A2A.Server.Stores.A2AStoreOptions.PurgeBatchSize.set -> void
+Ambinder.A2A.Server.Stores.A2AStoreOptions.PurgeInterval.get -> System.TimeSpan
+Ambinder.A2A.Server.Stores.A2AStoreOptions.PurgeInterval.set -> void
+Ambinder.A2A.Server.Stores.A2AStoreOptions.TerminalTaskTtl.get -> System.TimeSpan?
+Ambinder.A2A.Server.Stores.A2AStoreOptions.TerminalTaskTtl.set -> void
+Ambinder.A2A.Server.Stores.CreateResult
+Ambinder.A2A.Server.Stores.CreateResult.CreateResult() -> void
+Ambinder.A2A.Server.Stores.CreateResult.CreateResult(Ambinder.A2A.Server.Stores.StoredTask! Task, bool Created) -> void
+Ambinder.A2A.Server.Stores.CreateResult.Created.get -> bool
+Ambinder.A2A.Server.Stores.CreateResult.Created.init -> void
+Ambinder.A2A.Server.Stores.CreateResult.Deconstruct(out Ambinder.A2A.Server.Stores.StoredTask! Task, out bool Created) -> void
+Ambinder.A2A.Server.Stores.CreateResult.Equals(Ambinder.A2A.Server.Stores.CreateResult other) -> bool
+Ambinder.A2A.Server.Stores.CreateResult.Task.get -> Ambinder.A2A.Server.Stores.StoredTask!
+Ambinder.A2A.Server.Stores.CreateResult.Task.init -> void
+Ambinder.A2A.Server.Stores.IInstanceStore
+Ambinder.A2A.Server.Stores.IInstanceStore.DeleteAsync(string! instanceId, string! expectedVersion, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IInstanceStore.HeartbeatAsync(Ambinder.A2A.Server.Stores.InstanceLease! lease, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.InstanceLease!>
+Ambinder.A2A.Server.Stores.IInstanceStore.ListAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.InstanceLease!>!>
+Ambinder.A2A.Server.Stores.IInstanceStore.ListExpiredAsync(System.DateTimeOffset now, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.InstanceLease!>!>
+Ambinder.A2A.Server.Stores.IOutboxStore
+Ambinder.A2A.Server.Stores.IOutboxStore.ClaimDueAsync(string! claimant, System.DateTimeOffset now, System.TimeSpan claimFor, int max, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.OutboxEntry!>!>
+Ambinder.A2A.Server.Stores.IOutboxStore.CompleteAsync(Ambinder.A2A.Server.Stores.OutboxEntry! claimed, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IOutboxStore.DeadLetterAsync(Ambinder.A2A.Server.Stores.OutboxEntry! claimed, string! reason, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IOutboxStore.GetDeadLetterAsync(string! id, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.OutboxEntry?>
+Ambinder.A2A.Server.Stores.IOutboxStore.GetPendingStatsAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.OutboxStats>
+Ambinder.A2A.Server.Stores.IOutboxStore.ListDeadLettersAsync(Ambinder.A2A.Server.Stores.OwnerScope? scope, int max, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.OutboxEntry!>!>
+Ambinder.A2A.Server.Stores.IOutboxStore.PurgeDeadLettersAsync(System.DateTimeOffset deadLetteredBefore, int max, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<int>
+Ambinder.A2A.Server.Stores.IOutboxStore.QueryDeadLettersAsync(Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery! query, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.OutboxEntryPage!>
+Ambinder.A2A.Server.Stores.IOutboxStore.RequeueDeadLetterAsync(string! id, System.DateTimeOffset nextAttemptAt, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<bool>
+Ambinder.A2A.Server.Stores.IOutboxStore.RescheduleAsync(Ambinder.A2A.Server.Stores.OutboxEntry! claimed, System.DateTimeOffset nextAttemptAt, string? lastError, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IOutboxStore.TryClaimAsync(string! id, string! claimant, System.DateTimeOffset now, System.TimeSpan claimFor, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.OutboxEntry?>
+Ambinder.A2A.Server.Stores.IPushConfigStore
+Ambinder.A2A.Server.Stores.IPushConfigStore.CountAsync(Ambinder.A2A.Server.Stores.TaskRef task, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<int>
+Ambinder.A2A.Server.Stores.IPushConfigStore.DeleteAllAsync(Ambinder.A2A.Server.Stores.TaskRef task, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IPushConfigStore.DeleteAsync(Ambinder.A2A.Server.Stores.TaskRef task, string! configId, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.IPushConfigStore.GetAllAsync(Ambinder.A2A.Server.Stores.TaskRef task, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.StoredPushConfig!>!>
+Ambinder.A2A.Server.Stores.IPushConfigStore.GetAsync(Ambinder.A2A.Server.Stores.TaskRef task, string! configId, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.StoredPushConfig?>
+Ambinder.A2A.Server.Stores.IPushConfigStore.ListAsync(Ambinder.A2A.Server.Stores.TaskRef task, int pageSize, long? afterSequence, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.PushConfigPage!>
+Ambinder.A2A.Server.Stores.IPushConfigStore.UpsertAsync(Ambinder.A2A.Server.Stores.TaskRef task, Ambinder.A2A.Protocol.TaskPushNotificationConfig! config, string? protocolVersion, string? issuer, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.StoredPushConfig!>
+Ambinder.A2A.Server.Stores.IStoreCapabilities
+Ambinder.A2A.Server.Stores.IStoreCapabilities.Capabilities.get -> Ambinder.A2A.Server.Stores.StoreCapabilities!
+Ambinder.A2A.Server.Stores.IStoreFaultInjector
+Ambinder.A2A.Server.Stores.IStoreFaultInjector.FailNextWrite(Ambinder.A2A.Server.Stores.StoreFaultPoint point) -> void
+Ambinder.A2A.Server.Stores.IStoreHealthProbe
+Ambinder.A2A.Server.Stores.IStoreHealthProbe.IsHealthyAsync(System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<bool>
+Ambinder.A2A.Server.Stores.ITaskStore
+Ambinder.A2A.Server.Stores.ITaskStore.CreateAsync(Ambinder.A2A.Server.Stores.TaskWrite! write, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.CreateResult>
+Ambinder.A2A.Server.Stores.ITaskStore.DeleteAsync(Ambinder.A2A.Server.Stores.TaskKey key, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<bool>
+Ambinder.A2A.Server.Stores.ITaskStore.GetAsync(Ambinder.A2A.Server.Stores.TaskKey key, string? ownerHint, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.StoredTask?>
+Ambinder.A2A.Server.Stores.ITaskStore.ListAsync(Ambinder.A2A.Server.Stores.TaskQuery! query, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.TaskPage!>
+Ambinder.A2A.Server.Stores.ITaskStore.ListByRunnerAsync(string! instanceId, int max, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.StoredTask!>!>
+Ambinder.A2A.Server.Stores.ITaskStore.ListCancelRequestsAsync(string! instanceId, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.TaskKey>!>
+Ambinder.A2A.Server.Stores.ITaskStore.ListReleasedAsync(System.DateTimeOffset olderThan, int limit, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.StoredTask!>!>
+Ambinder.A2A.Server.Stores.ITaskStore.PurgeExpiredAsync(System.DateTimeOffset now, int max, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<int>
+Ambinder.A2A.Server.Stores.ITaskStore.UpdateAsync(Ambinder.A2A.Server.Stores.TaskWrite! write, string! expectedVersion, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<Ambinder.A2A.Server.Stores.StoredTask!>
+Ambinder.A2A.Server.Stores.ITaskWriteContributor
+Ambinder.A2A.Server.Stores.ITaskWriteContributor.ContributeAsync(Ambinder.A2A.Server.Stores.TaskWriteContext! context, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
+Ambinder.A2A.Server.Stores.InMemoryOutboxOptions
+Ambinder.A2A.Server.Stores.InMemoryOutboxOptions.Capacity.get -> int
+Ambinder.A2A.Server.Stores.InMemoryOutboxOptions.Capacity.set -> void
+Ambinder.A2A.Server.Stores.InMemoryOutboxOptions.InMemoryOutboxOptions() -> void
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.InMemoryTaskStoreOptions() -> void
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.MaxPushConfigs.get -> int
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.MaxPushConfigs.set -> void
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.MaxTasks.get -> int
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.MaxTasks.set -> void
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.TerminalTaskTtl.get -> System.TimeSpan?
+Ambinder.A2A.Server.Stores.InMemoryTaskStoreOptions.TerminalTaskTtl.set -> void
+Ambinder.A2A.Server.Stores.InstanceLease
+Ambinder.A2A.Server.Stores.InstanceLease.<Clone>$() -> Ambinder.A2A.Server.Stores.InstanceLease!
+Ambinder.A2A.Server.Stores.InstanceLease.Equals(Ambinder.A2A.Server.Stores.InstanceLease? other) -> bool
+Ambinder.A2A.Server.Stores.InstanceLease.ExpiresAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.InstanceLease.ExpiresAt.init -> void
+Ambinder.A2A.Server.Stores.InstanceLease.InstanceId.get -> string!
+Ambinder.A2A.Server.Stores.InstanceLease.InstanceId.init -> void
+Ambinder.A2A.Server.Stores.InstanceLease.InstanceLease() -> void
+Ambinder.A2A.Server.Stores.InstanceLease.InternalAddress.get -> string?
+Ambinder.A2A.Server.Stores.InstanceLease.InternalAddress.init -> void
+Ambinder.A2A.Server.Stores.InstanceLease.StartedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.InstanceLease.StartedAt.init -> void
+Ambinder.A2A.Server.Stores.InstanceLease.Status.get -> Ambinder.A2A.Server.Stores.InstanceStatus
+Ambinder.A2A.Server.Stores.InstanceLease.Status.init -> void
+Ambinder.A2A.Server.Stores.InstanceLease.Version.get -> string?
+Ambinder.A2A.Server.Stores.InstanceLease.Version.init -> void
+Ambinder.A2A.Server.Stores.InstanceStatus
+Ambinder.A2A.Server.Stores.InstanceStatus.Active = 0 -> Ambinder.A2A.Server.Stores.InstanceStatus
+Ambinder.A2A.Server.Stores.InstanceStatus.Draining = 1 -> Ambinder.A2A.Server.Stores.InstanceStatus
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.<Clone>$() -> Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery!
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Agent.get -> string?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Agent.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Cursor.get -> string?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Cursor.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.DeadLetteredAfter.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.DeadLetteredAfter.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.DeadLetteredBefore.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.DeadLetteredBefore.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Equals(Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery? other) -> bool
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Kind.get -> string?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Kind.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Max.get -> int
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Max.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.OutboxDeadLetterQuery() -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.TaskId.get -> string?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.TaskId.init -> void
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Tenant.get -> string?
+Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Tenant.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry
+Ambinder.A2A.Server.Stores.OutboxEntry.<Clone>$() -> Ambinder.A2A.Server.Stores.OutboxEntry!
+Ambinder.A2A.Server.Stores.OutboxEntry.Attempts.get -> int
+Ambinder.A2A.Server.Stores.OutboxEntry.Attempts.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.ClaimExpiresAt.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.OutboxEntry.ClaimExpiresAt.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.ClaimedBy.get -> string?
+Ambinder.A2A.Server.Stores.OutboxEntry.ClaimedBy.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.CreatedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.OutboxEntry.CreatedAt.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.DeadLetteredAt.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.OutboxEntry.DeadLetteredAt.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Equals(Ambinder.A2A.Server.Stores.OutboxEntry? other) -> bool
+Ambinder.A2A.Server.Stores.OutboxEntry.Id.get -> string!
+Ambinder.A2A.Server.Stores.OutboxEntry.Id.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Kind.get -> string!
+Ambinder.A2A.Server.Stores.OutboxEntry.Kind.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Lane.get -> string!
+Ambinder.A2A.Server.Stores.OutboxEntry.Lane.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.LastError.get -> string?
+Ambinder.A2A.Server.Stores.OutboxEntry.LastError.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.NextAttemptAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.OutboxEntry.NextAttemptAt.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.OutboxEntry() -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Payload.get -> System.ReadOnlyMemory<byte>
+Ambinder.A2A.Server.Stores.OutboxEntry.Payload.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Sequence.get -> long
+Ambinder.A2A.Server.Stores.OutboxEntry.Sequence.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Task.get -> Ambinder.A2A.Server.Stores.TaskKey
+Ambinder.A2A.Server.Stores.OutboxEntry.Task.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntry.Version.get -> string?
+Ambinder.A2A.Server.Stores.OutboxEntry.Version.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntryPage
+Ambinder.A2A.Server.Stores.OutboxEntryPage.<Clone>$() -> Ambinder.A2A.Server.Stores.OutboxEntryPage!
+Ambinder.A2A.Server.Stores.OutboxEntryPage.Equals(Ambinder.A2A.Server.Stores.OutboxEntryPage? other) -> bool
+Ambinder.A2A.Server.Stores.OutboxEntryPage.Items.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.OutboxEntry!>!
+Ambinder.A2A.Server.Stores.OutboxEntryPage.Items.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntryPage.NextCursor.get -> string?
+Ambinder.A2A.Server.Stores.OutboxEntryPage.NextCursor.init -> void
+Ambinder.A2A.Server.Stores.OutboxEntryPage.OutboxEntryPage() -> void
+Ambinder.A2A.Server.Stores.OutboxStats
+Ambinder.A2A.Server.Stores.OutboxStats.DeadLettered.get -> long
+Ambinder.A2A.Server.Stores.OutboxStats.DeadLettered.init -> void
+Ambinder.A2A.Server.Stores.OutboxStats.Deconstruct(out long Pending, out System.DateTimeOffset? OldestCreatedAt, out long DeadLettered) -> void
+Ambinder.A2A.Server.Stores.OutboxStats.Equals(Ambinder.A2A.Server.Stores.OutboxStats other) -> bool
+Ambinder.A2A.Server.Stores.OutboxStats.OldestCreatedAt.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.OutboxStats.OldestCreatedAt.init -> void
+Ambinder.A2A.Server.Stores.OutboxStats.OutboxStats() -> void
+Ambinder.A2A.Server.Stores.OutboxStats.OutboxStats(long Pending, System.DateTimeOffset? OldestCreatedAt, long DeadLettered) -> void
+Ambinder.A2A.Server.Stores.OutboxStats.Pending.get -> long
+Ambinder.A2A.Server.Stores.OutboxStats.Pending.init -> void
 Ambinder.A2A.Server.Stores.OwnerScope
 Ambinder.A2A.Server.Stores.OwnerScope.Agent.get -> string!
 Ambinder.A2A.Server.Stores.OwnerScope.Agent.init -> void
@@ -163,12 +327,38 @@ Ambinder.A2A.Server.Stores.OwnerScope.OwnerScope() -> void
 Ambinder.A2A.Server.Stores.OwnerScope.OwnerScope(string! Tenant, string! Agent, string! Owner) -> void
 Ambinder.A2A.Server.Stores.OwnerScope.Tenant.get -> string!
 Ambinder.A2A.Server.Stores.OwnerScope.Tenant.init -> void
+Ambinder.A2A.Server.Stores.PushConfigPage
+Ambinder.A2A.Server.Stores.PushConfigPage.<Clone>$() -> Ambinder.A2A.Server.Stores.PushConfigPage!
+Ambinder.A2A.Server.Stores.PushConfigPage.Configs.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.StoredPushConfig!>!
+Ambinder.A2A.Server.Stores.PushConfigPage.Configs.init -> void
+Ambinder.A2A.Server.Stores.PushConfigPage.Equals(Ambinder.A2A.Server.Stores.PushConfigPage? other) -> bool
+Ambinder.A2A.Server.Stores.PushConfigPage.NextAfter.get -> long?
+Ambinder.A2A.Server.Stores.PushConfigPage.NextAfter.init -> void
+Ambinder.A2A.Server.Stores.PushConfigPage.PushConfigPage() -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities
+Ambinder.A2A.Server.Stores.StoreCapabilities.<Clone>$() -> Ambinder.A2A.Server.Stores.StoreCapabilities!
+Ambinder.A2A.Server.Stores.StoreCapabilities.Durable.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.Durable.init -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.Equals(Ambinder.A2A.Server.Stores.StoreCapabilities? other) -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.FaultInjection.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.FaultInjection.init -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.KeyUniqueAcrossOwners.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.KeyUniqueAcrossOwners.init -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.NativeTtl.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.NativeTtl.init -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.OutboxClaimIsCrossPartition.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.OutboxClaimIsCrossPartition.init -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.StoreCapabilities() -> void
+Ambinder.A2A.Server.Stores.StoreCapabilities.SupportsClusterMode.get -> bool
+Ambinder.A2A.Server.Stores.StoreCapabilities.SupportsClusterMode.init -> void
 Ambinder.A2A.Server.Stores.StoreErrorKind
 Ambinder.A2A.Server.Stores.StoreErrorKind.AlreadyExists = 1 -> Ambinder.A2A.Server.Stores.StoreErrorKind
 Ambinder.A2A.Server.Stores.StoreErrorKind.Capacity = 3 -> Ambinder.A2A.Server.Stores.StoreErrorKind
 Ambinder.A2A.Server.Stores.StoreErrorKind.Conflict = 0 -> Ambinder.A2A.Server.Stores.StoreErrorKind
 Ambinder.A2A.Server.Stores.StoreErrorKind.NotFound = 2 -> Ambinder.A2A.Server.Stores.StoreErrorKind
 Ambinder.A2A.Server.Stores.StoreErrorKind.Unavailable = 4 -> Ambinder.A2A.Server.Stores.StoreErrorKind
+Ambinder.A2A.Server.Stores.StoreFaultPoint
+Ambinder.A2A.Server.Stores.StoreFaultPoint.AfterTaskBeforeOutbox = 0 -> Ambinder.A2A.Server.Stores.StoreFaultPoint
 Ambinder.A2A.Server.Stores.StoredCaller
 Ambinder.A2A.Server.Stores.StoredCaller.<Clone>$() -> Ambinder.A2A.Server.Stores.StoredCaller!
 Ambinder.A2A.Server.Stores.StoredCaller.AppId.get -> string?
@@ -185,6 +375,20 @@ Ambinder.A2A.Server.Stores.StoredCaller.Scopes.init -> void
 Ambinder.A2A.Server.Stores.StoredCaller.StoredCaller() -> void
 Ambinder.A2A.Server.Stores.StoredCaller.UserObjectId.get -> string?
 Ambinder.A2A.Server.Stores.StoredCaller.UserObjectId.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig
+Ambinder.A2A.Server.Stores.StoredPushConfig.<Clone>$() -> Ambinder.A2A.Server.Stores.StoredPushConfig!
+Ambinder.A2A.Server.Stores.StoredPushConfig.Config.get -> Ambinder.A2A.Protocol.TaskPushNotificationConfig!
+Ambinder.A2A.Server.Stores.StoredPushConfig.Config.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig.CreatedAt.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.StoredPushConfig.CreatedAt.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig.CreatedSequence.get -> long
+Ambinder.A2A.Server.Stores.StoredPushConfig.CreatedSequence.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig.Equals(Ambinder.A2A.Server.Stores.StoredPushConfig? other) -> bool
+Ambinder.A2A.Server.Stores.StoredPushConfig.Issuer.get -> string?
+Ambinder.A2A.Server.Stores.StoredPushConfig.Issuer.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig.ProtocolVersion.get -> string?
+Ambinder.A2A.Server.Stores.StoredPushConfig.ProtocolVersion.init -> void
+Ambinder.A2A.Server.Stores.StoredPushConfig.StoredPushConfig() -> void
 Ambinder.A2A.Server.Stores.StoredTask
 Ambinder.A2A.Server.Stores.StoredTask.<Clone>$() -> Ambinder.A2A.Server.Stores.StoredTask!
 Ambinder.A2A.Server.Stores.StoredTask.Caller.get -> Ambinder.A2A.Server.Stores.StoredCaller?
@@ -219,6 +423,15 @@ Ambinder.A2A.Server.Stores.StoredTask.UpdatedAt.get -> System.DateTimeOffset
 Ambinder.A2A.Server.Stores.StoredTask.UpdatedAt.init -> void
 Ambinder.A2A.Server.Stores.StoredTask.Version.get -> string?
 Ambinder.A2A.Server.Stores.StoredTask.Version.init -> void
+Ambinder.A2A.Server.Stores.TaskCursor
+Ambinder.A2A.Server.Stores.TaskCursor.Deconstruct(out System.DateTimeOffset StatusTimestamp, out string! TaskId) -> void
+Ambinder.A2A.Server.Stores.TaskCursor.Equals(Ambinder.A2A.Server.Stores.TaskCursor other) -> bool
+Ambinder.A2A.Server.Stores.TaskCursor.StatusTimestamp.get -> System.DateTimeOffset
+Ambinder.A2A.Server.Stores.TaskCursor.StatusTimestamp.init -> void
+Ambinder.A2A.Server.Stores.TaskCursor.TaskCursor() -> void
+Ambinder.A2A.Server.Stores.TaskCursor.TaskCursor(System.DateTimeOffset StatusTimestamp, string! TaskId) -> void
+Ambinder.A2A.Server.Stores.TaskCursor.TaskId.get -> string!
+Ambinder.A2A.Server.Stores.TaskCursor.TaskId.init -> void
 Ambinder.A2A.Server.Stores.TaskKey
 Ambinder.A2A.Server.Stores.TaskKey.Agent.get -> string!
 Ambinder.A2A.Server.Stores.TaskKey.Agent.init -> void
@@ -230,6 +443,36 @@ Ambinder.A2A.Server.Stores.TaskKey.TaskKey() -> void
 Ambinder.A2A.Server.Stores.TaskKey.TaskKey(string! Tenant, string! Agent, string! TaskId) -> void
 Ambinder.A2A.Server.Stores.TaskKey.Tenant.get -> string!
 Ambinder.A2A.Server.Stores.TaskKey.Tenant.init -> void
+Ambinder.A2A.Server.Stores.TaskPage
+Ambinder.A2A.Server.Stores.TaskPage.<Clone>$() -> Ambinder.A2A.Server.Stores.TaskPage!
+Ambinder.A2A.Server.Stores.TaskPage.Equals(Ambinder.A2A.Server.Stores.TaskPage? other) -> bool
+Ambinder.A2A.Server.Stores.TaskPage.Next.get -> Ambinder.A2A.Server.Stores.TaskCursor?
+Ambinder.A2A.Server.Stores.TaskPage.Next.init -> void
+Ambinder.A2A.Server.Stores.TaskPage.TaskPage() -> void
+Ambinder.A2A.Server.Stores.TaskPage.Tasks.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Protocol.AgentTask!>!
+Ambinder.A2A.Server.Stores.TaskPage.Tasks.init -> void
+Ambinder.A2A.Server.Stores.TaskPage.TotalSize.get -> int
+Ambinder.A2A.Server.Stores.TaskPage.TotalSize.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery
+Ambinder.A2A.Server.Stores.TaskQuery.<Clone>$() -> Ambinder.A2A.Server.Stores.TaskQuery!
+Ambinder.A2A.Server.Stores.TaskQuery.After.get -> Ambinder.A2A.Server.Stores.TaskCursor?
+Ambinder.A2A.Server.Stores.TaskQuery.After.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.ContextId.get -> string?
+Ambinder.A2A.Server.Stores.TaskQuery.ContextId.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.Equals(Ambinder.A2A.Server.Stores.TaskQuery? other) -> bool
+Ambinder.A2A.Server.Stores.TaskQuery.HistoryLength.get -> int?
+Ambinder.A2A.Server.Stores.TaskQuery.HistoryLength.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.IncludeArtifacts.get -> bool
+Ambinder.A2A.Server.Stores.TaskQuery.IncludeArtifacts.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.PageSize.get -> int
+Ambinder.A2A.Server.Stores.TaskQuery.PageSize.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.Scope.get -> Ambinder.A2A.Server.Stores.OwnerScope
+Ambinder.A2A.Server.Stores.TaskQuery.Scope.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.State.get -> Ambinder.A2A.Protocol.TaskState?
+Ambinder.A2A.Server.Stores.TaskQuery.State.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.StatusTimestampFrom.get -> System.DateTimeOffset?
+Ambinder.A2A.Server.Stores.TaskQuery.StatusTimestampFrom.init -> void
+Ambinder.A2A.Server.Stores.TaskQuery.TaskQuery() -> void
 Ambinder.A2A.Server.Stores.TaskRef
 Ambinder.A2A.Server.Stores.TaskRef.Deconstruct(out Ambinder.A2A.Server.Stores.TaskKey Key, out string! Owner) -> void
 Ambinder.A2A.Server.Stores.TaskRef.Equals(Ambinder.A2A.Server.Stores.TaskRef other) -> bool
@@ -247,6 +490,20 @@ Ambinder.A2A.Server.Stores.TaskRunner.Equals(Ambinder.A2A.Server.Stores.TaskRunn
 Ambinder.A2A.Server.Stores.TaskRunner.InstanceId.get -> string!
 Ambinder.A2A.Server.Stores.TaskRunner.InstanceId.init -> void
 Ambinder.A2A.Server.Stores.TaskRunner.TaskRunner() -> void
+Ambinder.A2A.Server.Stores.TaskWrite
+Ambinder.A2A.Server.Stores.TaskWrite.<Clone>$() -> Ambinder.A2A.Server.Stores.TaskWrite!
+Ambinder.A2A.Server.Stores.TaskWrite.Equals(Ambinder.A2A.Server.Stores.TaskWrite? other) -> bool
+Ambinder.A2A.Server.Stores.TaskWrite.Outbox.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.OutboxEntry!>!
+Ambinder.A2A.Server.Stores.TaskWrite.Outbox.init -> void
+Ambinder.A2A.Server.Stores.TaskWrite.Task.get -> Ambinder.A2A.Server.Stores.StoredTask!
+Ambinder.A2A.Server.Stores.TaskWrite.Task.init -> void
+Ambinder.A2A.Server.Stores.TaskWrite.TaskWrite() -> void
+Ambinder.A2A.Server.Stores.TaskWriteContext
+Ambinder.A2A.Server.Stores.TaskWriteContext.AddOutbox(Ambinder.A2A.Server.Stores.OutboxEntry! entry) -> void
+Ambinder.A2A.Server.Stores.TaskWriteContext.Event.get -> Ambinder.A2A.Protocol.StreamResponse!
+Ambinder.A2A.Server.Stores.TaskWriteContext.Next.get -> Ambinder.A2A.Server.Stores.StoredTask!
+Ambinder.A2A.Server.Stores.TaskWriteContext.Outbox.get -> System.Collections.Generic.IReadOnlyList<Ambinder.A2A.Server.Stores.OutboxEntry!>!
+Ambinder.A2A.Server.Stores.TaskWriteContext.Previous.get -> Ambinder.A2A.Server.Stores.StoredTask?
 Ambinder.A2A.Server.Tasks.ITaskEventObserver
 Ambinder.A2A.Server.Tasks.ITaskEventObserver.OnTaskEventAsync(Ambinder.A2A.Server.Tasks.StoredTask! task, Ambinder.A2A.Protocol.StreamResponse! evt, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask
 Ambinder.A2A.Server.Tasks.ITaskStore
@@ -272,6 +529,7 @@ const Ambinder.A2A.Server.Auth.CallerIdentity.ApiKeyClaim = "a2a:apikey" -> stri
 const Ambinder.A2A.Server.Auth.CallerIdentity.MappedTenantIdClaim = "http://schemas.microsoft.com/identity/claims/tenantid" -> string!
 const Ambinder.A2A.Server.Auth.CallerIdentity.TenantIdClaim = "tid" -> string!
 const Ambinder.A2A.Server.Auth.DefaultOwnerResolver.DefaultApiKeyAuthenticationType = "ApiKey" -> string!
+const Ambinder.A2A.Server.Stores.A2AStoreOptions.SectionName = "A2A:Store" -> string!
 override Ambinder.A2A.Server.A2ACallContext.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.A2ACallContext.GetHashCode() -> int
 override Ambinder.A2A.Server.A2ACallContext.ToString() -> string!
@@ -289,18 +547,51 @@ override Ambinder.A2A.Server.Security.OwnerKey.ToString() -> string!
 override Ambinder.A2A.Server.Security.TaskContinuationGrant.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Security.TaskContinuationGrant.GetHashCode() -> int
 override Ambinder.A2A.Server.Security.TaskContinuationGrant.ToString() -> string!
+override Ambinder.A2A.Server.Stores.CreateResult.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.InstanceLease.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.InstanceLease.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.InstanceLease.ToString() -> string!
+override Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.ToString() -> string!
+override Ambinder.A2A.Server.Stores.OutboxEntry.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.OutboxEntry.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.OutboxEntry.ToString() -> string!
+override Ambinder.A2A.Server.Stores.OutboxEntryPage.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.OutboxEntryPage.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.OutboxEntryPage.ToString() -> string!
+override Ambinder.A2A.Server.Stores.OutboxStats.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.OwnerScope.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.PushConfigPage.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.PushConfigPage.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.PushConfigPage.ToString() -> string!
+override Ambinder.A2A.Server.Stores.StoreCapabilities.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.StoreCapabilities.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.StoreCapabilities.ToString() -> string!
 override Ambinder.A2A.Server.Stores.StoredCaller.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Stores.StoredCaller.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.StoredCaller.ToString() -> string!
+override Ambinder.A2A.Server.Stores.StoredPushConfig.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.StoredPushConfig.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.StoredPushConfig.ToString() -> string!
 override Ambinder.A2A.Server.Stores.StoredTask.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Stores.StoredTask.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.StoredTask.ToString() -> string!
+override Ambinder.A2A.Server.Stores.TaskCursor.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.TaskKey.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskPage.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.TaskPage.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskPage.ToString() -> string!
+override Ambinder.A2A.Server.Stores.TaskQuery.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.TaskQuery.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskQuery.ToString() -> string!
 override Ambinder.A2A.Server.Stores.TaskRef.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.TaskRunner.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Stores.TaskRunner.GetHashCode() -> int
 override Ambinder.A2A.Server.Stores.TaskRunner.ToString() -> string!
+override Ambinder.A2A.Server.Stores.TaskWrite.Equals(object? obj) -> bool
+override Ambinder.A2A.Server.Stores.TaskWrite.GetHashCode() -> int
+override Ambinder.A2A.Server.Stores.TaskWrite.ToString() -> string!
 override Ambinder.A2A.Server.Tasks.StoredTask.Equals(object? obj) -> bool
 override Ambinder.A2A.Server.Tasks.StoredTask.GetHashCode() -> int
 override Ambinder.A2A.Server.Tasks.StoredTask.ToString() -> string!
@@ -321,24 +612,56 @@ static Ambinder.A2A.Server.Security.OwnerKey.operator !=(Ambinder.A2A.Server.Sec
 static Ambinder.A2A.Server.Security.OwnerKey.operator ==(Ambinder.A2A.Server.Security.OwnerKey left, Ambinder.A2A.Server.Security.OwnerKey right) -> bool
 static Ambinder.A2A.Server.Security.TaskContinuationGrant.operator !=(Ambinder.A2A.Server.Security.TaskContinuationGrant? left, Ambinder.A2A.Server.Security.TaskContinuationGrant? right) -> bool
 static Ambinder.A2A.Server.Security.TaskContinuationGrant.operator ==(Ambinder.A2A.Server.Security.TaskContinuationGrant? left, Ambinder.A2A.Server.Security.TaskContinuationGrant? right) -> bool
+static Ambinder.A2A.Server.Stores.CreateResult.operator !=(Ambinder.A2A.Server.Stores.CreateResult left, Ambinder.A2A.Server.Stores.CreateResult right) -> bool
+static Ambinder.A2A.Server.Stores.CreateResult.operator ==(Ambinder.A2A.Server.Stores.CreateResult left, Ambinder.A2A.Server.Stores.CreateResult right) -> bool
+static Ambinder.A2A.Server.Stores.InstanceLease.operator !=(Ambinder.A2A.Server.Stores.InstanceLease? left, Ambinder.A2A.Server.Stores.InstanceLease? right) -> bool
+static Ambinder.A2A.Server.Stores.InstanceLease.operator ==(Ambinder.A2A.Server.Stores.InstanceLease? left, Ambinder.A2A.Server.Stores.InstanceLease? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.operator !=(Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery? left, Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery.operator ==(Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery? left, Ambinder.A2A.Server.Stores.OutboxDeadLetterQuery? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxEntry.operator !=(Ambinder.A2A.Server.Stores.OutboxEntry? left, Ambinder.A2A.Server.Stores.OutboxEntry? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxEntry.operator ==(Ambinder.A2A.Server.Stores.OutboxEntry? left, Ambinder.A2A.Server.Stores.OutboxEntry? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxEntryPage.operator !=(Ambinder.A2A.Server.Stores.OutboxEntryPage? left, Ambinder.A2A.Server.Stores.OutboxEntryPage? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxEntryPage.operator ==(Ambinder.A2A.Server.Stores.OutboxEntryPage? left, Ambinder.A2A.Server.Stores.OutboxEntryPage? right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxStats.operator !=(Ambinder.A2A.Server.Stores.OutboxStats left, Ambinder.A2A.Server.Stores.OutboxStats right) -> bool
+static Ambinder.A2A.Server.Stores.OutboxStats.operator ==(Ambinder.A2A.Server.Stores.OutboxStats left, Ambinder.A2A.Server.Stores.OutboxStats right) -> bool
 static Ambinder.A2A.Server.Stores.OwnerScope.operator !=(Ambinder.A2A.Server.Stores.OwnerScope left, Ambinder.A2A.Server.Stores.OwnerScope right) -> bool
 static Ambinder.A2A.Server.Stores.OwnerScope.operator ==(Ambinder.A2A.Server.Stores.OwnerScope left, Ambinder.A2A.Server.Stores.OwnerScope right) -> bool
+static Ambinder.A2A.Server.Stores.PushConfigPage.operator !=(Ambinder.A2A.Server.Stores.PushConfigPage? left, Ambinder.A2A.Server.Stores.PushConfigPage? right) -> bool
+static Ambinder.A2A.Server.Stores.PushConfigPage.operator ==(Ambinder.A2A.Server.Stores.PushConfigPage? left, Ambinder.A2A.Server.Stores.PushConfigPage? right) -> bool
+static Ambinder.A2A.Server.Stores.StoreCapabilities.operator !=(Ambinder.A2A.Server.Stores.StoreCapabilities? left, Ambinder.A2A.Server.Stores.StoreCapabilities? right) -> bool
+static Ambinder.A2A.Server.Stores.StoreCapabilities.operator ==(Ambinder.A2A.Server.Stores.StoreCapabilities? left, Ambinder.A2A.Server.Stores.StoreCapabilities? right) -> bool
 static Ambinder.A2A.Server.Stores.StoredCaller.operator !=(Ambinder.A2A.Server.Stores.StoredCaller? left, Ambinder.A2A.Server.Stores.StoredCaller? right) -> bool
 static Ambinder.A2A.Server.Stores.StoredCaller.operator ==(Ambinder.A2A.Server.Stores.StoredCaller? left, Ambinder.A2A.Server.Stores.StoredCaller? right) -> bool
+static Ambinder.A2A.Server.Stores.StoredPushConfig.operator !=(Ambinder.A2A.Server.Stores.StoredPushConfig? left, Ambinder.A2A.Server.Stores.StoredPushConfig? right) -> bool
+static Ambinder.A2A.Server.Stores.StoredPushConfig.operator ==(Ambinder.A2A.Server.Stores.StoredPushConfig? left, Ambinder.A2A.Server.Stores.StoredPushConfig? right) -> bool
 static Ambinder.A2A.Server.Stores.StoredTask.operator !=(Ambinder.A2A.Server.Stores.StoredTask? left, Ambinder.A2A.Server.Stores.StoredTask? right) -> bool
 static Ambinder.A2A.Server.Stores.StoredTask.operator ==(Ambinder.A2A.Server.Stores.StoredTask? left, Ambinder.A2A.Server.Stores.StoredTask? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskCursor.operator !=(Ambinder.A2A.Server.Stores.TaskCursor left, Ambinder.A2A.Server.Stores.TaskCursor right) -> bool
+static Ambinder.A2A.Server.Stores.TaskCursor.operator ==(Ambinder.A2A.Server.Stores.TaskCursor left, Ambinder.A2A.Server.Stores.TaskCursor right) -> bool
 static Ambinder.A2A.Server.Stores.TaskKey.operator !=(Ambinder.A2A.Server.Stores.TaskKey left, Ambinder.A2A.Server.Stores.TaskKey right) -> bool
 static Ambinder.A2A.Server.Stores.TaskKey.operator ==(Ambinder.A2A.Server.Stores.TaskKey left, Ambinder.A2A.Server.Stores.TaskKey right) -> bool
+static Ambinder.A2A.Server.Stores.TaskPage.operator !=(Ambinder.A2A.Server.Stores.TaskPage? left, Ambinder.A2A.Server.Stores.TaskPage? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskPage.operator ==(Ambinder.A2A.Server.Stores.TaskPage? left, Ambinder.A2A.Server.Stores.TaskPage? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskQuery.operator !=(Ambinder.A2A.Server.Stores.TaskQuery? left, Ambinder.A2A.Server.Stores.TaskQuery? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskQuery.operator ==(Ambinder.A2A.Server.Stores.TaskQuery? left, Ambinder.A2A.Server.Stores.TaskQuery? right) -> bool
 static Ambinder.A2A.Server.Stores.TaskRef.operator !=(Ambinder.A2A.Server.Stores.TaskRef left, Ambinder.A2A.Server.Stores.TaskRef right) -> bool
 static Ambinder.A2A.Server.Stores.TaskRef.operator ==(Ambinder.A2A.Server.Stores.TaskRef left, Ambinder.A2A.Server.Stores.TaskRef right) -> bool
 static Ambinder.A2A.Server.Stores.TaskRunner.operator !=(Ambinder.A2A.Server.Stores.TaskRunner? left, Ambinder.A2A.Server.Stores.TaskRunner? right) -> bool
 static Ambinder.A2A.Server.Stores.TaskRunner.operator ==(Ambinder.A2A.Server.Stores.TaskRunner? left, Ambinder.A2A.Server.Stores.TaskRunner? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskWrite.operator !=(Ambinder.A2A.Server.Stores.TaskWrite? left, Ambinder.A2A.Server.Stores.TaskWrite? right) -> bool
+static Ambinder.A2A.Server.Stores.TaskWrite.operator ==(Ambinder.A2A.Server.Stores.TaskWrite? left, Ambinder.A2A.Server.Stores.TaskWrite? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
 ~override Ambinder.A2A.Server.Security.OwnerKey.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.CreateResult.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.CreateResult.ToString() -> string
+~override Ambinder.A2A.Server.Stores.OutboxStats.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.OutboxStats.ToString() -> string
 ~override Ambinder.A2A.Server.Stores.OwnerScope.Equals(object obj) -> bool
 ~override Ambinder.A2A.Server.Stores.OwnerScope.ToString() -> string
+~override Ambinder.A2A.Server.Stores.TaskCursor.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Stores.TaskCursor.ToString() -> string
 ~override Ambinder.A2A.Server.Stores.TaskKey.Equals(object obj) -> bool
 ~override Ambinder.A2A.Server.Stores.TaskKey.ToString() -> string
 ~override Ambinder.A2A.Server.Stores.TaskRef.Equals(object obj) -> bool
