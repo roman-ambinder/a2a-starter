@@ -230,3 +230,18 @@ static Ambinder.A2A.Server.Hosting.AgentCardContext.operator ==(Ambinder.A2A.Ser
 static Ambinder.A2A.Server.Tasks.StoredTask.operator !=(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Ambinder.A2A.Server.Tasks.StoredTask.operator ==(Ambinder.A2A.Server.Tasks.StoredTask? left, Ambinder.A2A.Server.Tasks.StoredTask? right) -> bool
 static Microsoft.Extensions.DependencyInjection.A2AServerCoreServiceCollectionExtensions.AddA2AServerCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Ambinder.A2A.Server.Hosting.A2AServerOptions!>! configure) -> Ambinder.A2A.Server.Hosting.A2AServerBuilder!
+Ambinder.A2A.Server.Push.IPushPayloadFormatter
+Ambinder.A2A.Server.Push.IPushPayloadFormatter.CanFormat(string! protocolVersion) -> bool
+Ambinder.A2A.Server.Push.IPushPayloadFormatter.Format(Ambinder.A2A.Server.Tasks.StoredTask! task, Ambinder.A2A.Protocol.StreamResponse! evt, Ambinder.A2A.Protocol.TaskPushNotificationConfig! config) -> Ambinder.A2A.Server.Push.PushPayload
+Ambinder.A2A.Server.Push.PushPayload
+Ambinder.A2A.Server.Push.PushPayload.Body.get -> System.ReadOnlyMemory<byte>
+Ambinder.A2A.Server.Push.PushPayload.Body.init -> void
+Ambinder.A2A.Server.Push.PushPayload.ContentType.get -> string!
+Ambinder.A2A.Server.Push.PushPayload.ContentType.init -> void
+Ambinder.A2A.Server.Push.PushPayload.PushPayload() -> void
+Ambinder.A2A.Server.Push.PushPayload.Equals(Ambinder.A2A.Server.Push.PushPayload other) -> bool
+override Ambinder.A2A.Server.Push.PushPayload.GetHashCode() -> int
+static Ambinder.A2A.Server.Push.PushPayload.operator !=(Ambinder.A2A.Server.Push.PushPayload left, Ambinder.A2A.Server.Push.PushPayload right) -> bool
+static Ambinder.A2A.Server.Push.PushPayload.operator ==(Ambinder.A2A.Server.Push.PushPayload left, Ambinder.A2A.Server.Push.PushPayload right) -> bool
+~override Ambinder.A2A.Server.Push.PushPayload.Equals(object obj) -> bool
+~override Ambinder.A2A.Server.Push.PushPayload.ToString() -> string
