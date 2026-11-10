@@ -18,7 +18,7 @@ RUN dotnet restore samples/AgentClient/AgentClient.csproj
 COPY . .
 RUN dotnet publish samples/AgentClient/AgentClient.csproj -c Release --no-restore -o /out
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:11.0 AS final
 WORKDIR /app
 COPY --from=build /out .
 # Defaults for the compose network (host names instead of localhost).
