@@ -19,7 +19,7 @@ RUN dotnet restore samples/MockEntra/MockEntra.csproj
 COPY . .
 RUN dotnet publish samples/MockEntra/MockEntra.csproj -c Release --no-restore -o /out
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS final
 # curl is only for the compose healthcheck.
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

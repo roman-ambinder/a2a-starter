@@ -20,7 +20,7 @@ COPY . .
 RUN dotnet publish samples/AgentServer/AgentServer.csproj -c Release --no-restore -o /out \
     && test -f /out/agentserver-config/appsettings.json
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS final
 # curl is only for the compose healthcheck.
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
