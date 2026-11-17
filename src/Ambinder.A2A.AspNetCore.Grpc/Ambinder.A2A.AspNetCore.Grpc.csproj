@@ -11,6 +11,7 @@
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Google.Api.CommonProtos" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Ambinder.A2A.AspNetCore/Ambinder.A2A.AspNetCore.csproj" />
