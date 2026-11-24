@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Dependency floor (spec 01 rule 7): the lowest .NET 10 version; Directory.Packages.props keeps the newest for tests and samples. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" VersionOverride="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="10.0.0" />
